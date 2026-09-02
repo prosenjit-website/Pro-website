@@ -1,868 +1,516 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>প্রসেনজিৎ রায় — ব্যক্তিগত পোর্টফোলিও</title>
+  <title id="pageTitle">প্রসেনজিৎ রায়</title>
 
-<meta name="description"
-content="প্রসেনজিৎ রায় — শিক্ষার্থী, স্বপ্নদ্রষ্টা ও সৃষ্টিশীল মানুষ।">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    html {
+      scroll-behavior: smooth;
+    }
 
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@500;600;700&display=swap" rel="stylesheet">
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b0b0b;
+      color: #fff;
+      line-height: 1.7;
+    }
 
-<link rel="stylesheet" href="/style.css">
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 18px 7%;
+      background: rgba(11,11,11,.95);
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #d7b56d;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 22px;
+      list-style: none;
+    }
+
+    .nav-links a:hover {
+      color: #d7b56d;
+    }
+
+    section {
+      padding: 90px 7%;
+    }
+
+    .hero {
+      min-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 1000px;
+    }
+
+    .hero h1 {
+      font-size: clamp(45px, 8vw, 90px);
+      line-height: 1.1;
+      color: #d7b56d;
+    }
+
+    .hero h2 {
+      margin: 20px 0;
+      font-size: 32px;
+    }
+
+    .hero p {
+      max-width: 700px;
+      color: #bbb;
+      font-size: 18px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 15px;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 13px 22px;
+      border: 1px solid #d7b56d;
+      border-radius: 8px;
+      color: #d7b56d;
+      transition: .2s;
+    }
+
+    .btn:hover {
+      background: #d7b56d;
+      color: #111;
+    }
+
+    .section-title {
+      color: #d7b56d;
+      font-size: 40px;
+      margin-bottom: 30px;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #151515;
+      border: 1px solid #292929;
+      border-radius: 15px;
+      padding: 25px;
+    }
+
+    .card h3 {
+      color: #d7b56d;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      color: #bbb;
+    }
+
+    .skill {
+      margin-bottom: 20px;
+    }
+
+    .skill-top {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .bar {
+      height: 8px;
+      background: #292929;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      background: #d7b56d;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      border-top: 1px solid #292929;
+      color: #888;
+    }
+
+    @media(max-width:700px) {
+      nav {
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+      }
+
+      section {
+        padding: 60px 5%;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<!-- NAVBAR -->
+<nav>
+  <div class="logo" id="logo">প্রসেনজিৎ রায়</div>
 
-<header class="navbar" id="navbar">
+  <ul class="nav-links">
+    <li><a href="#about">সম্পর্কে</a></li>
+    <li><a href="#education">শিক্ষা</a></li>
+    <li><a href="#skills">দক্ষতা</a></li>
+    <li><a href="#diary">দিনলিপি</a></li>
+    <li><a href="#projects">প্রজেক্ট</a></li>
+    <li><a href="#contact">যোগাযোগ</a></li>
+  </ul>
+</nav>
 
-  <a href="#home" class="brand">
-    প্রসেনজিৎ<span>.</span>
-  </a>
+<main>
 
-  <nav class="nav-links">
-    <a href="#home">হোম</a>
-    <a href="#about">আমার সম্পর্কে</a>
-    <a href="#education">শিক্ষাজীবন</a>
-    <a href="#skills">দক্ষতা</a>
-    <a href="#diary">আমার ডায়েরি</a>
-    <a href="#projects">প্রকল্পসমূহ</a>
-    <a href="#contact">যোগাযোগ</a>
-  </nav>
+  <section class="hero">
+    <h1 id="heroName">প্রসেনজিৎ রায়</h1>
+    <h2 id="heroTitle">স্বপ্ন দেখি, শিখি এবং তৈরি করি</h2>
+    <p id="heroDescription"></p>
 
-  <button class="menu-button" id="menuButton" aria-label="মেনু">
-    ⋮
-  </button>
+    <div class="buttons" id="heroButtons"></div>
+  </section>
 
-</header>
-
-
-<!-- MOBILE MENU -->
-
-<div class="mobile-menu" id="mobileMenu">
-
-  <a href="#home">হোম</a>
-  <a href="#about">আমার সম্পর্কে</a>
-  <a href="#education">শিক্ষাজীবন</a>
-  <a href="#skills">দক্ষতা</a>
-  <a href="#diary">আমার ডায়েরি</a>
-  <a href="#hobbies">হাবিজাবি</a>
-  <a href="#projects">প্রকল্পসমূহ</a>
-  <a href="#contact">যোগাযোগ</a>
-
-</div>
-
-
-<!-- HERO -->
-
-<section class="hero" id="home">
-
-  <div class="container hero-grid">
-
-    <div class="hero-content reveal">
-
-      <div class="eyebrow">
-        ব্যক্তিগত পোর্টফোলিও
-      </div>
-
-      <h1>
-        প্রসেনজিৎ
-        <span class="ray">রায়</span>
-      </h1>
-
-      <p class="hero-description">
-        আমি প্রসেনজিৎ রায়। দিনাজপুর সরকারি কলেজের
-        অনার্স ১ম বর্ষের একজন শিক্ষার্থী।
-        শিক্ষা, স্বপ্ন, অভিজ্ঞতা ও ভবিষ্যতের ভাবনাগুলো
-        একসাথে ধরে রাখার জন্য এটি আমার নিজস্ব ডিজিটাল জায়গা।
-      </p>
-
-      <div class="hero-actions">
-
-        <a href="#about" class="btn btn-primary">
-          আমার জগৎ দেখুন →
-        </a>
-
-        <a href="#diary" class="btn btn-outline">
-          আমার ডায়েরি পড়ুন
-        </a>
-
-      </div>
-
+  <section id="about">
+    <h2 class="section-title" id="aboutTitle">আমার সম্পর্কে</h2>
+    <div class="card">
+      <p id="aboutText"></p>
     </div>
+  </section>
 
+  <section id="education">
+    <h2 class="section-title">শিক্ষাজীবন</h2>
+    <div class="card-grid" id="educationList"></div>
+  </section>
 
-    <div class="profile-wrap reveal">
+  <section id="skills">
+    <h2 class="section-title">দক্ষতা</h2>
+    <div id="skillsList"></div>
+  </section>
 
-      <div class="profile-frame">
+  <section id="diary">
+    <h2 class="section-title">আমার দিনলিপি</h2>
+    <div class="card-grid" id="diaryList"></div>
+  </section>
 
-        <img
-          src="/profile.jpg"
-          alt="প্রসেনজিৎ রায়"
-          class="profile-image"
-          onerror="this.style.display='none';document.getElementById('fallback').style.display='flex';"
-        >
+  <section id="hobbies">
+    <h2 class="section-title">শখ</h2>
+    <div class="card-grid" id="hobbiesList"></div>
+  </section>
 
-        <div class="profile-fallback" id="fallback">
-          PR
-        </div>
+  <section id="projects">
+    <h2 class="section-title">প্রজেক্ট</h2>
+    <div class="card-grid" id="projectsList"></div>
+  </section>
 
-      </div>
-
-      <div class="floating-label">
-
-        <small>বর্তমানে</small>
-
-        <strong>
-          নিজের ভবিষ্যৎ গড়ছি
-        </strong>
-
-      </div>
-
+  <section id="vision">
+    <h2 class="section-title" id="visionTitle">আমার ভবিষ্যৎ ভাবনা</h2>
+    <div class="card">
+      <p id="visionText"></p>
     </div>
+  </section>
 
-  </div>
+  <section id="contact">
+    <h2 class="section-title">যোগাযোগ</h2>
 
-</section>
+    <div class="buttons" id="contactButtons"></div>
+  </section>
 
-
-<!-- MARQUEE -->
-
-<div class="marquee">
-
-  <div class="marquee-track">
-
-    প্রসেনজিৎ রায়
-    <span>✦</span>
-    স্বপ্ন • শিক্ষা • সৃষ্টি
-    <span>✦</span>
-    ব্যক্তিগত যাত্রা
-    <span>✦</span>
-
-    প্রসেনজিৎ রায়
-    <span>✦</span>
-    স্বপ্ন • শিক্ষা • সৃষ্টি
-    <span>✦</span>
-    ব্যক্তিগত যাত্রা
-    <span>✦</span>
-
-  </div>
-
-</div>
-
-
-<!-- ABOUT -->
-
-<section id="about">
-
-<div class="container">
-
-  <div class="section-head reveal">
-
-    <div>
-
-      <div class="section-number">
-        ০১ — আমার সম্পর্কে
-      </div>
-
-      <h2 class="section-title">
-        শুধু একটি<br>
-        নাম নয়।
-      </h2>
-
-    </div>
-
-    <p class="section-description">
-      আমি কে, কী শিখছি এবং ভবিষ্যতে
-      কেমন মানুষ হতে চাই—তার একটি ছোট্ট গল্প।
-    </p>
-
-  </div>
-
-
-  <div class="about-grid">
-
-    <div class="about-quote reveal">
-
-      “যাত্রাটাই আসল,
-      <span>লক্ষ্য নয় শুধু।</span>”
-
-    </div>
-
-
-    <div class="about-text reveal">
-
-      <p>
-        আমি প্রসেনজিৎ রায়। বর্তমানে
-        দিনাজপুর সরকারি কলেজে অনার্স ১ম বর্ষে পড়াশোনা করছি।
-      </p>
-
-      <p>
-        আমি বিশ্বাস করি, জীবন অনেকগুলো ছোট ছোট
-        অধ্যায়ের সমষ্টি। প্রতিটি অভিজ্ঞতা কিছু না কিছু শেখায়,
-        প্রতিটি ভুল আমাদের আরও ভালো হতে সাহায্য করে।
-      </p>
-
-      <p>
-        এই ওয়েবসাইট শুধু একটি পোর্টফোলিও নয়।
-        এটি আমার চিন্তা, স্বপ্ন, শিক্ষা, অভিজ্ঞতা
-        এবং ভবিষ্যতের পরিকল্পনার একটি ডিজিটাল জায়গা।
-      </p>
-
-
-      <div class="stats">
-
-        <div class="stat">
-          <strong>০১</strong>
-          <small>অনার্স বর্ষ</small>
-        </div>
-
-        <div class="stat">
-          <strong>∞</strong>
-          <small>স্বপ্নের শেষ নেই</small>
-        </div>
-
-        <div class="stat">
-          <strong>০১</strong>
-          <small>জীবনের যাত্রা</small>
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-
-</div>
-
-</section>
-
-
-<!-- EDUCATION -->
-
-<section id="education">
-
-<div class="container">
-
-  <div class="section-head reveal">
-
-    <div>
-
-      <div class="section-number">
-        ০২ — শিক্ষাজীবন
-      </div>
-
-      <h2 class="section-title">
-        যেখানে<br>
-        আমি শিখছি।
-      </h2>
-
-    </div>
-
-    <p class="section-description">
-      শিক্ষা শুধু সার্টিফিকেট পাওয়ার বিষয় নয়।
-      শিক্ষা হলো নিজেকে তৈরি করার একটি দীর্ঘ যাত্রা।
-    </p>
-
-  </div>
-
-
-  <div class="timeline">
-
-    <div class="timeline-item reveal">
-
-      <div class="timeline-dot"></div>
-
-      <div class="timeline-card">
-
-        <small>২০২৬ — বর্তমান</small>
-
-        <h3>অনার্স ১ম বর্ষ</h3>
-
-        <p>
-          দিনাজপুর সরকারি কলেজ
-        </p>
-
-      </div>
-
-    </div>
-
-
-    <div class="timeline-item reveal">
-
-      <div class="timeline-dot"></div>
-
-      <div class="timeline-card">
-
-        <small>শিক্ষার যাত্রা</small>
-
-        <h3>নিজেকে তৈরি করার সময়</h3>
-
-        <p>
-          নতুন কিছু শেখা, নতুন ধারণা নিয়ে ভাবা
-          এবং ভবিষ্যতের জন্য নিজেকে প্রস্তুত করা।
-        </p>
-
-      </div>
-
-    </div>
-
-  </div>
-
-</div>
-
-</section>
-
-
-<!-- SKILLS -->
-
-<section id="skills">
-
-<div class="container">
-
-  <div class="section-head reveal">
-
-    <div>
-
-      <div class="section-number">
-        ০৩ — দক্ষতা
-      </div>
-
-      <h2 class="section-title">
-        যেসব বিষয়<br>
-        শিখতে ভালোবাসি।
-      </h2>
-
-    </div>
-
-  </div>
-
-
-  <div class="skills-grid">
-
-    <div class="skill reveal">
-      <div class="skill-number">০১</div>
-      <h3>প্রযুক্তি</h3>
-      <p>আধুনিক প্রযুক্তি ও ডিজিটাল জগতের নতুন বিষয় আবিষ্কার করতে ভালোবাসি।</p>
-    </div>
-
-    <div class="skill reveal">
-      <div class="skill-number">০২</div>
-      <h3>সৃজনশীলতা</h3>
-      <p>নতুন ধারণাকে সুন্দর ও আকর্ষণীয়ভাবে প্রকাশ করতে ভালোবাসি।</p>
-    </div>
-
-    <div class="skill reveal">
-      <div class="skill-number">০৩</div>
-      <h3>যোগাযোগ</h3>
-      <p>নিজের চিন্তা ও ভাবনা পরিষ্কারভাবে প্রকাশ করার চেষ্টা করি।</p>
-    </div>
-
-    <div class="skill reveal">
-      <div class="skill-number">০৪</div>
-      <h3>শেখা</h3>
-      <p>প্রতিদিন নতুন কিছু শেখা ও নিজেকে উন্নত করা আমার লক্ষ্য।</p>
-    </div>
-
-    <div class="skill reveal">
-      <div class="skill-number">০৫</div>
-      <h3>সমস্যা সমাধান</h3>
-      <p>সমস্যার ভেতর থেকে সহজ ও ভালো সমাধান খুঁজে বের করতে চেষ্টা করি।</p>
-    </div>
-
-    <div class="skill reveal">
-      <div class="skill-number">০৬</div>
-      <h3>ভবিষ্যৎ দক্ষতা</h3>
-      <p>ভবিষ্যতের সুযোগের জন্য নিজেকে প্রস্তুত করছি।</p>
-    </div>
-
-  </div>
-
-</div>
-
-</section>
-
-
-<!-- DIARY -->
-
-<section id="diary">
-
-<div class="container">
-
-  <div class="section-head reveal">
-
-    <div>
-
-      <div class="section-number">
-        ০৪ — আমার ডায়েরি
-      </div>
-
-      <h2 class="section-title">
-        আমার জীবনের<br>
-        অধ্যায়গুলো।
-      </h2>
-
-    </div>
-
-    <p class="section-description">
-      কিছু মুহূর্ত সময়ের সাথে হারিয়ে যায়।
-      তাই আমার গল্পের কিছু অধ্যায় এখানে রেখে দিতে চাই।
-    </p>
-
-  </div>
-
-
-  <div class="diary-grid">
-
-    <article class="diary-card reveal">
-
-      <div class="diary-date">
-        অধ্যায় ০১
-      </div>
-
-      <h3>
-        শুরু
-      </h3>
-
-      <p>
-        প্রতিটি যাত্রার একটি শুরু থাকে।
-        এখান থেকেই আমার গল্পের প্রথম অধ্যায়।
-      </p>
-
-      <button
-        class="diary-open"
-        data-title="শুরু"
-        data-text="প্রতিটি যাত্রা শুরু হয় একটি ছোট্ট পদক্ষেপ দিয়ে। স্বপ্ন, প্রশ্ন, চ্যালেঞ্জ আর সম্ভাবনার মধ্য দিয়ে আমার গল্পের শুরু।"
-      >
-        অধ্যায় পড়ুন →
-      </button>
-
-    </article>
-
-
-    <article class="diary-card reveal">
-
-      <div class="diary-date">
-        অধ্যায় ০২
-      </div>
-
-      <h3>
-        নতুন অধ্যায়
-      </h3>
-
-      <p>
-        নতুন শিক্ষা, নতুন মানুষ,
-        নতুন অভিজ্ঞতা এবং নতুন দায়িত্ব।
-      </p>
-
-      <button
-        class="diary-open"
-        data-title="নতুন অধ্যায়"
-        data-text="নতুন একটি অধ্যায় মানে নতুন কিছু শেখা, নতুন মানুষের সাথে পরিচিত হওয়া এবং নিজের দায়িত্ব সম্পর্কে আরও সচেতন হওয়া।"
-      >
-        অধ্যায় পড়ুন →
-      </button>
-
-    </article>
-
-
-    <article class="diary-card reveal">
-
-      <div class="diary-date">
-        অধ্যায় ০৩
-      </div>
-
-      <h3>
-        ভবিষ্যৎ
-      </h3>
-
-      <p>
-        যে অধ্যায় এখনো লেখা হয়নি।
-      </p>
-
-      <button
-        class="diary-open"
-        data-title="ভবিষ্যৎ"
-        data-text="ডায়েরির সবচেয়ে সুন্দর পৃষ্ঠা হলো সেই পৃষ্ঠা, যেটি এখনো লেখা হয়নি। আমার ভবিষ্যতের গল্পও এখনো লেখা বাকি।"
-      >
-        অধ্যায় পড়ুন →
-      </button>
-
-    </article>
-
-  </div>
-
-</div>
-
-</section>
-
-
-<!-- HOBBIES -->
-
-<section id="hobbies">
-
-<div class="container">
-
-  <div class="section-head reveal">
-
-    <div>
-
-      <div class="section-number">
-        ০৫ — পড়াশোনার বাইরে
-      </div>
-
-      <h2 class="section-title">
-        যা আমাকে<br>
-        আমি করে।
-      </h2>
-
-    </div>
-
-  </div>
-
-
-  <div class="hobbies-grid">
-
-    <div class="hobby reveal">
-      <span>✦</span>
-      <h4>অনুসন্ধান</h4>
-      <p>নতুন কিছু আবিষ্কার করতে ভালোবাসি।</p>
-    </div>
-
-    <div class="hobby reveal">
-      <span>◌</span>
-      <h4>সঙ্গীত</h4>
-      <p>সুরের মাধ্যমে নতুন অনুভূতি খুঁজে পাই।</p>
-    </div>
-
-    <div class="hobby reveal">
-      <span>⌁</span>
-      <h4>প্রযুক্তি</h4>
-      <p>ডিজিটাল জগতের নতুন কিছু জানতে ভালোবাসি।</p>
-    </div>
-
-    <div class="hobby reveal">
-      <span>✎</span>
-      <h4>লেখালেখি</h4>
-      <p>ভাবনাগুলোকে শব্দে ধরে রাখতে ভালোবাসি।</p>
-    </div>
-
-  </div>
-
-</div>
-
-</section>
-
-
-<!-- PROJECTS -->
-
-<section id="projects">
-
-<div class="container">
-
-  <div class="section-head reveal">
-
-    <div>
-
-      <div class="section-number">
-        ০৬ — প্রকল্পসমূহ
-      </div>
-
-      <h2 class="section-title">
-        ভাবনাকে<br>
-        বাস্তবে রূপ দেওয়া।
-      </h2>
-
-    </div>
-
-    <p class="section-description">
-      ভবিষ্যতের বিভিন্ন কাজ, পরীক্ষা-নিরীক্ষা
-      এবং সৃষ্টিশীল ধারণাগুলোর জায়গা।
-    </p>
-
-  </div>
-
-
-  <div class="project-grid">
-
-    <div class="project reveal">
-
-      <div>
-
-        <div class="project-tag">
-          ব্যক্তিগত প্রকল্প
-        </div>
-
-        <h3>
-          আমার ডিজিটাল ডায়েরি
-        </h3>
-
-        <p>
-          জীবনের অভিজ্ঞতা, চিন্তা ও গুরুত্বপূর্ণ
-          মুহূর্তগুলো ডিজিটালভাবে সংরক্ষণ করার একটি ব্যক্তিগত জায়গা।
-        </p>
-
-      </div>
-
-      <div class="project-link">
-        বিস্তারিত দেখুন →
-      </div>
-
-    </div>
-
-
-    <div class="project reveal">
-
-      <div>
-
-        <div class="project-tag">
-          শীঘ্রই আসছে
-        </div>
-
-        <h3>
-          ভবিষ্যতের প্রকল্প
-        </h3>
-
-        <p>
-          নতুন একটি ধারণা নিয়ে কাজ করার প্রস্তুতি চলছে।
-        </p>
-
-      </div>
-
-      <div class="project-link">
-        অপেক্ষায় থাকুন →
-      </div>
-
-    </div>
-
-  </div>
-
-</div>
-
-</section>
-
-
-<!-- VISION -->
-
-<section class="vision">
-
-<div class="container">
-
-  <div class="vision-box reveal">
-
-    <small>
-      আমার লক্ষ্য
-    </small>
-
-    <h2>
-      একটি স্মরণীয়<br>
-      জীবন গড়া।
-    </h2>
-
-    <p>
-      আমি শুধু জীবন পার করতে চাই না।
-      আমি শিখতে চাই, তৈরি করতে চাই,
-      এগিয়ে যেতে চাই এবং এমন কিছু রেখে যেতে চাই
-      যা একদিন মনে রাখার মতো হবে।
-    </p>
-
-  </div>
-
-</div>
-
-</section>
-
-
-<!-- CONTACT -->
-
-<section id="contact">
-
-<div class="container">
-
-  <div class="section-head reveal">
-
-    <div>
-
-      <div class="section-number">
-        ০৭ — যোগাযোগ
-      </div>
-
-      <h2 class="section-title">
-        চলুন<br>
-        যোগাযোগ করি।
-      </h2>
-
-    </div>
-
-    <p class="section-description">
-      কথা বলতে, পরিচিত হতে অথবা যোগাযোগ রাখতে
-      নিচের মাধ্যমগুলো ব্যবহার করতে পারেন।
-    </p>
-
-  </div>
-
-
-  <div class="contact-grid">
-
-    <div class="contact-details reveal">
-
-      <a
-        href="https://facebook.com/YOUR_USERNAME"
-        target="_blank"
-        rel="noopener"
-        class="contact-card">
-
-        <div class="social-icon">f</div>
-
-        <div>
-          <small>ফেসবুক</small>
-          <strong>ফেসবুকে যোগাযোগ করুন →</strong>
-        </div>
-
-      </a>
-
-
-      <a
-        href="https://x.com/YOUR_USERNAME"
-        target="_blank"
-        rel="noopener"
-        class="contact-card">
-
-        <div class="social-icon">𝕏</div>
-
-        <div>
-          <small>এক্স</small>
-          <strong>এক্স-এ অনুসরণ করুন →</strong>
-        </div>
-
-      </a>
-
-
-      <a
-        href="https://wa.me/8801XXXXXXXXX"
-        target="_blank"
-        rel="noopener"
-        class="contact-card">
-
-        <div class="social-icon">W</div>
-
-        <div>
-          <small>হোয়াটসঅ্যাপ</small>
-          <strong>হোয়াটসঅ্যাপে কথা বলুন →</strong>
-        </div>
-
-      </a>
-
-
-      <a
-        href="tel:+8801XXXXXXXXX"
-        class="contact-card">
-
-        <div class="social-icon">☎</div>
-
-        <div>
-          <small>মোবাইল</small>
-          <strong>+৮৮০ ১XXXXXXXXX</strong>
-        </div>
-
-      </a>
-
-
-      <a
-        href="mailto:yourmail@gmail.com"
-        class="contact-card">
-
-        <div class="social-icon">@</div>
-
-        <div>
-          <small>ই-মেইল</small>
-          <strong>yourmail@gmail.com</strong>
-        </div>
-
-      </a>
-
-    </div>
-
-
-    <div class="contact-note reveal">
-
-      <div class="note-icon">✦</div>
-
-      <h3>
-        আপনার গল্পও গুরুত্বপূর্ণ।
-      </h3>
-
-      <p>
-        যোগাযোগের জন্য উপরের যেকোনো একটি
-        মাধ্যম ব্যবহার করতে পারেন।
-      </p>
-
-    </div>
-
-  </div>
-
-</div>
-
-</section>
-
-
-<!-- FOOTER -->
+</main>
 
 <footer>
-
-<div class="container footer-inner">
-
-  <p>
-    © <span id="year"></span>
-    প্রসেনজিৎ রায়।
-    সর্বস্বত্ব সংরক্ষিত।
-  </p>
-
-  <p>
-    নিজের যাত্রা, নিজের গল্প।
-    <span>✦</span>
-  </p>
-
-</div>
-
+  © <span id="year"></span> প্রসেনজিৎ রায় — সর্বস্বত্ব সংরক্ষিত।
 </footer>
 
+<script>
+async function loadPortfolio() {
+  try {
+    const response = await fetch("/api/portfolio");
+    const data = await response.json();
 
-<!-- DIARY READER -->
+    renderSite(data);
+  } catch (error) {
+    console.error("Portfolio load error:", error);
+  }
+}
 
-<div class="reader" id="reader">
+function renderSite(data) {
 
-  <button class="close-reader" id="closeReader">
-    ×
-  </button>
+  const site = data.site || {};
 
-  <div class="paper">
+  if (site.show !== false) {
+    document.getElementById("logo").textContent = site.name || "";
+    document.getElementById("heroName").textContent = site.name || "";
+    document.getElementById("heroTitle").textContent = site.title || "";
+    document.getElementById("heroDescription").textContent =
+      site.description || "";
+  }
 
-    <small id="readerChapter">
-      অধ্যায়
-    </small>
+  const sections = data.sections || {};
 
-    <h2 id="readerTitle">
-      অধ্যায়ের নাম
-    </h2>
+  toggleSection("about", sections.about);
+  toggleSection("education", sections.education);
+  toggleSection("skills", sections.skills);
+  toggleSection("diary", sections.diary);
+  toggleSection("hobbies", sections.hobbies);
+  toggleSection("projects", sections.projects);
+  toggleSection("vision", sections.vision);
+  toggleSection("contact", sections.contact);
 
-    <p id="readerText">
-      অধ্যায়ের লেখা...
-    </p>
+  renderButtons(data.buttons);
+  renderAbout(data.about);
+  renderEducation(data.education);
+  renderSkills(data.skills);
+  renderDiary(data.diary);
+  renderHobbies(data.hobbies);
+  renderProjects(data.projects);
+  renderVision(data.vision);
+  renderContact(data.contact);
 
-  </div>
+  document.getElementById("year").textContent =
+    new Date().getFullYear();
+}
 
-</div>
+function toggleSection(id, show) {
+  const el = document.getElementById(id);
 
+  if (el) {
+    el.style.display = show === false ? "none" : "";
+  }
+}
 
-<script src="/app.js"></script>
+function renderButtons(buttons = {}) {
+
+  const box = document.getElementById("heroButtons");
+  box.innerHTML = "";
+
+  Object.values(buttons).forEach(button => {
+
+    if (!button || button.show === false) return;
+
+    const a = document.createElement("a");
+
+    a.className = "btn";
+    a.textContent = button.text || "বিস্তারিত";
+    a.href = button.url || "#";
+
+    box.appendChild(a);
+  });
+}
+
+function renderAbout(about = {}) {
+
+  if (about.show === false) return;
+
+  document.getElementById("aboutTitle").textContent =
+    about.title || "আমার সম্পর্কে";
+
+  document.getElementById("aboutText").textContent =
+    about.text || "";
+}
+
+function renderEducation(items = []) {
+
+  const box = document.getElementById("educationList");
+
+  box.innerHTML = "";
+
+  items.forEach(item => {
+
+    if (item.show === false) return;
+
+    box.innerHTML += `
+      <article class="card">
+        <h3>${escapeHTML(item.title)}</h3>
+        <p>${escapeHTML(item.place)}</p>
+        <p>${escapeHTML(item.year)}</p>
+        <p>${escapeHTML(item.description)}</p>
+      </article>
+    `;
+  });
+}
+
+function renderSkills(items = []) {
+
+  const box = document.getElementById("skillsList");
+
+  box.innerHTML = "";
+
+  items.forEach(item => {
+
+    if (item.show === false) return;
+
+    box.innerHTML += `
+      <div class="skill">
+        <div class="skill-top">
+          <strong>${escapeHTML(item.name)}</strong>
+          <span>${Number(item.level) || 0}%</span>
+        </div>
+
+        <div class="bar">
+          <span style="width:${Number(item.level) || 0}%"></span>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function renderDiary(items = []) {
+
+  const box = document.getElementById("diaryList");
+
+  box.innerHTML = "";
+
+  items.forEach(item => {
+
+    if (item.show === false) return;
+
+    box.innerHTML += `
+      <article class="card">
+        <h3>${escapeHTML(item.title)}</h3>
+        <small>${escapeHTML(item.date)}</small>
+        <p>${escapeHTML(item.text)}</p>
+      </article>
+    `;
+  });
+}
+
+function renderHobbies(items = []) {
+
+  const box = document.getElementById("hobbiesList");
+
+  box.innerHTML = "";
+
+  items.forEach(item => {
+
+    if (item.show === false) return;
+
+    box.innerHTML += `
+      <article class="card">
+        <h3>${item.icon || "★"} ${escapeHTML(item.name)}</h3>
+      </article>
+    `;
+  });
+}
+
+function renderProjects(items = []) {
+
+  const box = document.getElementById("projectsList");
+
+  box.innerHTML = "";
+
+  items.forEach(item => {
+
+    if (item.show === false) return;
+
+    box.innerHTML += `
+      <article class="card">
+        <h3>${escapeHTML(item.title)}</h3>
+        <p>${escapeHTML(item.description)}</p>
+        ${
+          item.url
+          ? `<div class="buttons">
+               <a class="btn" href="${escapeAttribute(item.url)}">
+                 প্রজেক্ট দেখুন
+               </a>
+             </div>`
+          : ""
+        }
+      </article>
+    `;
+  });
+}
+
+function renderVision(vision = {}) {
+
+  if (vision.show === false) return;
+
+  document.getElementById("visionTitle").textContent =
+    vision.title || "আমার ভবিষ্যৎ ভাবনা";
+
+  document.getElementById("visionText").textContent =
+    vision.text || "";
+}
+
+function renderContact(contact = {}) {
+
+  const box = document.getElementById("contactButtons");
+
+  box.innerHTML = "";
+
+  const links = [
+    ["ই-মেইল", contact.email ? `mailto:${contact.email}` : ""],
+    ["Facebook", contact.facebook],
+    ["Instagram", contact.instagram],
+    ["GitHub", contact.github]
+  ];
+
+  links.forEach(([text, url]) => {
+
+    if (!url || url === "#") return;
+
+    box.innerHTML += `
+      <a class="btn"
+         href="${escapeAttribute(url)}"
+         target="_blank">
+        ${text}
+      </a>
+    `;
+  });
+}
+
+function escapeHTML(value) {
+
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function escapeAttribute(value) {
+  return escapeHTML(value);
+}
+
+loadPortfolio();
+</script>
 
 </body>
-           </html>
+        </html>
