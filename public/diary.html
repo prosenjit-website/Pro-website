@@ -1,290 +1,352 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
 
-  <meta charset="UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+<title>আমার ডায়েরি — প্রসেনজিৎ রায়</title>
 
-  <title>Diary — Prosenjit Ray</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <meta
-    name="description"
-    content="Personal diary and life chapters of Prosenjit Ray."
-  >
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="style.css">
+
+<style>
+
+.diary-page{
+padding:150px 0 100px;
+}
+
+.label{
+color:#c9a86a;
+font-size:12px;
+letter-spacing:3px;
+}
+
+h1{
+font-family:"Noto Serif Bengali",serif;
+font-size:clamp(45px,8vw,90px);
+line-height:1.1;
+margin:20px 0;
+}
+
+.intro{
+max-width:650px;
+color:#8f98a7;
+line-height:2;
+}
+
+.diary-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:18px;
+margin-top:70px;
+}
+
+.diary-card{
+min-height:300px;
+padding:28px;
+border:1px solid rgba(255,255,255,.09);
+border-radius:22px;
+background:rgba(255,255,255,.035);
+position:relative;
+transition:.3s;
+}
+
+.diary-card:hover{
+transform:translateY(-8px);
+border-color:rgba(201,168,106,.4);
+}
+
+.diary-date{
+color:#c9a86a;
+font-size:11px;
+letter-spacing:2px;
+}
+
+.diary-card h2{
+font-family:"Noto Serif Bengali",serif;
+font-size:27px;
+margin:55px 0 12px;
+}
+
+.diary-card p{
+color:#8f98a7;
+font-size:13px;
+line-height:1.8;
+}
+
+.read{
+position:absolute;
+bottom:25px;
+left:28px;
+border:0;
+background:none;
+color:#e0c58d;
+cursor:pointer;
+}
+
+.empty{
+margin-top:50px;
+padding:40px;
+border:1px dashed rgba(255,255,255,.15);
+border-radius:20px;
+text-align:center;
+color:#8f98a7;
+}
+
+.reader{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.85);
+backdrop-filter:blur(15px);
+display:flex;
+align-items:center;
+justify-content:center;
+padding:20px;
+opacity:0;
+visibility:hidden;
+transition:.3s;
+z-index:2000;
+}
+
+.reader.open{
+opacity:1;
+visibility:visible;
+}
+
+.paper{
+width:min(700px,100%);
+max-height:85vh;
+overflow:auto;
+padding:40px;
+background:#eee8da;
+color:#29251f;
+border-radius:8px;
+}
+
+.paper small{
+color:#806c4c;
+}
+
+.paper h2{
+font-family:"Noto Serif Bengali",serif;
+font-size:35px;
+margin:15px 0;
+}
+
+.paper p{
+line-height:2;
+}
+
+.close{
+position:absolute;
+top:25px;
+right:25px;
+width:45px;
+height:45px;
+border-radius:50%;
+border:1px solid rgba(255,255,255,.2);
+background:#111;
+color:white;
+font-size:22px;
+}
+
+@media(max-width:800px){
+.diary-grid{
+grid-template-columns:1fr 1fr;
+}
+}
+
+@media(max-width:600px){
+.diary-grid{
+grid-template-columns:1fr;
+}
+}
+
+</style>
 
 </head>
 
-
 <body>
 
-<header class="navbar">
+<header class="navbar" id="navbar">
 
-  <div class="nav-inner">
+<a href="index.html" class="brand">
+প্রসেনজিৎ<span>.</span>
+</a>
 
-    <a href="/" class="logo">
-      Prosenjit<span>.</span>
-    </a>
+<nav class="nav-links">
+<a href="index.html">হোম</a>
+<a href="about.html">আমার সম্পর্কে</a>
+<a href="education.html">শিক্ষাজীবন</a>
+<a href="diary.html" class="active">ডায়েরি</a>
+<a href="projects.html">প্রকল্প</a>
+<a href="contact.html" class="nav-contact">যোগাযোগ</a>
+</nav>
 
-    <nav class="nav-links">
-      <a href="/">Home</a>
-      <a href="/about.html">About</a>
-      <a href="/education.html">Education</a>
-      <a href="/diary.html">Diary</a>
-      <a href="/projects.html">Projects</a>
-      <a href="/contact.html">Contact</a>
-    </nav>
-
-    <button
-      class="menu-btn"
-      type="button"
-      aria-label="Open menu"
-      aria-expanded="false"
-    >
-      ☰
-    </button>
-
-  </div>
-
-
-  <div class="mobile-menu">
-
-    <a href="/">Home</a>
-    <a href="/about.html">About</a>
-    <a href="/education.html">Education</a>
-    <a href="/diary.html">Diary</a>
-    <a href="/projects.html">Projects</a>
-    <a href="/contact.html">Contact</a>
-
-  </div>
+<button class="menu-button" id="menuButton">⋮</button>
 
 </header>
 
+<div class="mobile-menu" id="mobileMenu">
+<a href="index.html">হোম</a>
+<a href="about.html">আমার সম্পর্কে</a>
+<a href="education.html">শিক্ষাজীবন</a>
+<a href="diary.html">ডায়েরি</a>
+<a href="projects.html">প্রকল্প</a>
+<a href="contact.html">যোগাযোগ</a>
+</div>
 
 <main>
 
-  <section class="page-hero">
+<section class="diary-page">
 
-    <div class="container reveal">
+<div class="container">
 
-      <div class="eyebrow">
-        Personal Diary
-      </div>
+<div class="label">০৪ — আমার ডায়েরি</div>
 
-      <h1>
-        My life,<br>
-        <span>my chapters.</span>
-      </h1>
+<h1>
+জীবনের<br>
+<span style="color:#c9a86a">অধ্যায়গুলো।</span>
+</h1>
 
-      <p>
-        A collection of thoughts, experiences, memories and moments
-        from my journey.
-      </p>
+<p class="intro">
+জীবনের কিছু মুহূর্ত সময়ের সাথে হারিয়ে যায়।
+এই ডায়েরিতে সেই মুহূর্ত, চিন্তা ও অভিজ্ঞতাগুলো ধরে রাখব।
+</p>
 
-    </div>
+<div class="diary-grid" id="diaryGrid"></div>
 
-  </section>
+<div class="empty" id="empty">
+ডায়েরির অধ্যায় লোড হচ্ছে...
+</div>
 
+</div>
 
-  <section>
-
-    <div class="container">
-
-      <!-- DIARY CONTENT WILL LOAD FROM DATABASE -->
-
-      <div
-        id="diaryContainer"
-        class="diary-grid"
-      >
-
-        <div class="glass diary-card reveal">
-
-          <div class="diary-date">
-            My Journey
-          </div>
-
-          <h3>
-            The Beginning
-          </h3>
-
-          <p>
-            Every journey starts with a first step. This space will
-            hold my personal stories and experiences.
-          </p>
-
-        </div>
-
-
-        <div class="glass diary-card reveal">
-
-          <div class="diary-date">
-            Coming Soon
-          </div>
-
-          <h3>
-            More Chapters
-          </h3>
-
-          <p>
-            New memories and chapters will appear here as my journey
-            continues.
-          </p>
-
-        </div>
-
-      </div>
-
-
-      <div style="height:30px;"></div>
-
-
-      <div class="glass cta reveal">
-
-        <h2>
-          More chapters<br>
-          are coming.
-        </h2>
-
-        <p>
-          Life is a story that keeps writing itself.
-        </p>
-
-        <a
-          href="/contact.html"
-          class="btn btn-primary"
-        >
-          Connect With Me →
-        </a>
-
-      </div>
-
-    </div>
-
-  </section>
+</section>
 
 </main>
 
+<div class="reader" id="reader">
+
+<button class="close" id="close">×</button>
+
+<div class="paper">
+
+<small id="readerDate"></small>
+
+<h2 id="readerTitle"></h2>
+
+<p id="readerText"></p>
+
+</div>
+
+</div>
 
 <footer>
-
-  <div class="container footer-inner">
-
-    <div class="footer-text">
-      © <span data-year></span> Prosenjit Ray.
-      Built with ambition.
-    </div>
-
-    <div class="socials">
-
-      <a
-        href="#"
-        data-social="facebook"
-      >f</a>
-
-      <a
-        href="#"
-        data-social="instagram"
-      >◎</a>
-
-      <a
-        href="#"
-        data-social="github"
-      >◇</a>
-
-    </div>
-
-  </div>
-
+<div class="container footer-inner">
+<p>© <span id="year"></span> প্রসেনজিৎ রায়</p>
+<p>আমার জীবনের ছোট ছোট গল্প।</p>
+</div>
 </footer>
 
-
-<script src="/app.js"></script>
-
+<script src="app.js"></script>
 
 <script>
 
-async function loadDiary() {
+const grid=document.getElementById("diaryGrid");
+const empty=document.getElementById("empty");
 
-  const container =
-    document.getElementById("diaryContainer");
+async function loadDiary(){
 
-  if (!container) return;
+try{
 
-  try {
+const res=await fetch("/api/diary");
 
-    const response =
-      await fetch("/api/diary");
+if(!res.ok) throw new Error();
 
-    if (!response.ok) {
-      throw new Error("Diary API error");
-    }
+const data=await res.json();
 
-    const diary =
-      await response.json();
+grid.innerHTML="";
 
-    if (!Array.isArray(diary) || diary.length === 0) {
-      return;
-    }
+if(!data.length){
 
-    container.innerHTML = "";
-
-    diary.forEach((item) => {
-
-      const card =
-        document.createElement("article");
-
-      card.className =
-        "glass diary-card reveal";
-
-      const date =
-        document.createElement("div");
-
-      date.className =
-        "diary-date";
-
-      date.textContent =
-        item.date || "Diary";
-
-      const title =
-        document.createElement("h3");
-
-      title.textContent =
-        item.title || "Untitled Chapter";
-
-      const text =
-        document.createElement("p");
-
-      text.textContent =
-        item.content || "";
-
-      card.appendChild(date);
-      card.appendChild(title);
-      card.appendChild(text);
-
-      container.appendChild(card);
-
-    });
-
-    document
-      .querySelectorAll(".reveal")
-      .forEach((element) => {
-        element.classList.add("show");
-      });
-
-  } catch (error) {
-
-    console.log(
-      "Diary could not be loaded."
-    );
-
-  }
+empty.textContent="এখনো কোনো ডায়েরি অধ্যায় যোগ করা হয়নি।";
+return;
 
 }
+
+empty.style.display="none";
+
+data.forEach((item,index)=>{
+
+const card=document.createElement("article");
+
+card.className="diary-card";
+
+card.innerHTML=`
+
+<div class="diary-date">
+অধ্যায় ${String(index+1).padStart(2,"0")}
+</div>
+
+<h2>${escapeHtml(item.title)}</h2>
+
+<p>${escapeHtml(item.excerpt || "")}</p>
+
+<button class="read">
+অধ্যায় খুলুন →
+</button>
+
+`;
+
+card.querySelector(".read").onclick=()=>{
+
+document.getElementById("readerDate").textContent=
+"অধ্যায় "+String(index+1).padStart(2,"0");
+
+document.getElementById("readerTitle").textContent=
+item.title;
+
+document.getElementById("readerText").textContent=
+item.content || item.text || "";
+
+document.getElementById("reader").classList.add("open");
+
+document.body.style.overflow="hidden";
+
+};
+
+grid.appendChild(card);
+
+});
+
+}catch(e){
+
+empty.textContent="ডায়েরি লোড করা যাচ্ছে না।";
+
+}
+
+}
+
+function escapeHtml(text){
+
+const div=document.createElement("div");
+div.textContent=text ?? "";
+return div.innerHTML;
+
+}
+
+document.getElementById("close").onclick=()=>{
+
+document.getElementById("reader").classList.remove("open");
+document.body.style.overflow="";
+
+};
 
 loadDiary();
 
