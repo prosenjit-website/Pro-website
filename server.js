@@ -1,119 +1,156 @@
+require("dotenv").config();
+
 const express = require("express");
-const fs = require("fs");
 const path = require("path");
+const { Pool } = require("pg");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-const DATA_DIR = path.join(__dirname, "data");
-const DATA_FILE = path.join(DATA_DIR, "portfolio.json");
-
-app.use(express.json({ limit: "5mb" }));
-app.use(express.urlencoded({ extended: true }));
-
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-if (!fs.existsSync(DATA_FILE)) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify({}, null, 2));
-}
-
-function readData() {
-  try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-  } catch {
-    return {};
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
   }
-}
-
-function writeData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
-
-/* Public website */
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
 });
 
-/* Admin panel */
+app.use(express.json({ limit: "10mb" }));
+
+// Public Website
+app.use(express.static(path.join(__dirname, "public")));
+
+// Admin Panel
+app.use("/admin", express.static(path.join(__dirname, "admin")));
+
+
+// ============================
+// Website
+// ============================
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+
+// ============================
+// Admin
+// ============================
+
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "admin", "index.html"));
 });
 
-/* Admin assets */
-app.use("/admin", express.static(path.join(__dirname, "admin")));
 
-/* Get portfolio data */
-app.get("/api/portfolio", (req, res) => {
-  res.json(readData());
-});
+// ============================
+// Get Portfolio
+// ============================
 
-/* Replace complete portfolio */
-app.put("/api/portfolio", (req, res) => {
+app.get("/api/portfolio", async (req, res) => {
   try {
-    writeData(req.body);
-    res.json({
-      success: true,
-      message: "তথ্য সফলভাবে সংরক্ষণ হয়েছে"
-    });
+    const result = await pool.query(
+      "SELECT data FROM portfolio ORDER BY id ASC LIMIT 1"
+    );
+
+    if (!result.rows.length) {
+      return res.json({});
+    }
+
+    res.json(result.rows[0].data);
+
   } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
-      message: "তথ্য সংরক্ষণ করা যায়নি"
+      message: "Database থেকে data load করা যায়নি"
     });
   }
 });
 
-/* Update a single section */
-app.put("/api/portfolio/:section", (req, res) => {
+
+// ============================
+// Save Portfolio
+// ============================
+
+app.put("/api/portfolio", async (req, res) => {
   try {
-    const data = readData();
+    const data = req.body;
 
-    data[req.params.section] = req.body;
+    const result = await pool.query(
+      `
+      UPDATE portfolio
+      SET data = $1::jsonb,
+          updated_at = NOW()
+      WHERE id = (
+        SELECT id
+        FROM portfolio
+        ORDER BY id ASC
+        LIMIT 1
+      )
+      RETURNING data
+      `,
+      [JSON.stringify(data)]
+    );
 
-    writeData(data);
+    if (!result.rows.length) {
+      const inserted = await pool.query(
+        `
+        INSERT INTO portfolio (data)
+        VALUES ($1::jsonb)
+        RETURNING data
+        `,
+        [JSON.stringify(data)]
+      );
+
+      return res.json({
+        success: true,
+        data: inserted.rows[0].data
+      });
+    }
 
     res.json({
       success: true,
-      message: "সফলভাবে আপডেট হয়েছে",
-      data
+      message: "তথ্য সংরক্ষণ হয়েছে",
+      data: result.rows[0].data
     });
+
   } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
-      message: "আপডেট করা যায়নি"
+      message: "তথ্য সংরক্ষণ করা যায়নি"
     });
   }
 });
 
-/* Delete a section */
-app.delete("/api/portfolio/:section", (req, res) => {
+
+// ============================
+// Database Test
+// ============================
+
+app.get("/api/health", async (req, res) => {
   try {
-    const data = readData();
-
-    delete data[req.params.section];
-
-    writeData(data);
+    await pool.query("SELECT 1");
 
     res.json({
       success: true,
-      message: "সফলভাবে মুছে ফেলা হয়েছে"
+      database: "connected"
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "মুছে ফেলা যায়নি"
+      database: "disconnected"
     });
   }
 });
 
-app.listen(PORT, () => {
-  console.log("");
-  console.log("=================================");
-  console.log(" Portfolio Server চালু হয়েছে");
-  console.log("=================================");
-  console.log(`Website : http://localhost:${PORT}`);
-  console.log(`Admin   : http://localhost:${PORT}/admin`);
-  console.log("");
+
+// ============================
+// Start Server
+// ============================
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
