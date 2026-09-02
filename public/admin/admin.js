@@ -1,1675 +1,922 @@
-// =====================================================
-// PROSENJIT ADMIN PANEL
-// =====================================================
+let portfolio = {};
 
-const API = "";
-
-
-// =====================================================
-// API HELPER
-// =====================================================
-
-async function api(
-  url,
-  options = {}
-) {
-
-  const response =
-    await fetch(
-      API + url,
-      {
-        credentials: "same-origin",
-
-        headers: {
-          "Content-Type":
-            "application/json",
-
-          ...(options.headers || {})
-        },
-
-        ...options
-      }
-    );
-
-
-  let data = {};
-
-  try {
-    data = await response.json();
-  } catch {
-    data = {};
-  }
-
-
-  if (!response.ok) {
-
-    if (
-      response.status === 401
-    ) {
-
-      throw new Error(
-        "SESSION_EXPIRED"
-      );
-
-    }
-
-
-    throw new Error(
-      data.error ||
-      "Something went wrong"
-    );
-
-  }
-
-
-  return data;
-}
-
-
-// =====================================================
-// ELEMENTS
-// =====================================================
-
-const loginBox =
-  document.getElementById("login");
-
-const appBox =
-  document.getElementById("app");
-
-
-// =====================================================
-// LOGIN
-// =====================================================
-
-async function login() {
-
-  const username =
-    document.getElementById("user")?.value
-    .trim();
-
-  const password =
-    document.getElementById("pass")?.value;
-
-
-  if (!username || !password) {
-
-    alert(
-      "Username এবং Password দিন।"
-    );
-
-    return;
-  }
-
+async function loadData() {
 
   try {
 
-    const data =
-      await api(
-        "/api/login",
-        {
-          method: "POST",
+    const response = await fetch("/api/portfolio");
 
-          body: JSON.stringify({
-            username,
-            password
-          })
-        }
-      );
-
-
-    if (
-      data.success ||
-      data.ok
-    ) {
-
-      // Important: session cookie is now saved
-
-      showAdmin();
-
-      await loadAll();
-
-    } else {
-
-      alert(
-        data.error ||
-        "Login failed"
-      );
-
+    if (!response.ok) {
+      throw new Error("Data load failed");
     }
+
+    portfolio = await response.json();
+
+    renderAll();
 
   } catch (error) {
 
-    alert(
-      error.message ||
-      "Login failed"
-    );
+    showMessage("তথ্য লোড করা যায়নি");
 
+    console.error(error);
   }
-
 }
 
 
-// =====================================================
-// SHOW ADMIN
-// =====================================================
+/* =========================
+   Navigation
+========================= */
 
-function showAdmin() {
+function showPanel(name) {
 
-  if (loginBox) {
+  document.querySelectorAll(".panel").forEach(panel => {
+    panel.classList.remove("active");
+  });
 
-    loginBox.style.display =
-      "none";
+  const panel = document.getElementById(`panel-${name}`);
 
+  if (panel) {
+    panel.classList.add("active");
   }
-
-
-  if (appBox) {
-
-    appBox.classList.remove(
-      "hidden"
-    );
-
-    appBox.style.display =
-      "block";
-
-  }
-
 }
 
 
-// =====================================================
-// SHOW LOGIN
-// =====================================================
+/* =========================
+   Render Everything
+========================= */
 
-function showLogin() {
+function renderAll() {
 
-  if (loginBox) {
+  portfolio.site ||= {};
+  portfolio.sections ||= {};
+  portfolio.buttons ||= {};
+  portfolio.about ||= {};
+  portfolio.education ||= [];
+  portfolio.skills ||= [];
+  portfolio.diary ||= [];
+  portfolio.hobbies ||= [];
+  portfolio.projects ||= [];
+  portfolio.vision ||= {};
+  portfolio.contact ||= {};
 
-    loginBox.style.display =
-      "flex";
-
-  }
-
-
-  if (appBox) {
-
-    appBox.classList.add(
-      "hidden"
-    );
-
-    appBox.style.display =
-      "none";
-
-  }
-
+  renderSite();
+  renderSections();
+  renderButtons();
+  renderAbout();
+  renderEducation();
+  renderSkills();
+  renderDiary();
+  renderHobbies();
+  renderProjects();
+  renderVision();
+  renderContact();
+  updateStats();
 }
 
 
-// =====================================================
-// CHECK SESSION
-// =====================================================
+/* =========================
+   Site
+========================= */
 
-async function checkSession() {
+function renderSite() {
 
-  try {
+  document.getElementById("siteName").value =
+    portfolio.site.name || "";
 
-    const data =
-      await api(
-        "/api/me"
-      );
+  document.getElementById("siteTitle").value =
+    portfolio.site.title || "";
 
+  document.getElementById("siteDescription").value =
+    portfolio.site.description || "";
 
-    if (data.loggedIn) {
+  document.getElementById("siteShow").checked =
+    portfolio.site.show !== false;
+}
 
-      showAdmin();
+async function saveSite() {
 
-      await loadAll();
+  portfolio.site.name =
+    document.getElementById("siteName").value;
 
-    } else {
+  portfolio.site.title =
+    document.getElementById("siteTitle").value;
 
-      showLogin();
+  portfolio.site.description =
+    document.getElementById("siteDescription").value;
 
-    }
+  portfolio.site.show =
+    document.getElementById("siteShow").checked;
 
-  } catch {
-
-    showLogin();
-
-  }
-
+  await savePortfolio("সাইট তথ্য Save হয়েছে");
 }
 
 
-// =====================================================
-// LOGOUT
-// =====================================================
+/* =========================
+   Sections
+========================= */
 
-async function logout() {
+function renderSections() {
 
-  try {
+  const box = document.getElementById("sectionManager");
 
-    await api(
-      "/api/logout",
-      {
-        method: "POST"
-      }
-    );
+  box.innerHTML = "";
 
-  } catch {}
-
-  location.reload();
-
-}
-
-
-// =====================================================
-// SECTION SWITCH
-// =====================================================
-
-function show(section) {
-
-  const sections = [
-    "content",
-    "buttons",
-    "diary",
-    "projects"
-  ];
-
-
-  sections.forEach(
-    name => {
-
-      const el =
-        document.getElementById(
-          name
-        );
-
-      if (!el) return;
-
-
-      if (name === section) {
-
-        el.classList.remove(
-          "hidden"
-        );
-
-        el.style.display =
-          "block";
-
-      } else {
-
-        el.classList.add(
-          "hidden"
-        );
-
-        el.style.display =
-          "none";
-
-      }
-
-    }
-  );
-
-
-  const title =
-    document.getElementById(
-      "title"
-    );
-
-
-  const titles = {
-
-    content:
-      "Site Content",
-
-    buttons:
-      "Button Manager",
-
-    diary:
-      "Diary",
-
-    projects:
-      "Projects"
-
+  const names = {
+    about: "আমার সম্পর্কে",
+    education: "শিক্ষাজীবন",
+    skills: "দক্ষতা",
+    diary: "দিনলিপি",
+    hobbies: "শখ",
+    projects: "প্রজেক্ট",
+    vision: "ভবিষ্যৎ ভাবনা",
+    contact: "যোগাযোগ"
   };
 
+  Object.entries(names).forEach(([key, name]) => {
 
-  if (title) {
+    const checked =
+      portfolio.sections[key] !== false;
 
-    title.textContent =
-      titles[section] ||
-      "Admin Panel";
+    box.innerHTML += `
+      <div class="section-row">
 
-  }
+        <strong>${name}</strong>
 
-}
+        <label class="switch">
+          <input
+            type="checkbox"
+            ${checked ? "checked" : ""}
+            onchange="toggleSection('${key}', this.checked)"
+          >
 
-
-// =====================================================
-// LOAD EVERYTHING
-// =====================================================
-
-async function loadAll() {
-
-  try {
-
-    await loadContent();
-
-  } catch (e) {
-
-    handleError(e);
-
-  }
-
-
-  try {
-
-    await loadButtons();
-
-  } catch (e) {
-
-    handleError(e);
-
-  }
-
-
-  try {
-
-    await loadDiary();
-
-  } catch (e) {
-
-    handleError(e);
-
-  }
-
-
-  try {
-
-    await loadProjects();
-
-  } catch (e) {
-
-    handleError(e);
-
-  }
-
-}
-
-
-// =====================================================
-// ERROR HANDLER
-// =====================================================
-
-function handleError(error) {
-
-  if (
-    error.message ===
-    "SESSION_EXPIRED"
-  ) {
-
-    alert(
-      "Login session শেষ হয়েছে। আবার Login করুন।"
-    );
-
-    showLogin();
-
-    return;
-
-  }
-
-  console.error(error);
-
-}
-
-
-// =====================================================
-// CONTENT
-// =====================================================
-
-async function loadContent() {
-
-  const data =
-    await api(
-      "/api/admin/content"
-    );
-
-
-  const box =
-    document.getElementById(
-      "content"
-    );
-
-
-  if (!box) return;
-
-
-  box.innerHTML = `
-
-    <div class="panel">
-
-      <h2>⚙️ Site Information</h2>
-
-      <p class="muted">
-        এখান থেকে website-এর সব basic information edit করুন।
-      </p>
-
-
-      ${input(
-        "name",
-        "নাম",
-        data.name
-      )}
-
-      ${input(
-        "tagline",
-        "Tagline",
-        data.tagline
-      )}
-
-      ${input(
-        "college",
-        "কলেজ",
-        data.college
-      )}
-
-      ${input(
-        "education",
-        "শিক্ষা",
-        data.education
-      )}
-
-      ${input(
-        "profile",
-        "Profile Photo",
-        data.profile
-      )}
-
-      ${textarea(
-        "intro",
-        "Intro",
-        data.intro
-      )}
-
-      ${textarea(
-        "about",
-        "আমার সম্পর্কে",
-        data.about
-      )}
-
-      <h3>🔗 Social Links</h3>
-
-      ${input(
-        "facebook",
-        "Facebook",
-        data.facebook
-      )}
-
-      ${input(
-        "instagram",
-        "Instagram",
-        data.instagram
-      )}
-
-      ${input(
-        "whatsapp",
-        "WhatsApp",
-        data.whatsapp
-      )}
-
-      ${input(
-        "github",
-        "GitHub",
-        data.github
-      )}
-
-      ${input(
-        "gmail",
-        "Gmail",
-        data.gmail
-      )}
-
-      ${input(
-        "phone",
-        "Phone",
-        data.phone
-      )}
-
-
-      <button
-        class="primary-btn"
-        onclick="saveContent()"
-      >
-        💾 Save Information
-      </button>
-
-    </div>
-
-  `;
-
-}
-
-
-// =====================================================
-// INPUT
-// =====================================================
-
-function input(
-  id,
-  label,
-  value = ""
-) {
-
-  return `
-
-    <label>
-      ${label}
-
-      <input
-        id="content_${id}"
-        value="${escapeAttr(value)}"
-        placeholder="${label}"
-      >
-
-    </label>
-
-  `;
-
-}
-
-
-// =====================================================
-// TEXTAREA
-// =====================================================
-
-function textarea(
-  id,
-  label,
-  value = ""
-) {
-
-  return `
-
-    <label>
-      ${label}
-
-      <textarea
-        id="content_${id}"
-        rows="5"
-        placeholder="${label}"
-      >${escapeHtml(value)}</textarea>
-
-    </label>
-
-  `;
-
-}
-
-
-// =====================================================
-// SAVE CONTENT
-// =====================================================
-
-async function saveContent() {
-
-  const fields = [
-
-    "name",
-    "tagline",
-    "college",
-    "education",
-    "profile",
-    "intro",
-    "about",
-    "facebook",
-    "instagram",
-    "whatsapp",
-    "github",
-    "gmail",
-    "phone"
-
-  ];
-
-
-  const data = {};
-
-
-  fields.forEach(
-    key => {
-
-      const el =
-        document.getElementById(
-          "content_" + key
-        );
-
-      if (el) {
-
-        data[key] =
-          el.value;
-
-      }
-
-    }
-  );
-
-
-  try {
-
-    await api(
-      "/api/admin/content",
-      {
-        method: "PUT",
-
-        body:
-          JSON.stringify(data)
-      }
-    );
-
-
-    alert(
-      "✅ Information saved!"
-    );
-
-  } catch (error) {
-
-    handleError(error);
-
-  }
-
-}
-
-
-// =====================================================
-// BUTTONS
-// =====================================================
-
-async function loadButtons() {
-
-  const buttons =
-    await api(
-      "/api/admin/buttons"
-    );
-
-
-  const box =
-    document.getElementById(
-      "buttons"
-    );
-
-
-  if (!box) return;
-
-
-  box.innerHTML = `
-
-    <div class="panel">
-
-      <h2>🔘 Button Manager</h2>
-
-      <p class="muted">
-        Button Edit / Add / Delete / Show / Hide / Order
-      </p>
-
-
-      <button
-        class="primary-btn"
-        onclick="addButtonForm()"
-      >
-        ＋ নতুন Button
-      </button>
-
-
-      <div id="buttonList">
-
-        ${
-          buttons.length
-            ? buttons.map(
-                buttonCard
-              ).join("")
-            : "<p>কোনো Button নেই।</p>"
-        }
+          <span>${checked ? "ON" : "OFF"}</span>
+        </label>
 
       </div>
+    `;
+  });
+}
 
-    </div>
+function toggleSection(key, value) {
 
-  `;
+  portfolio.sections[key] = value;
 
+  savePortfolio("Section আপডেট হয়েছে");
 }
 
 
-function buttonCard(b) {
+/* =========================
+   Buttons
+========================= */
 
-  return `
+function renderButtons() {
 
-    <div class="item-card">
+  const box = document.getElementById("buttonManager");
 
-      <input
-        id="btn_label_${b.id}"
-        value="${escapeAttr(b.label)}"
-        placeholder="Button name"
-      >
+  box.innerHTML = "";
 
-      <input
-        id="btn_url_${b.id}"
-        value="${escapeAttr(b.url)}"
-        placeholder="URL"
-      >
+  Object.entries(portfolio.buttons).forEach(([key, button]) => {
 
-      <input
-        id="btn_icon_${b.id}"
-        value="${escapeAttr(b.icon || "→")}"
-        placeholder="Icon"
-      >
+    box.innerHTML += `
+      <div class="manager-card">
 
-      <input
-        id="btn_location_${b.id}"
-        value="${escapeAttr(b.location || "home")}"
-        placeholder="Location"
-      >
+        <label>Button Text</label>
 
-      <input
-        id="btn_order_${b.id}"
-        type="number"
-        value="${Number(b.sort_order) || 0}"
-        placeholder="Order"
-      >
-
-      <label class="check">
         <input
-          id="btn_visible_${b.id}"
-          type="checkbox"
-          ${b.visible ? "checked" : ""}
+          value="${escapeHTML(button.text || "")}"
+          onchange="updateButton('${key}', 'text', this.value)"
         >
-        Show
-      </label>
 
-
-      <button
-        class="primary-btn"
-        onclick="updateButton(${b.id})"
-      >
-        ✏️ Edit
-      </button>
-
-
-      <button
-        onclick="deleteButton(${b.id})"
-      >
-        🗑️ Delete
-      </button>
-
-    </div>
-
-  `;
-
-}
-
-
-// =====================================================
-// ADD BUTTON
-// =====================================================
-
-async function addButtonForm() {
-
-  const label =
-    prompt(
-      "Button name:"
-    );
-
-  if (!label) return;
-
-
-  const url =
-    prompt(
-      "Button URL:"
-    );
-
-  if (!url) return;
-
-
-  const icon =
-    prompt(
-      "Icon:",
-      "→"
-    ) || "→";
-
-
-  try {
-
-    await api(
-      "/api/admin/buttons",
-      {
-        method: "POST",
-
-        body:
-          JSON.stringify({
-
-            label,
-
-            url,
-
-            icon,
-
-            location: "home",
-
-            visible: true,
-
-            sort_order: 0
-
-          })
-      }
-    );
-
-
-    await loadButtons();
-
-    alert(
-      "✅ Button added!"
-    );
-
-  } catch (error) {
-
-    handleError(error);
-
-  }
-
-}
-
-
-// =====================================================
-// UPDATE BUTTON
-// =====================================================
-
-async function updateButton(id) {
-
-  const data = {
-
-    label:
-      document.getElementById(
-        `btn_label_${id}`
-      ).value,
-
-    url:
-      document.getElementById(
-        `btn_url_${id}`
-      ).value,
-
-    icon:
-      document.getElementById(
-        `btn_icon_${id}`
-      ).value,
-
-    location:
-      document.getElementById(
-        `btn_location_${id}`
-      ).value,
-
-    sort_order:
-      Number(
-        document.getElementById(
-          `btn_order_${id}`
-        ).value
-      ) || 0,
-
-    visible:
-      document.getElementById(
-        `btn_visible_${id}`
-      ).checked
-
-  };
-
-
-  try {
-
-    await api(
-      `/api/admin/buttons/${id}`,
-      {
-        method: "PUT",
-
-        body:
-          JSON.stringify(data)
-      }
-    );
-
-
-    alert(
-      "✅ Button updated!"
-    );
-
-    await loadButtons();
-
-  } catch (error) {
-
-    handleError(error);
-
-  }
-
-}
-
-
-// =====================================================
-// DELETE BUTTON
-// =====================================================
-
-async function deleteButton(id) {
-
-  if (
-    !confirm(
-      "এই Button delete করবেন?"
-    )
-  ) return;
-
-
-  try {
-
-    await api(
-      `/api/admin/buttons/${id}`,
-      {
-        method: "DELETE"
-      }
-    );
-
-
-    await loadButtons();
-
-  } catch (error) {
-
-    handleError(error);
-
-  }
-
-}
-
-
-// =====================================================
-// DIARY
-// =====================================================
-
-async function loadDiary() {
-
-  const diary =
-    await api(
-      "/api/admin/diary"
-    );
-
-
-  const box =
-    document.getElementById(
-      "diary"
-    );
-
-
-  if (!box) return;
-
-
-  box.innerHTML = `
-
-    <div class="panel">
-
-      <h2>📖 Diary Manager</h2>
-
-      <p class="muted">
-        নতুন chapter add করুন অথবা পুরোনো chapter edit করুন।
-      </p>
-
-
-      <button
-        class="primary-btn"
-        onclick="addDiary()"
-      >
-        ＋ নতুন অধ্যায়
-      </button>
-
-
-      <div>
-
-        ${
-          diary.length
-            ? diary.map(
-                diaryCard
-              ).join("")
-            : "<p>এখনো কোনো diary নেই।</p>"
-        }
+        <label>URL</label>
+
+        <input
+          value="${escapeHTML(button.url || "")}"
+          onchange="updateButton('${key}', 'url', this.value)"
+        >
+
+        <label class="switch">
+          <input
+            type="checkbox"
+            ${button.show !== false ? "checked" : ""}
+            onchange="updateButton('${key}', 'show', this.checked)"
+          >
+          <span>দেখাবে</span>
+        </label>
 
       </div>
-
-    </div>
-
-  `;
-
+    `;
+  });
 }
 
+function updateButton(key, field, value) {
 
-function diaryCard(d) {
-
-  return `
-
-    <div class="item-card">
-
-      <input
-        id="diary_chapter_${d.id}"
-        value="${escapeAttr(d.chapter)}"
-        placeholder="Chapter"
-      >
-
-      <input
-        id="diary_title_${d.id}"
-        value="${escapeAttr(d.title)}"
-        placeholder="Title"
-      >
-
-      <input
-        id="diary_excerpt_${d.id}"
-        value="${escapeAttr(d.excerpt || "")}"
-        placeholder="Short description"
-      >
-
-      <textarea
-        id="diary_body_${d.id}"
-        rows="6"
-        placeholder="Diary content"
-      >${escapeHtml(d.body || "")}</textarea>
-
-      <input
-        id="diary_date_${d.id}"
-        value="${escapeAttr(d.date_text || "")}"
-        placeholder="Date"
-      >
-
-      <input
-        id="diary_order_${d.id}"
-        type="number"
-        value="${Number(d.sort_order) || 0}"
-        placeholder="Order"
-      >
-
-      <label class="check">
-
-        <input
-          id="diary_visible_${d.id}"
-          type="checkbox"
-          ${d.visible ? "checked" : ""}
-        >
-
-        Show
-
-      </label>
-
-
-      <button
-        class="primary-btn"
-        onclick="updateDiary(${d.id})"
-      >
-        ✏️ Edit
-      </button>
-
-
-      <button
-        onclick="deleteDiary(${d.id})"
-      >
-        🗑️ Delete
-      </button>
-
-    </div>
-
-  `;
-
-}
-
-
-// =====================================================
-// ADD DIARY
-// =====================================================
-
-async function addDiary() {
-
-  const chapter =
-    prompt(
-      "Chapter name:",
-      "CHAPTER 01"
-    );
-
-  if (!chapter) return;
-
-
-  const title =
-    prompt(
-      "Diary title:"
-    );
-
-  if (!title) return;
-
-
-  const body =
-    prompt(
-      "Diary content:"
-    ) || "";
-
-
-  try {
-
-    await api(
-      "/api/admin/diary",
-      {
-        method: "POST",
-
-        body:
-          JSON.stringify({
-
-            chapter,
-
-            title,
-
-            excerpt: "",
-
-            body,
-
-            date_text:
-              new Date()
-                .getFullYear()
-                .toString(),
-
-            visible: true,
-
-            sort_order: 0
-
-          })
-      }
-    );
-
-
-    await loadDiary();
-
-    alert(
-      "✅ Diary added!"
-    );
-
-  } catch (error) {
-
-    handleError(error);
-
+  if (!portfolio.buttons[key]) {
+    portfolio.buttons[key] = {};
   }
 
+  portfolio.buttons[key][field] = value;
+
+  savePortfolio("Button আপডেট হয়েছে");
 }
 
 
-// =====================================================
-// UPDATE DIARY
-// =====================================================
+/* =========================
+   About
+========================= */
 
-async function updateDiary(id) {
+function renderAbout() {
 
-  const data = {
+  document.getElementById("aboutTitle").value =
+    portfolio.about.title || "";
 
-    chapter:
-      document.getElementById(
-        `diary_chapter_${id}`
-      ).value,
+  document.getElementById("aboutText").value =
+    portfolio.about.text || "";
 
-    title:
-      document.getElementById(
-        `diary_title_${id}`
-      ).value,
+  document.getElementById("aboutShow").checked =
+    portfolio.about.show !== false;
+}
 
-    excerpt:
-      document.getElementById(
-        `diary_excerpt_${id}`
-      ).value,
+async function saveAbout() {
 
-    body:
-      document.getElementById(
-        `diary_body_${id}`
-      ).value,
+  portfolio.about = {
 
-    date_text:
-      document.getElementById(
-        `diary_date_${id}`
-      ).value,
+    title: document.getElementById("aboutTitle").value,
 
-    sort_order:
-      Number(
-        document.getElementById(
-          `diary_order_${id}`
-        ).value
-      ) || 0,
+    text: document.getElementById("aboutText").value,
 
-    visible:
-      document.getElementById(
-        `diary_visible_${id}`
-      ).checked
-
+    show: document.getElementById("aboutShow").checked
   };
 
-
-  try {
-
-    await api(
-      `/api/admin/diary/${id}`,
-      {
-        method: "PUT",
-
-        body:
-          JSON.stringify(data)
-      }
-    );
-
-
-    alert(
-      "✅ Diary updated!"
-    );
-
-    await loadDiary();
-
-  } catch (error) {
-
-    handleError(error);
-
-  }
-
+  await savePortfolio("About Save হয়েছে");
 }
 
 
-// =====================================================
-// DELETE DIARY
-// =====================================================
+/* =========================
+   Education
+========================= */
 
-async function deleteDiary(id) {
+function renderEducation() {
 
-  if (
-    !confirm(
-      "এই Diary delete করবেন?"
-    )
-  ) return;
+  const box = document.getElementById("educationManager");
 
+  box.innerHTML = "";
 
-  try {
+  portfolio.education.forEach((item, index) => {
 
-    await api(
-      `/api/admin/diary/${id}`,
-      {
-        method: "DELETE"
-      }
-    );
+    box.innerHTML += `
+      <div class="manager-card">
 
+        <label>শিরোনাম</label>
+        <input
+          value="${escapeHTML(item.title || "")}"
+          onchange="portfolio.education[${index}].title=this.value"
+        >
 
-    await loadDiary();
+        <label>প্রতিষ্ঠান</label>
+        <input
+          value="${escapeHTML(item.place || "")}"
+          onchange="portfolio.education[${index}].place=this.value"
+        >
 
-  } catch (error) {
+        <label>সময়কাল</label>
+        <input
+          value="${escapeHTML(item.year || "")}"
+          onchange="portfolio.education[${index}].year=this.value"
+        >
 
-    handleError(error);
+        <label>বিবরণ</label>
+        <textarea
+          onchange="portfolio.education[${index}].description=this.value"
+        >${escapeHTML(item.description || "")}</textarea>
 
-  }
+        <label class="switch">
+          <input
+            type="checkbox"
+            ${item.show !== false ? "checked" : ""}
+            onchange="portfolio.education[${index}].show=this.checked"
+          >
+          <span>দেখাবে</span>
+        </label>
 
-}
+        <div class="manager-actions">
 
+          <button
+            class="primary"
+            onclick="savePortfolio('Education Save হয়েছে')"
+          >
+            Save
+          </button>
 
-// =====================================================
-// PROJECTS
-// =====================================================
+          <button
+            class="danger"
+            onclick="deleteEducation(${index})"
+          >
+            Delete
+          </button>
 
-async function loadProjects() {
-
-  const projects =
-    await api(
-      "/api/admin/projects"
-    );
-
-
-  const box =
-    document.getElementById(
-      "projects"
-    );
-
-
-  if (!box) return;
-
-
-  box.innerHTML = `
-
-    <div class="panel">
-
-      <h2>🚀 Project Manager</h2>
-
-      <p class="muted">
-        Project Add / Edit / Delete / Show / Hide / Order
-      </p>
-
-
-      <button
-        class="primary-btn"
-        onclick="addProject()"
-      >
-        ＋ নতুন Project
-      </button>
-
-
-      <div>
-
-        ${
-          projects.length
-            ? projects.map(
-                projectCard
-              ).join("")
-            : "<p>এখনো কোনো project নেই।</p>"
-        }
+        </div>
 
       </div>
+    `;
+  });
+}
 
-    </div>
+function addEducation() {
 
-  `;
+  portfolio.education.push({
+    id: Date.now(),
+    title: "নতুন শিক্ষা",
+    place: "",
+    year: "",
+    description: "",
+    show: true
+  });
 
+  renderEducation();
+}
+
+function deleteEducation(index) {
+
+  if (!confirm("এই শিক্ষা মুছে ফেলবেন?")) return;
+
+  portfolio.education.splice(index, 1);
+
+  savePortfolio("Education Delete হয়েছে");
 }
 
 
-function projectCard(p) {
+/* =========================
+   Skills
+========================= */
 
-  return `
+function renderSkills() {
 
-    <div class="item-card">
+  const box = document.getElementById("skillsManager");
 
-      <input
-        id="project_title_${p.id}"
-        value="${escapeAttr(p.title)}"
-        placeholder="Project name"
-      >
+  box.innerHTML = "";
 
-      <textarea
-        id="project_description_${p.id}"
-        rows="5"
-        placeholder="Description"
-      >${escapeHtml(p.description || "")}</textarea>
+  portfolio.skills.forEach((item, index) => {
 
-      <input
-        id="project_url_${p.id}"
-        value="${escapeAttr(p.url || "")}"
-        placeholder="Project link"
-      >
+    box.innerHTML += `
+      <div class="manager-card">
 
-      <input
-        id="project_image_${p.id}"
-        value="${escapeAttr(p.image || "")}"
-        placeholder="Image link"
-      >
-
-      <input
-        id="project_order_${p.id}"
-        type="number"
-        value="${Number(p.sort_order) || 0}"
-        placeholder="Order"
-      >
-
-      <label class="check">
+        <label>দক্ষতার নাম</label>
 
         <input
-          id="project_visible_${p.id}"
-          type="checkbox"
-          ${p.visible ? "checked" : ""}
+          value="${escapeHTML(item.name || "")}"
+          onchange="portfolio.skills[${index}].name=this.value"
         >
 
-        Show
+        <label>Percentage</label>
 
-      </label>
+        <input
+          type="number"
+          min="0"
+          max="100"
+          value="${Number(item.level) || 0}"
+          onchange="portfolio.skills[${index}].level=Number(this.value)"
+        >
 
+        <label class="switch">
+          <input
+            type="checkbox"
+            ${item.show !== false ? "checked" : ""}
+            onchange="portfolio.skills[${index}].show=this.checked"
+          >
+          <span>দেখাবে</span>
+        </label>
 
-      <button
-        class="primary-btn"
-        onclick="updateProject(${p.id})"
-      >
-        ✏️ Edit
-      </button>
+        <div class="manager-actions">
 
+          <button
+            class="primary"
+            onclick="savePortfolio('Skill Save হয়েছে')"
+          >
+            Save
+          </button>
 
-      <button
-        onclick="deleteProject(${p.id})"
-      >
-        🗑️ Delete
-      </button>
+          <button
+            class="danger"
+            onclick="deleteSkill(${index})"
+          >
+            Delete
+          </button>
 
-    </div>
+        </div>
 
-  `;
+      </div>
+    `;
+  });
+}
 
+function addSkill() {
+
+  portfolio.skills.push({
+    id: Date.now(),
+    name: "নতুন দক্ষতা",
+    level: 50,
+    show: true
+  });
+
+  renderSkills();
+}
+
+function deleteSkill(index) {
+
+  if (!confirm("এই দক্ষতা মুছে ফেলবেন?")) return;
+
+  portfolio.skills.splice(index, 1);
+
+  savePortfolio("Skill Delete হয়েছে");
 }
 
 
-// =====================================================
-// ADD PROJECT
-// =====================================================
+/* =========================
+   Diary
+========================= */
 
-async function addProject() {
+function renderDiary() {
 
-  const title =
-    prompt(
-      "Project name:"
-    );
+  const box = document.getElementById("diaryManager");
 
-  if (!title) return;
+  box.innerHTML = "";
 
+  portfolio.diary.forEach((item, index) => {
 
-  const description =
-    prompt(
-      "Project description:"
-    ) || "";
+    box.innerHTML += `
+      <div class="manager-card">
 
+        <label>শিরোনাম</label>
 
-  const url =
-    prompt(
-      "Project link:"
-    ) || "";
+        <input
+          value="${escapeHTML(item.title || "")}"
+          onchange="portfolio.diary[${index}].title=this.value"
+        >
 
+        <label>তারিখ</label>
 
-  const image =
-    prompt(
-      "Image link:"
-    ) || "";
+        <input
+          value="${escapeHTML(item.date || "")}"
+          onchange="portfolio.diary[${index}].date=this.value"
+        >
 
+        <label>লেখা</label>
 
-  try {
+        <textarea
+          onchange="portfolio.diary[${index}].text=this.value"
+        >${escapeHTML(item.text || "")}</textarea>
 
-    await api(
-      "/api/admin/projects",
-      {
-        method: "POST",
+        <label class="switch">
+          <input
+            type="checkbox"
+            ${item.show !== false ? "checked" : ""}
+            onchange="portfolio.diary[${index}].show=this.checked"
+          >
+          <span>দেখাবে</span>
+        </label>
 
-        body:
-          JSON.stringify({
+        <div class="manager-actions">
 
-            title,
+          <button
+            class="primary"
+            onclick="savePortfolio('Diary Save হয়েছে')"
+          >
+            Save
+          </button>
 
-            description,
+          <button
+            class="danger"
+            onclick="deleteDiary(${index})"
+          >
+            Delete
+          </button>
 
-            url,
+        </div>
 
-            image,
+      </div>
+    `;
+  });
+}
 
-            visible: true,
+function addDiary() {
 
-            sort_order: 0
+  portfolio.diary.push({
+    id: Date.now(),
+    title: "নতুন দিনলিপি",
+    date: "",
+    text: "",
+    show: true
+  });
 
-          })
-      }
-    );
+  renderDiary();
+}
 
+function deleteDiary(index) {
 
-    await loadProjects();
+  if (!confirm("এই দিনলিপি মুছে ফেলবেন?")) return;
 
-    alert(
-      "✅ Project added!"
-    );
+  portfolio.diary.splice(index, 1);
 
-  } catch (error) {
-
-    handleError(error);
-
-  }
-
+  savePortfolio("Diary Delete হয়েছে");
 }
 
 
-// =====================================================
-// UPDATE PROJECT
-// =====================================================
+/* =========================
+   Hobbies
+========================= */
 
-async function updateProject(id) {
+function renderHobbies() {
 
-  const data = {
+  const box = document.getElementById("hobbiesManager");
 
-    title:
-      document.getElementById(
-        `project_title_${id}`
-      ).value,
+  box.innerHTML = "";
 
-    description:
-      document.getElementById(
-        `project_description_${id}`
-      ).value,
+  portfolio.hobbies.forEach((item, index) => {
 
-    url:
-      document.getElementById(
-        `project_url_${id}`
-      ).value,
+    box.innerHTML += `
+      <div class="manager-card">
 
-    image:
-      document.getElementById(
-        `project_image_${id}`
-      ).value,
+        <label>নাম</label>
 
-    sort_order:
-      Number(
-        document.getElementById(
-          `project_order_${id}`
-        ).value
-      ) || 0,
+        <input
+          value="${escapeHTML(item.name || "")}"
+          onchange="portfolio.hobbies[${index}].name=this.value"
+        >
 
-    visible:
-      document.getElementById(
-        `project_visible_${id}`
-      ).checked
+        <label>Icon</label>
 
+        <input
+          value="${escapeHTML(item.icon || "")}"
+          onchange="portfolio.hobbies[${index}].icon=this.value"
+        >
+
+        <label class="switch">
+          <input
+            type="checkbox"
+            ${item.show !== false ? "checked" : ""}
+            onchange="portfolio.hobbies[${index}].show=this.checked"
+          >
+          <span>দেখাবে</span>
+        </label>
+
+        <div class="manager-actions">
+
+          <button
+            class="primary"
+            onclick="savePortfolio('Hobby Save হয়েছে')"
+          >
+            Save
+          </button>
+
+          <button
+            class="danger"
+            onclick="deleteHobby(${index})"
+          >
+            Delete
+          </button>
+
+        </div>
+
+      </div>
+    `;
+  });
+}
+
+function addHobby() {
+
+  portfolio.hobbies.push({
+    id: Date.now(),
+    name: "নতুন শখ",
+    icon: "⭐",
+    show: true
+  });
+
+  renderHobbies();
+}
+
+function deleteHobby(index) {
+
+  if (!confirm("এই শখ মুছে ফেলবেন?")) return;
+
+  portfolio.hobbies.splice(index, 1);
+
+  savePortfolio("Hobby Delete হয়েছে");
+}
+
+
+/* =========================
+   Projects
+========================= */
+
+function renderProjects() {
+
+  const box = document.getElementById("projectsManager");
+
+  box.innerHTML = "";
+
+  portfolio.projects.forEach((item, index) => {
+
+    box.innerHTML += `
+      <div class="manager-card">
+
+        <label>Project Name</label>
+
+        <input
+          value="${escapeHTML(item.title || "")}"
+          onchange="portfolio.projects[${index}].title=this.value"
+        >
+
+        <label>Description</label>
+
+        <textarea
+          onchange="portfolio.projects[${index}].description=this.value"
+        >${escapeHTML(item.description || "")}</textarea>
+
+        <label>Project URL</label>
+
+        <input
+          value="${escapeHTML(item.url || "")}"
+          onchange="portfolio.projects[${index}].url=this.value"
+        >
+
+        <label class="switch">
+          <input
+            type="checkbox"
+            ${item.show !== false ? "checked" : ""}
+            onchange="portfolio.projects[${index}].show=this.checked"
+          >
+          <span>দেখাবে</span>
+        </label>
+
+        <div class="manager-actions">
+
+          <button
+            class="primary"
+            onclick="savePortfolio('Project Save হয়েছে')"
+          >
+            Save
+          </button>
+
+          <button
+            class="danger"
+            onclick="deleteProject(${index})"
+          >
+            Delete
+          </button>
+
+        </div>
+
+      </div>
+    `;
+  });
+}
+
+function addProject() {
+
+  portfolio.projects.push({
+    id: Date.now(),
+    title: "নতুন প্রজেক্ট",
+    description: "",
+    url: "#",
+    show: true
+  });
+
+  renderProjects();
+}
+
+function deleteProject(index) {
+
+  if (!confirm("এই প্রজেক্ট মুছে ফেলবেন?")) return;
+
+  portfolio.projects.splice(index, 1);
+
+  savePortfolio("Project Delete হয়েছে");
+}
+
+
+/* =========================
+   Vision
+========================= */
+
+function renderVision() {
+
+  document.getElementById("visionTitle").value =
+    portfolio.vision.title || "";
+
+  document.getElementById("visionText").value =
+    portfolio.vision.text || "";
+
+  document.getElementById("visionShow").checked =
+    portfolio.vision.show !== false;
+}
+
+async function saveVision() {
+
+  portfolio.vision = {
+
+    title: document.getElementById("visionTitle").value,
+
+    text: document.getElementById("visionText").value,
+
+    show: document.getElementById("visionShow").checked
   };
 
-
-  try {
-
-    await api(
-      `/api/admin/projects/${id}`,
-      {
-        method: "PUT",
-
-        body:
-          JSON.stringify(data)
-      }
-    );
-
-
-    alert(
-      "✅ Project updated!"
-    );
-
-    await loadProjects();
-
-  } catch (error) {
-
-    handleError(error);
-
-  }
-
+  await savePortfolio("Vision Save হয়েছে");
 }
 
 
-// =====================================================
-// DELETE PROJECT
-// =====================================================
+/* =========================
+   Contact
+========================= */
 
-async function deleteProject(id) {
+function renderContact() {
 
-  if (
-    !confirm(
-      "এই Project delete করবেন?"
-    )
-  ) return;
+  document.getElementById("contactEmail").value =
+    portfolio.contact.email || "";
 
+  document.getElementById("contactFacebook").value =
+    portfolio.contact.facebook || "";
 
-  try {
+  document.getElementById("contactInstagram").value =
+    portfolio.contact.instagram || "";
 
-    await api(
-      `/api/admin/projects/${id}`,
-      {
-        method: "DELETE"
-      }
-    );
+  document.getElementById("contactGithub").value =
+    portfolio.contact.github || "";
 
+  document.getElementById("contactShow").checked =
+    portfolio.contact.show !== false;
+}
 
-    await loadProjects();
+async function saveContact() {
 
-  } catch (error) {
+  portfolio.contact = {
 
-    handleError(error);
+    email: document.getElementById("contactEmail").value,
 
-  }
+    facebook: document.getElementById("contactFacebook").value,
 
+    instagram: document.getElementById("contactInstagram").value,
+
+    github: document.getElementById("contactGithub").value,
+
+    show: document.getElementById("contactShow").checked
+  };
+
+  await savePortfolio("Contact Save হয়েছে");
 }
 
 
-// =====================================================
-// SECURITY HELPERS
-// =====================================================
+/* =========================
+   Delete helpers
+========================= */
 
-function escapeHtml(value) {
+function deleteProject(index) {
 
-  return String(
-    value ?? ""
-  )
+  if (!confirm("এই প্রজেক্ট মুছে ফেলবেন?")) return;
+
+  portfolio.projects.splice(index, 1);
+
+  savePortfolio("Project Delete হয়েছে");
+}
+
+function deleteEducation(index) {
+
+  if (!confirm("এই শিক্ষা মুছে ফেলবেন?")) return;
+
+  portfolio.education.splice(index, 1);
+
+  savePortfolio("Education Delete হয়েছে");
+}
+
+function deleteSkill(index) {
+
+  if (!confirm("এই দক্ষতা মুছে ফেলবেন?")) return;
+
+  portfolio.skills.splice(index, 1);
+
+  savePortfolio("Skill Delete হয়েছে");
+}
+
+function deleteDiary(index) {
+
+  if (!confirm("এই দিনলিপি মুছে ফেলবেন?")) return;
+
+  portfolio.diary.splice(index, 1);
+
+  savePortfolio("Diary Delete হয়েছে");
+}
+
+function deleteHobby(index) {
+
+  if (!confirm("এই শখ মুছে ফেলবেন?")) return;
+
+  portfolio.hobbies.splice(index, 1);
+
+  savePortfolio("Hobby Delete হয়েছে");
+}
+
+
+/* =========================
+   Save
+========================= */
+
+async function savePortfolio(message = "সব তথ্য Save হয়েছে") {
+
+  try {
+
+    const response = await fetch("/api/portfolio", {
+
+      method: "PUT",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify(portfolio)
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.message);
+    }
+
+    showMessage(message);
+
+    renderAll();
+
+  } catch (error) {
+
+    console.error(error);
+
+    showMessage("Save করা যায়নি");
+  }
+}
+
+async function saveAll() {
+
+  await savePortfolio("সব তথ্য সফলভাবে Save হয়েছে");
+}
+
+
+/* =========================
+   Dashboard
+========================= */
+
+function updateStats() {
+
+  document.getElementById("statEducation").textContent =
+    portfolio.education.length;
+
+  document.getElementById("statSkills").textContent =
+    portfolio.skills.length;
+
+  document.getElementById("statDiary").textContent =
+    portfolio.diary.length;
+
+  document.getElementById("statProjects").textContent =
+    portfolio.projects.length;
+}
+
+
+/* =========================
+   Message
+========================= */
+
+function showMessage(text) {
+
+  const box = document.getElementById("message");
+
+  const toast = document.createElement("div");
+
+  toast.className = "toast";
+  toast.textContent = text;
+
+  box.appendChild(toast);
+
+  setTimeout(() => {
+    toast.remove();
+  }, 2500);
+}
+
+
+/* =========================
+   Security helper
+========================= */
+
+function escapeHTML(value) {
+
+  return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-
 }
 
 
-function escapeAttr(value) {
+/* =========================
+   Start
+========================= */
 
-  return escapeHtml(value);
-
-}
-
-
-// =====================================================
-// ENTER KEY LOGIN
-// =====================================================
-
-document.addEventListener(
-  "keydown",
-  event => {
-
-    if (
-      event.key === "Enter" &&
-      document.activeElement?.id === "pass"
-    ) {
-
-      login();
-
-    }
-
-  }
-);
-
-
-// =====================================================
-// START
-// =====================================================
-
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-
-    showLogin();
-
-    checkSession();
-
-  }
-);
+loadData();
