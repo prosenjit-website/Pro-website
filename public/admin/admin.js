@@ -1,10 +1,50 @@
-let portfolio = {};
+"use strict";
 
-async function loadData() {
+let portfolio = {};
+let saving = false;
+
+/* =========================================================
+   API
+========================================================= */
+
+async function apiSave(message = "তথ্য সংরক্ষণ হয়েছে") {
+  if (saving) return;
+
+  saving = true;
 
   try {
+    const response = await fetch("/api/portfolio", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(portfolio)
+    });
 
-    const response = await fetch("/api/portfolio");
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "Save failed");
+    }
+
+    portfolio = result.data || portfolio;
+
+    renderAll();
+    showMessage(message, "success");
+
+  } catch (error) {
+    console.error(error);
+    showMessage("তথ্য সংরক্ষণ করা যায়নি", "error");
+  } finally {
+    saving = false;
+  }
+}
+
+async function loadData() {
+  try {
+    const response = await fetch("/api/portfolio", {
+      cache: "no-store"
+    });
 
     if (!response.ok) {
       throw new Error("Data load failed");
@@ -12,20 +52,97 @@ async function loadData() {
 
     portfolio = await response.json();
 
+    normalizeData();
     renderAll();
 
   } catch (error) {
-
-    showMessage("তথ্য লোড করা যায়নি");
-
     console.error(error);
+    showMessage("তথ্য লোড করা যায়নি", "error");
   }
 }
 
 
-/* =========================
-   Navigation
-========================= */
+/* =========================================================
+   DATA NORMALIZE
+========================================================= */
+
+function normalizeData() {
+
+  portfolio.site = portfolio.site || {
+    name: "প্রসেনজিৎ রায়",
+    title: "",
+    description: "",
+    show: true
+  };
+
+  portfolio.sections = portfolio.sections || {};
+
+  portfolio.buttons = portfolio.buttons || {};
+
+  portfolio.about = portfolio.about || {
+    title: "আমার সম্পর্কে",
+    text: "",
+    show: true
+  };
+
+  portfolio.education = Array.isArray(portfolio.education)
+    ? portfolio.education
+    : [];
+
+  portfolio.skills = Array.isArray(portfolio.skills)
+    ? portfolio.skills
+    : [];
+
+  portfolio.diary = Array.isArray(portfolio.diary)
+    ? portfolio.diary
+    : [];
+
+  portfolio.hobbies = Array.isArray(portfolio.hobbies)
+    ? portfolio.hobbies
+    : [];
+
+  portfolio.projects = Array.isArray(portfolio.projects)
+    ? portfolio.projects
+    : [];
+
+  portfolio.vision = portfolio.vision || {
+    title: "আমার ভবিষ্যৎ ভাবনা",
+    text: "",
+    show: true
+  };
+
+  portfolio.contact = portfolio.contact || {
+    email: "",
+    facebook: "",
+    instagram: "",
+    github: "",
+    show: true
+  };
+
+  /* Default sections */
+
+  const sectionNames = [
+    "about",
+    "education",
+    "skills",
+    "diary",
+    "hobbies",
+    "projects",
+    "vision",
+    "contact"
+  ];
+
+  sectionNames.forEach(key => {
+    if (portfolio.sections[key] === undefined) {
+      portfolio.sections[key] = true;
+    }
+  });
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
 
 function showPanel(name) {
 
@@ -33,95 +150,90 @@ function showPanel(name) {
     panel.classList.remove("active");
   });
 
-  const panel = document.getElementById(`panel-${name}`);
+  const target = document.getElementById(`panel-${name}`);
 
-  if (panel) {
-    panel.classList.add("active");
-  }
+  if (!target) return;
+
+  target.classList.add("active");
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
 }
 
 
-/* =========================
-   Render Everything
-========================= */
+/* =========================================================
+   RENDER ALL
+========================================================= */
 
 function renderAll() {
 
-  portfolio.site ||= {};
-  portfolio.sections ||= {};
-  portfolio.buttons ||= {};
-  portfolio.about ||= {};
-  portfolio.education ||= [];
-  portfolio.skills ||= [];
-  portfolio.diary ||= [];
-  portfolio.hobbies ||= [];
-  portfolio.projects ||= [];
-  portfolio.vision ||= {};
-  portfolio.contact ||= {};
+  normalizeData();
 
   renderSite();
   renderSections();
   renderButtons();
   renderAbout();
+
   renderEducation();
   renderSkills();
   renderDiary();
   renderHobbies();
   renderProjects();
+
   renderVision();
   renderContact();
+
   updateStats();
 }
 
 
-/* =========================
-   Site
-========================= */
+/* =========================================================
+   SITE
+========================================================= */
 
 function renderSite() {
 
-  document.getElementById("siteName").value =
-    portfolio.site.name || "";
+  setValue("siteName", portfolio.site.name);
+  setValue("siteTitle", portfolio.site.title);
+  setValue("siteDescription", portfolio.site.description);
 
-  document.getElementById("siteTitle").value =
-    portfolio.site.title || "";
-
-  document.getElementById("siteDescription").value =
-    portfolio.site.description || "";
-
-  document.getElementById("siteShow").checked =
-    portfolio.site.show !== false;
+  setChecked(
+    "siteShow",
+    portfolio.site.show !== false
+  );
 }
 
 async function saveSite() {
 
   portfolio.site.name =
-    document.getElementById("siteName").value;
+    getValue("siteName");
 
   portfolio.site.title =
-    document.getElementById("siteTitle").value;
+    getValue("siteTitle");
 
   portfolio.site.description =
-    document.getElementById("siteDescription").value;
+    getValue("siteDescription");
 
   portfolio.site.show =
-    document.getElementById("siteShow").checked;
+    getChecked("siteShow");
 
-  await savePortfolio("সাইট তথ্য Save হয়েছে");
+  await apiSave("সাইট তথ্য সংরক্ষণ হয়েছে");
 }
 
 
-/* =========================
-   Sections
-========================= */
+/* =========================================================
+   SECTION MANAGER
+========================================================= */
 
 function renderSections() {
 
   const box = document.getElementById("sectionManager");
 
-  box.innerHTML = "";
+  if (!box) return;
 
-  const names = {
+  const sections = {
     about: "আমার সম্পর্কে",
     education: "শিক্ষাজীবন",
     skills: "দক্ষতা",
@@ -132,193 +244,389 @@ function renderSections() {
     contact: "যোগাযোগ"
   };
 
-  Object.entries(names).forEach(([key, name]) => {
+  box.innerHTML = "";
 
-    const checked =
+  Object.entries(sections).forEach(([key, name]) => {
+
+    const enabled =
       portfolio.sections[key] !== false;
 
-    box.innerHTML += `
-      <div class="section-row">
+    const row = document.createElement("div");
 
-        <strong>${name}</strong>
+    row.className = "section-row";
 
-        <label class="switch">
-          <input
-            type="checkbox"
-            ${checked ? "checked" : ""}
-            onchange="toggleSection('${key}', this.checked)"
-          >
+    row.innerHTML = `
+      <strong>${escapeHTML(name)}</strong>
 
-          <span>${checked ? "ON" : "OFF"}</span>
-        </label>
+      <label class="switch">
+        <input
+          type="checkbox"
+          ${enabled ? "checked" : ""}
+          data-section="${escapeHTML(key)}"
+        >
 
-      </div>
+        <span>
+          ${enabled ? "ON" : "OFF"}
+        </span>
+      </label>
     `;
+
+    const checkbox = row.querySelector("input");
+
+    checkbox.addEventListener("change", async function () {
+
+      portfolio.sections[key] = this.checked;
+
+      this.nextElementSibling.textContent =
+        this.checked ? "ON" : "OFF";
+
+      await apiSave("Section আপডেট হয়েছে");
+    });
+
+    box.appendChild(row);
   });
 }
 
-function toggleSection(key, value) {
 
-  portfolio.sections[key] = value;
-
-  savePortfolio("Section আপডেট হয়েছে");
-}
-
-
-/* =========================
-   Buttons
-========================= */
+/* =========================================================
+   BUTTON MANAGER
+========================================================= */
 
 function renderButtons() {
 
   const box = document.getElementById("buttonManager");
 
+  if (!box) return;
+
   box.innerHTML = "";
 
-  Object.entries(portfolio.buttons).forEach(([key, button]) => {
+  const entries = Object.entries(portfolio.buttons);
 
-    box.innerHTML += `
+  if (!entries.length) {
+
+    box.innerHTML = `
       <div class="manager-card">
+        <p>কোনো Button নেই।</p>
 
-        <label>Button Text</label>
+        <button
+          class="primary"
+          onclick="addButton()"
+        >
+          + Button Add করুন
+        </button>
+      </div>
+    `;
 
+    return;
+  }
+
+  entries.forEach(([key, button]) => {
+
+    const card = document.createElement("div");
+
+    card.className = "manager-card";
+
+    card.innerHTML = `
+      <label>Button নাম</label>
+
+      <input
+        value="${escapeHTML(key)}"
+        disabled
+      >
+
+      <label>Button Text</label>
+
+      <input
+        value="${escapeHTML(button.text || "")}"
+        data-field="text"
+      >
+
+      <label>Button URL</label>
+
+      <input
+        value="${escapeHTML(button.url || "")}"
+        data-field="url"
+      >
+
+      <label class="switch">
         <input
-          value="${escapeHTML(button.text || "")}"
-          onchange="updateButton('${key}', 'text', this.value)"
+          type="checkbox"
+          data-field="show"
+          ${button.show !== false ? "checked" : ""}
         >
 
-        <label>URL</label>
+        <span>
+          ${button.show !== false ? "দেখাবে" : "লুকানো"}
+        </span>
+      </label>
 
-        <input
-          value="${escapeHTML(button.url || "")}"
-          onchange="updateButton('${key}', 'url', this.value)"
+      <div class="manager-actions">
+
+        <button
+          class="primary"
+          data-action="save"
         >
+          Save
+        </button>
 
-        <label class="switch">
-          <input
-            type="checkbox"
-            ${button.show !== false ? "checked" : ""}
-            onchange="updateButton('${key}', 'show', this.checked)"
-          >
-          <span>দেখাবে</span>
-        </label>
+        <button
+          class="danger"
+          data-action="delete"
+        >
+          Delete
+        </button>
 
       </div>
     `;
+
+    card
+      .querySelector('[data-action="save"]')
+      .addEventListener("click", async () => {
+
+        portfolio.buttons[key].text =
+          card.querySelector('[data-field="text"]').value;
+
+        portfolio.buttons[key].url =
+          card.querySelector('[data-field="url"]').value;
+
+        portfolio.buttons[key].show =
+          card.querySelector('[data-field="show"]').checked;
+
+        await apiSave("Button সংরক্ষণ হয়েছে");
+      });
+
+    card
+      .querySelector('[data-field="show"]')
+      .addEventListener("change", function () {
+
+        this.nextElementSibling.textContent =
+          this.checked ? "দেখাবে" : "লুকানো";
+      });
+
+    card
+      .querySelector('[data-action="delete"]')
+      .addEventListener("click", async () => {
+
+        if (!confirm("এই Button মুছে ফেলবেন?")) {
+          return;
+        }
+
+        delete portfolio.buttons[key];
+
+        await apiSave("Button মুছে ফেলা হয়েছে");
+      });
+
+    box.appendChild(card);
   });
+
+  const addBox = document.createElement("div");
+
+  addBox.innerHTML = `
+    <button
+      class="primary"
+      onclick="addButton()"
+    >
+      + নতুন Button
+    </button>
+  `;
+
+  box.appendChild(addBox);
 }
 
-function updateButton(key, field, value) {
+function addButton() {
 
-  if (!portfolio.buttons[key]) {
-    portfolio.buttons[key] = {};
+  let key = "button";
+
+  let number = 1;
+
+  while (portfolio.buttons[key]) {
+    key = `button${number++}`;
   }
 
-  portfolio.buttons[key][field] = value;
+  portfolio.buttons[key] = {
+    text: "নতুন Button",
+    url: "#",
+    show: true
+  };
 
-  savePortfolio("Button আপডেট হয়েছে");
+  renderButtons();
+
+  showMessage("নতুন Button তৈরি হয়েছে। এখন Edit করে Save করুন");
 }
 
 
-/* =========================
-   About
-========================= */
+/* =========================================================
+   ABOUT
+========================================================= */
 
 function renderAbout() {
 
-  document.getElementById("aboutTitle").value =
-    portfolio.about.title || "";
+  setValue("aboutTitle", portfolio.about.title);
+  setValue("aboutText", portfolio.about.text);
 
-  document.getElementById("aboutText").value =
-    portfolio.about.text || "";
-
-  document.getElementById("aboutShow").checked =
-    portfolio.about.show !== false;
+  setChecked(
+    "aboutShow",
+    portfolio.about.show !== false
+  );
 }
 
 async function saveAbout() {
 
-  portfolio.about = {
+  portfolio.about.title =
+    getValue("aboutTitle");
 
-    title: document.getElementById("aboutTitle").value,
+  portfolio.about.text =
+    getValue("aboutText");
 
-    text: document.getElementById("aboutText").value,
+  portfolio.about.show =
+    getChecked("aboutShow");
 
-    show: document.getElementById("aboutShow").checked
-  };
-
-  await savePortfolio("About Save হয়েছে");
+  await apiSave("About সংরক্ষণ হয়েছে");
 }
 
 
-/* =========================
-   Education
-========================= */
+/* =========================================================
+   EDUCATION
+========================================================= */
 
 function renderEducation() {
 
-  const box = document.getElementById("educationManager");
+  const box =
+    document.getElementById("educationManager");
+
+  if (!box) return;
 
   box.innerHTML = "";
 
+  if (!portfolio.education.length) {
+
+    box.innerHTML = `
+      <div class="manager-card">
+        <p>কোনো শিক্ষা তথ্য নেই।</p>
+      </div>
+    `;
+
+    return;
+  }
+
   portfolio.education.forEach((item, index) => {
 
-    box.innerHTML += `
-      <div class="manager-card">
+    const card = document.createElement("div");
 
-        <label>শিরোনাম</label>
+    card.className = "manager-card";
+
+    card.innerHTML = `
+      <label>শিরোনাম</label>
+
+      <input
+        data-field="title"
+        value="${escapeHTML(item.title || "")}"
+      >
+
+      <label>প্রতিষ্ঠান</label>
+
+      <input
+        data-field="place"
+        value="${escapeHTML(item.place || "")}"
+      >
+
+      <label>সময়কাল</label>
+
+      <input
+        data-field="year"
+        value="${escapeHTML(item.year || "")}"
+      >
+
+      <label>বিবরণ</label>
+
+      <textarea data-field="description">${escapeHTML(
+        item.description || ""
+      )}</textarea>
+
+      <label class="switch">
+
         <input
-          value="${escapeHTML(item.title || "")}"
-          onchange="portfolio.education[${index}].title=this.value"
+          type="checkbox"
+          data-field="show"
+          ${item.show !== false ? "checked" : ""}
         >
 
-        <label>প্রতিষ্ঠান</label>
-        <input
-          value="${escapeHTML(item.place || "")}"
-          onchange="portfolio.education[${index}].place=this.value"
+        <span>
+          ${item.show !== false ? "দেখাবে" : "লুকানো"}
+        </span>
+
+      </label>
+
+      <div class="manager-actions">
+
+        <button
+          class="primary"
+          data-action="save"
         >
+          Save
+        </button>
 
-        <label>সময়কাল</label>
-        <input
-          value="${escapeHTML(item.year || "")}"
-          onchange="portfolio.education[${index}].year=this.value"
+        <button
+          class="danger"
+          data-action="delete"
         >
-
-        <label>বিবরণ</label>
-        <textarea
-          onchange="portfolio.education[${index}].description=this.value"
-        >${escapeHTML(item.description || "")}</textarea>
-
-        <label class="switch">
-          <input
-            type="checkbox"
-            ${item.show !== false ? "checked" : ""}
-            onchange="portfolio.education[${index}].show=this.checked"
-          >
-          <span>দেখাবে</span>
-        </label>
-
-        <div class="manager-actions">
-
-          <button
-            class="primary"
-            onclick="savePortfolio('Education Save হয়েছে')"
-          >
-            Save
-          </button>
-
-          <button
-            class="danger"
-            onclick="deleteEducation(${index})"
-          >
-            Delete
-          </button>
-
-        </div>
+          Delete
+        </button>
 
       </div>
     `;
+
+    bindItemShowLabel(card);
+
+    card
+      .querySelector('[data-action="save"]')
+      .addEventListener("click", async () => {
+
+        portfolio.education[index] =
+          readEducationCard(card, item);
+
+        await apiSave("Education সংরক্ষণ হয়েছে");
+      });
+
+    card
+      .querySelector('[data-action="delete"]')
+      .addEventListener("click", async () => {
+
+        if (!confirm("এই শিক্ষা তথ্য মুছে ফেলবেন?")) {
+          return;
+        }
+
+        portfolio.education.splice(index, 1);
+
+        await apiSave("Education মুছে ফেলা হয়েছে");
+      });
+
+    box.appendChild(card);
   });
+}
+
+function readEducationCard(card, oldItem) {
+
+  return {
+    ...oldItem,
+
+    id: oldItem.id || Date.now(),
+
+    title:
+      card.querySelector('[data-field="title"]').value,
+
+    place:
+      card.querySelector('[data-field="place"]').value,
+
+    year:
+      card.querySelector('[data-field="year"]').value,
+
+    description:
+      card.querySelector('[data-field="description"]').value,
+
+    show:
+      card.querySelector('[data-field="show"]').checked
+  };
 }
 
 function addEducation() {
@@ -333,79 +641,134 @@ function addEducation() {
   });
 
   renderEducation();
-}
 
-function deleteEducation(index) {
-
-  if (!confirm("এই শিক্ষা মুছে ফেলবেন?")) return;
-
-  portfolio.education.splice(index, 1);
-
-  savePortfolio("Education Delete হয়েছে");
+  showMessage("নতুন Education তৈরি হয়েছে।");
 }
 
 
-/* =========================
-   Skills
-========================= */
+/* =========================================================
+   SKILLS
+========================================================= */
 
 function renderSkills() {
 
-  const box = document.getElementById("skillsManager");
+  const box =
+    document.getElementById("skillsManager");
+
+  if (!box) return;
 
   box.innerHTML = "";
 
+  if (!portfolio.skills.length) {
+
+    box.innerHTML = `
+      <div class="manager-card">
+        <p>কোনো Skill নেই।</p>
+      </div>
+    `;
+
+    return;
+  }
+
   portfolio.skills.forEach((item, index) => {
 
-    box.innerHTML += `
-      <div class="manager-card">
+    const card = document.createElement("div");
 
-        <label>দক্ষতার নাম</label>
+    card.className = "manager-card";
+
+    card.innerHTML = `
+      <label>দক্ষতার নাম</label>
+
+      <input
+        data-field="name"
+        value="${escapeHTML(item.name || "")}"
+      >
+
+      <label>দক্ষতার শতাংশ</label>
+
+      <input
+        type="number"
+        min="0"
+        max="100"
+        data-field="level"
+        value="${Number(item.level) || 0}"
+      >
+
+      <label class="switch">
 
         <input
-          value="${escapeHTML(item.name || "")}"
-          onchange="portfolio.skills[${index}].name=this.value"
+          type="checkbox"
+          data-field="show"
+          ${item.show !== false ? "checked" : ""}
         >
 
-        <label>Percentage</label>
+        <span>
+          ${item.show !== false ? "দেখাবে" : "লুকানো"}
+        </span>
 
-        <input
-          type="number"
-          min="0"
-          max="100"
-          value="${Number(item.level) || 0}"
-          onchange="portfolio.skills[${index}].level=Number(this.value)"
+      </label>
+
+      <div class="manager-actions">
+
+        <button
+          class="primary"
+          data-action="save"
         >
+          Save
+        </button>
 
-        <label class="switch">
-          <input
-            type="checkbox"
-            ${item.show !== false ? "checked" : ""}
-            onchange="portfolio.skills[${index}].show=this.checked"
-          >
-          <span>দেখাবে</span>
-        </label>
-
-        <div class="manager-actions">
-
-          <button
-            class="primary"
-            onclick="savePortfolio('Skill Save হয়েছে')"
-          >
-            Save
-          </button>
-
-          <button
-            class="danger"
-            onclick="deleteSkill(${index})"
-          >
-            Delete
-          </button>
-
-        </div>
+        <button
+          class="danger"
+          data-action="delete"
+        >
+          Delete
+        </button>
 
       </div>
     `;
+
+    bindItemShowLabel(card);
+
+    card
+      .querySelector('[data-action="save"]')
+      .addEventListener("click", async () => {
+
+        portfolio.skills[index] = {
+          ...item,
+
+          name:
+            card.querySelector('[data-field="name"]').value,
+
+          level:
+            clamp(
+              Number(
+                card.querySelector('[data-field="level"]').value
+              ),
+              0,
+              100
+            ),
+
+          show:
+            card.querySelector('[data-field="show"]').checked
+        };
+
+        await apiSave("Skill সংরক্ষণ হয়েছে");
+      });
+
+    card
+      .querySelector('[data-action="delete"]')
+      .addEventListener("click", async () => {
+
+        if (!confirm("এই Skill মুছে ফেলবেন?")) {
+          return;
+        }
+
+        portfolio.skills.splice(index, 1);
+
+        await apiSave("Skill মুছে ফেলা হয়েছে");
+      });
+
+    box.appendChild(card);
   });
 }
 
@@ -413,88 +776,140 @@ function addSkill() {
 
   portfolio.skills.push({
     id: Date.now(),
-    name: "নতুন দক্ষতা",
+    name: "নতুন Skill",
     level: 50,
     show: true
   });
 
   renderSkills();
-}
 
-function deleteSkill(index) {
-
-  if (!confirm("এই দক্ষতা মুছে ফেলবেন?")) return;
-
-  portfolio.skills.splice(index, 1);
-
-  savePortfolio("Skill Delete হয়েছে");
+  showMessage("নতুন Skill তৈরি হয়েছে।");
 }
 
 
-/* =========================
-   Diary
-========================= */
+/* =========================================================
+   DIARY
+========================================================= */
 
 function renderDiary() {
 
-  const box = document.getElementById("diaryManager");
+  const box =
+    document.getElementById("diaryManager");
+
+  if (!box) return;
 
   box.innerHTML = "";
 
+  if (!portfolio.diary.length) {
+
+    box.innerHTML = `
+      <div class="manager-card">
+        <p>কোনো Diary নেই।</p>
+      </div>
+    `;
+
+    return;
+  }
+
   portfolio.diary.forEach((item, index) => {
 
-    box.innerHTML += `
-      <div class="manager-card">
+    const card = document.createElement("div");
 
-        <label>শিরোনাম</label>
+    card.className = "manager-card";
+
+    card.innerHTML = `
+      <label>শিরোনাম</label>
+
+      <input
+        data-field="title"
+        value="${escapeHTML(item.title || "")}"
+      >
+
+      <label>তারিখ</label>
+
+      <input
+        data-field="date"
+        value="${escapeHTML(item.date || "")}"
+      >
+
+      <label>দিনলিপি</label>
+
+      <textarea data-field="text">${escapeHTML(
+        item.text || ""
+      )}</textarea>
+
+      <label class="switch">
 
         <input
-          value="${escapeHTML(item.title || "")}"
-          onchange="portfolio.diary[${index}].title=this.value"
+          type="checkbox"
+          data-field="show"
+          ${item.show !== false ? "checked" : ""}
         >
 
-        <label>তারিখ</label>
+        <span>
+          ${item.show !== false ? "দেখাবে" : "লুকানো"}
+        </span>
 
-        <input
-          value="${escapeHTML(item.date || "")}"
-          onchange="portfolio.diary[${index}].date=this.value"
+      </label>
+
+      <div class="manager-actions">
+
+        <button
+          class="primary"
+          data-action="save"
         >
+          Save
+        </button>
 
-        <label>লেখা</label>
-
-        <textarea
-          onchange="portfolio.diary[${index}].text=this.value"
-        >${escapeHTML(item.text || "")}</textarea>
-
-        <label class="switch">
-          <input
-            type="checkbox"
-            ${item.show !== false ? "checked" : ""}
-            onchange="portfolio.diary[${index}].show=this.checked"
-          >
-          <span>দেখাবে</span>
-        </label>
-
-        <div class="manager-actions">
-
-          <button
-            class="primary"
-            onclick="savePortfolio('Diary Save হয়েছে')"
-          >
-            Save
-          </button>
-
-          <button
-            class="danger"
-            onclick="deleteDiary(${index})"
-          >
-            Delete
-          </button>
-
-        </div>
+        <button
+          class="danger"
+          data-action="delete"
+        >
+          Delete
+        </button>
 
       </div>
     `;
+
+    bindItemShowLabel(card);
+
+    card
+      .querySelector('[data-action="save"]')
+      .addEventListener("click", async () => {
+
+        portfolio.diary[index] = {
+          ...item,
+
+          title:
+            card.querySelector('[data-field="title"]').value,
+
+          date:
+            card.querySelector('[data-field="date"]').value,
+
+          text:
+            card.querySelector('[data-field="text"]').value,
+
+          show:
+            card.querySelector('[data-field="show"]').checked
+        };
+
+        await apiSave("Diary সংরক্ষণ হয়েছে");
+      });
+
+    card
+      .querySelector('[data-action="delete"]')
+      .addEventListener("click", async () => {
+
+        if (!confirm("এই Diary মুছে ফেলবেন?")) {
+          return;
+        }
+
+        portfolio.diary.splice(index, 1);
+
+        await apiSave("Diary মুছে ফেলা হয়েছে");
+      });
+
+    box.appendChild(card);
   });
 }
 
@@ -509,76 +924,125 @@ function addDiary() {
   });
 
   renderDiary();
-}
 
-function deleteDiary(index) {
-
-  if (!confirm("এই দিনলিপি মুছে ফেলবেন?")) return;
-
-  portfolio.diary.splice(index, 1);
-
-  savePortfolio("Diary Delete হয়েছে");
+  showMessage("নতুন Diary তৈরি হয়েছে।");
 }
 
 
-/* =========================
-   Hobbies
-========================= */
+/* =========================================================
+   HOBBIES
+========================================================= */
 
 function renderHobbies() {
 
-  const box = document.getElementById("hobbiesManager");
+  const box =
+    document.getElementById("hobbiesManager");
+
+  if (!box) return;
 
   box.innerHTML = "";
 
+  if (!portfolio.hobbies.length) {
+
+    box.innerHTML = `
+      <div class="manager-card">
+        <p>কোনো Hobby নেই।</p>
+      </div>
+    `;
+
+    return;
+  }
+
   portfolio.hobbies.forEach((item, index) => {
 
-    box.innerHTML += `
-      <div class="manager-card">
+    const card = document.createElement("div");
 
-        <label>নাম</label>
+    card.className = "manager-card";
+
+    card.innerHTML = `
+      <label>শখের নাম</label>
+
+      <input
+        data-field="name"
+        value="${escapeHTML(item.name || "")}"
+      >
+
+      <label>Icon</label>
+
+      <input
+        data-field="icon"
+        value="${escapeHTML(item.icon || "")}"
+      >
+
+      <label class="switch">
 
         <input
-          value="${escapeHTML(item.name || "")}"
-          onchange="portfolio.hobbies[${index}].name=this.value"
+          type="checkbox"
+          data-field="show"
+          ${item.show !== false ? "checked" : ""}
         >
 
-        <label>Icon</label>
+        <span>
+          ${item.show !== false ? "দেখাবে" : "লুকানো"}
+        </span>
 
-        <input
-          value="${escapeHTML(item.icon || "")}"
-          onchange="portfolio.hobbies[${index}].icon=this.value"
+      </label>
+
+      <div class="manager-actions">
+
+        <button
+          class="primary"
+          data-action="save"
         >
+          Save
+        </button>
 
-        <label class="switch">
-          <input
-            type="checkbox"
-            ${item.show !== false ? "checked" : ""}
-            onchange="portfolio.hobbies[${index}].show=this.checked"
-          >
-          <span>দেখাবে</span>
-        </label>
-
-        <div class="manager-actions">
-
-          <button
-            class="primary"
-            onclick="savePortfolio('Hobby Save হয়েছে')"
-          >
-            Save
-          </button>
-
-          <button
-            class="danger"
-            onclick="deleteHobby(${index})"
-          >
-            Delete
-          </button>
-
-        </div>
+        <button
+          class="danger"
+          data-action="delete"
+        >
+          Delete
+        </button>
 
       </div>
     `;
+
+    bindItemShowLabel(card);
+
+    card
+      .querySelector('[data-action="save"]')
+      .addEventListener("click", async () => {
+
+        portfolio.hobbies[index] = {
+          ...item,
+
+          name:
+            card.querySelector('[data-field="name"]').value,
+
+          icon:
+            card.querySelector('[data-field="icon"]').value,
+
+          show:
+            card.querySelector('[data-field="show"]').checked
+        };
+
+        await apiSave("Hobby সংরক্ষণ হয়েছে");
+      });
+
+    card
+      .querySelector('[data-action="delete"]')
+      .addEventListener("click", async () => {
+
+        if (!confirm("এই Hobby মুছে ফেলবেন?")) {
+          return;
+        }
+
+        portfolio.hobbies.splice(index, 1);
+
+        await apiSave("Hobby মুছে ফেলা হয়েছে");
+      });
+
+    box.appendChild(card);
   });
 }
 
@@ -592,82 +1056,134 @@ function addHobby() {
   });
 
   renderHobbies();
-}
 
-function deleteHobby(index) {
-
-  if (!confirm("এই শখ মুছে ফেলবেন?")) return;
-
-  portfolio.hobbies.splice(index, 1);
-
-  savePortfolio("Hobby Delete হয়েছে");
+  showMessage("নতুন Hobby তৈরি হয়েছে।");
 }
 
 
-/* =========================
-   Projects
-========================= */
+/* =========================================================
+   PROJECTS
+========================================================= */
 
 function renderProjects() {
 
-  const box = document.getElementById("projectsManager");
+  const box =
+    document.getElementById("projectsManager");
+
+  if (!box) return;
 
   box.innerHTML = "";
 
+  if (!portfolio.projects.length) {
+
+    box.innerHTML = `
+      <div class="manager-card">
+        <p>কোনো Project নেই।</p>
+      </div>
+    `;
+
+    return;
+  }
+
   portfolio.projects.forEach((item, index) => {
 
-    box.innerHTML += `
-      <div class="manager-card">
+    const card = document.createElement("div");
 
-        <label>Project Name</label>
+    card.className = "manager-card";
+
+    card.innerHTML = `
+      <label>Project Name</label>
+
+      <input
+        data-field="title"
+        value="${escapeHTML(item.title || "")}"
+      >
+
+      <label>Description</label>
+
+      <textarea data-field="description">${escapeHTML(
+        item.description || ""
+      )}</textarea>
+
+      <label>Project URL</label>
+
+      <input
+        data-field="url"
+        value="${escapeHTML(item.url || "")}"
+      >
+
+      <label class="switch">
 
         <input
-          value="${escapeHTML(item.title || "")}"
-          onchange="portfolio.projects[${index}].title=this.value"
+          type="checkbox"
+          data-field="show"
+          ${item.show !== false ? "checked" : ""}
         >
 
-        <label>Description</label>
+        <span>
+          ${item.show !== false ? "দেখাবে" : "লুকানো"}
+        </span>
 
-        <textarea
-          onchange="portfolio.projects[${index}].description=this.value"
-        >${escapeHTML(item.description || "")}</textarea>
+      </label>
 
-        <label>Project URL</label>
+      <div class="manager-actions">
 
-        <input
-          value="${escapeHTML(item.url || "")}"
-          onchange="portfolio.projects[${index}].url=this.value"
+        <button
+          class="primary"
+          data-action="save"
         >
+          Save
+        </button>
 
-        <label class="switch">
-          <input
-            type="checkbox"
-            ${item.show !== false ? "checked" : ""}
-            onchange="portfolio.projects[${index}].show=this.checked"
-          >
-          <span>দেখাবে</span>
-        </label>
-
-        <div class="manager-actions">
-
-          <button
-            class="primary"
-            onclick="savePortfolio('Project Save হয়েছে')"
-          >
-            Save
-          </button>
-
-          <button
-            class="danger"
-            onclick="deleteProject(${index})"
-          >
-            Delete
-          </button>
-
-        </div>
+        <button
+          class="danger"
+          data-action="delete"
+        >
+          Delete
+        </button>
 
       </div>
     `;
+
+    bindItemShowLabel(card);
+
+    card
+      .querySelector('[data-action="save"]')
+      .addEventListener("click", async () => {
+
+        portfolio.projects[index] = {
+          ...item,
+
+          title:
+            card.querySelector('[data-field="title"]').value,
+
+          description:
+            card.querySelector('[data-field="description"]').value,
+
+          url:
+            card.querySelector('[data-field="url"]').value,
+
+          show:
+            card.querySelector('[data-field="show"]').checked
+        };
+
+        await apiSave("Project সংরক্ষণ হয়েছে");
+      });
+
+    card
+      .querySelector('[data-action="delete"]')
+      .addEventListener("click", async () => {
+
+        if (!confirm("এই Project মুছে ফেলবেন?")) {
+          return;
+        }
+
+        portfolio.projects.splice(index, 1);
+
+        await apiSave("Project মুছে ফেলা হয়েছে");
+      });
+
+    box.appendChild(card);
   });
 }
 
@@ -682,227 +1198,320 @@ function addProject() {
   });
 
   renderProjects();
-}
 
-function deleteProject(index) {
-
-  if (!confirm("এই প্রজেক্ট মুছে ফেলবেন?")) return;
-
-  portfolio.projects.splice(index, 1);
-
-  savePortfolio("Project Delete হয়েছে");
+  showMessage("নতুন Project তৈরি হয়েছে।");
 }
 
 
-/* =========================
-   Vision
-========================= */
+/* =========================================================
+   VISION
+========================================================= */
 
 function renderVision() {
 
-  document.getElementById("visionTitle").value =
-    portfolio.vision.title || "";
+  setValue(
+    "visionTitle",
+    portfolio.vision.title
+  );
 
-  document.getElementById("visionText").value =
-    portfolio.vision.text || "";
+  setValue(
+    "visionText",
+    portfolio.vision.text
+  );
 
-  document.getElementById("visionShow").checked =
-    portfolio.vision.show !== false;
+  setChecked(
+    "visionShow",
+    portfolio.vision.show !== false
+  );
 }
 
 async function saveVision() {
 
-  portfolio.vision = {
+  portfolio.vision.title =
+    getValue("visionTitle");
 
-    title: document.getElementById("visionTitle").value,
+  portfolio.vision.text =
+    getValue("visionText");
 
-    text: document.getElementById("visionText").value,
+  portfolio.vision.show =
+    getChecked("visionShow");
 
-    show: document.getElementById("visionShow").checked
-  };
-
-  await savePortfolio("Vision Save হয়েছে");
+  await apiSave("Vision সংরক্ষণ হয়েছে");
 }
 
 
-/* =========================
-   Contact
-========================= */
+/* =========================================================
+   CONTACT
+========================================================= */
 
 function renderContact() {
 
-  document.getElementById("contactEmail").value =
-    portfolio.contact.email || "";
+  setValue(
+    "contactEmail",
+    portfolio.contact.email
+  );
 
-  document.getElementById("contactFacebook").value =
-    portfolio.contact.facebook || "";
+  setValue(
+    "contactFacebook",
+    portfolio.contact.facebook
+  );
 
-  document.getElementById("contactInstagram").value =
-    portfolio.contact.instagram || "";
+  setValue(
+    "contactInstagram",
+    portfolio.contact.instagram
+  );
 
-  document.getElementById("contactGithub").value =
-    portfolio.contact.github || "";
+  setValue(
+    "contactGithub",
+    portfolio.contact.github
+  );
 
-  document.getElementById("contactShow").checked =
-    portfolio.contact.show !== false;
+  setChecked(
+    "contactShow",
+    portfolio.contact.show !== false
+  );
 }
 
 async function saveContact() {
 
-  portfolio.contact = {
+  portfolio.contact.email =
+    getValue("contactEmail");
 
-    email: document.getElementById("contactEmail").value,
+  portfolio.contact.facebook =
+    getValue("contactFacebook");
 
-    facebook: document.getElementById("contactFacebook").value,
+  portfolio.contact.instagram =
+    getValue("contactInstagram");
 
-    instagram: document.getElementById("contactInstagram").value,
+  portfolio.contact.github =
+    getValue("contactGithub");
 
-    github: document.getElementById("contactGithub").value,
+  portfolio.contact.show =
+    getChecked("contactShow");
 
-    show: document.getElementById("contactShow").checked
-  };
-
-  await savePortfolio("Contact Save হয়েছে");
+  await apiSave("Contact সংরক্ষণ হয়েছে");
 }
 
 
-/* =========================
-   Delete helpers
-========================= */
-
-function deleteProject(index) {
-
-  if (!confirm("এই প্রজেক্ট মুছে ফেলবেন?")) return;
-
-  portfolio.projects.splice(index, 1);
-
-  savePortfolio("Project Delete হয়েছে");
-}
-
-function deleteEducation(index) {
-
-  if (!confirm("এই শিক্ষা মুছে ফেলবেন?")) return;
-
-  portfolio.education.splice(index, 1);
-
-  savePortfolio("Education Delete হয়েছে");
-}
-
-function deleteSkill(index) {
-
-  if (!confirm("এই দক্ষতা মুছে ফেলবেন?")) return;
-
-  portfolio.skills.splice(index, 1);
-
-  savePortfolio("Skill Delete হয়েছে");
-}
-
-function deleteDiary(index) {
-
-  if (!confirm("এই দিনলিপি মুছে ফেলবেন?")) return;
-
-  portfolio.diary.splice(index, 1);
-
-  savePortfolio("Diary Delete হয়েছে");
-}
-
-function deleteHobby(index) {
-
-  if (!confirm("এই শখ মুছে ফেলবেন?")) return;
-
-  portfolio.hobbies.splice(index, 1);
-
-  savePortfolio("Hobby Delete হয়েছে");
-}
-
-
-/* =========================
-   Save
-========================= */
-
-async function savePortfolio(message = "সব তথ্য Save হয়েছে") {
-
-  try {
-
-    const response = await fetch("/api/portfolio", {
-
-      method: "PUT",
-
-      headers: {
-        "Content-Type": "application/json"
-      },
-
-      body: JSON.stringify(portfolio)
-    });
-
-    const result = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message);
-    }
-
-    showMessage(message);
-
-    renderAll();
-
-  } catch (error) {
-
-    console.error(error);
-
-    showMessage("Save করা যায়নি");
-  }
-}
+/* =========================================================
+   SAVE EVERYTHING
+========================================================= */
 
 async function saveAll() {
 
-  await savePortfolio("সব তথ্য সফলভাবে Save হয়েছে");
+  /* Site */
+
+  portfolio.site.name =
+    getValue("siteName");
+
+  portfolio.site.title =
+    getValue("siteTitle");
+
+  portfolio.site.description =
+    getValue("siteDescription");
+
+  portfolio.site.show =
+    getChecked("siteShow");
+
+
+  /* About */
+
+  portfolio.about.title =
+    getValue("aboutTitle");
+
+  portfolio.about.text =
+    getValue("aboutText");
+
+  portfolio.about.show =
+    getChecked("aboutShow");
+
+
+  /* Vision */
+
+  portfolio.vision.title =
+    getValue("visionTitle");
+
+  portfolio.vision.text =
+    getValue("visionText");
+
+  portfolio.vision.show =
+    getChecked("visionShow");
+
+
+  /* Contact */
+
+  portfolio.contact.email =
+    getValue("contactEmail");
+
+  portfolio.contact.facebook =
+    getValue("contactFacebook");
+
+  portfolio.contact.instagram =
+    getValue("contactInstagram");
+
+  portfolio.contact.github =
+    getValue("contactGithub");
+
+  portfolio.contact.show =
+    getChecked("contactShow");
+
+
+  await apiSave("সব তথ্য সফলভাবে সংরক্ষণ হয়েছে");
 }
 
 
-/* =========================
-   Dashboard
-========================= */
+/* =========================================================
+   DASHBOARD
+========================================================= */
 
 function updateStats() {
 
-  document.getElementById("statEducation").textContent =
-    portfolio.education.length;
+  setText(
+    "statEducation",
+    portfolio.education.length
+  );
 
-  document.getElementById("statSkills").textContent =
-    portfolio.skills.length;
+  setText(
+    "statSkills",
+    portfolio.skills.length
+  );
 
-  document.getElementById("statDiary").textContent =
-    portfolio.diary.length;
+  setText(
+    "statDiary",
+    portfolio.diary.length
+  );
 
-  document.getElementById("statProjects").textContent =
-    portfolio.projects.length;
+  setText(
+    "statProjects",
+    portfolio.projects.length
+  );
 }
 
 
-/* =========================
-   Message
-========================= */
+/* =========================================================
+   SHOW/HIDE HELPER
+========================================================= */
 
-function showMessage(text) {
+function bindItemShowLabel(card) {
 
-  const box = document.getElementById("message");
+  const checkbox =
+    card.querySelector('[data-field="show"]');
 
-  const toast = document.createElement("div");
+  if (!checkbox) return;
 
-  toast.className = "toast";
+  checkbox.addEventListener("change", function () {
+
+    const label =
+      this.nextElementSibling;
+
+    if (label) {
+      label.textContent =
+        this.checked
+          ? "দেখাবে"
+          : "লুকানো";
+    }
+  });
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+function showMessage(text, type = "success") {
+
+  const box =
+    document.getElementById("message");
+
+  if (!box) return;
+
+  const toast =
+    document.createElement("div");
+
+  toast.className =
+    `toast ${type}`;
+
   toast.textContent = text;
 
   box.appendChild(toast);
 
   setTimeout(() => {
-    toast.remove();
-  }, 2500);
+
+    toast.style.opacity = "0";
+
+    setTimeout(() => {
+      toast.remove();
+    }, 300);
+
+  }, 2200);
 }
 
 
-/* =========================
-   Security helper
-========================= */
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function getValue(id) {
+
+  const element =
+    document.getElementById(id);
+
+  return element
+    ? element.value
+    : "";
+}
+
+function setValue(id, value) {
+
+  const element =
+    document.getElementById(id);
+
+  if (element) {
+    element.value = value ?? "";
+  }
+}
+
+function getChecked(id) {
+
+  const element =
+    document.getElementById(id);
+
+  return element
+    ? element.checked
+    : false;
+}
+
+function setChecked(id, value) {
+
+  const element =
+    document.getElementById(id);
+
+  if (element) {
+    element.checked = Boolean(value);
+  }
+}
+
+function setText(id, value) {
+
+  const element =
+    document.getElementById(id);
+
+  if (element) {
+    element.textContent = value ?? "";
+  }
+}
+
+function clamp(value, min, max) {
+
+  if (Number.isNaN(value)) {
+    return min;
+  }
+
+  return Math.min(
+    Math.max(value, min),
+    max
+  );
+}
 
 function escapeHTML(value) {
 
@@ -915,8 +1524,12 @@ function escapeHTML(value) {
 }
 
 
-/* =========================
-   Start
-========================= */
+/* =========================================================
+   START
+========================================================= */
 
-loadData();
+document.addEventListener("DOMContentLoaded", () => {
+
+  loadData();
+
+});
