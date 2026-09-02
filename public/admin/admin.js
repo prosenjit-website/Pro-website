@@ -1,84 +1,49 @@
-/* =========================================================
-   PROSENJIT RAY — ADMIN PANEL JS
-   Full Admin Controller
-========================================================= */
-
 "use strict";
 
-/* =========================================================
-   HELPERS
-========================================================= */
+
+// =====================================================
+// HELPERS
+// =====================================================
 
 const $ = (id) => document.getElementById(id);
 
-const qs = (selector, parent = document) =>
-  parent.querySelector(selector);
+let siteData = {
+  name: "",
+  tagline: "",
+  college: "",
+  education: "",
+  photo: "",
+  about: "",
+  skills: [],
+  social: {},
+  buttons: []
+};
 
-const qsa = (selector, parent = document) =>
-  [...parent.querySelectorAll(selector)];
-
-function escapeHTML(value = "") {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function showMessage(message, type = "success") {
-  let box = $("adminMessage");
-
-  if (!box) {
-    box = document.createElement("div");
-    box.id = "adminMessage";
-    document.body.appendChild(box);
-  }
-
-  box.className = `admin-message ${type}`;
-  box.textContent = message;
-
-  clearTimeout(window.__msgTimer);
-
-  window.__msgTimer = setTimeout(() => {
-    box.classList.remove("show");
-  }, 3500);
-
-  requestAnimationFrame(() => {
-    box.classList.add("show");
-  });
-}
-
-function setLoading(button, loading, text = "Processing...") {
-  if (!button) return;
-
-  if (loading) {
-    button.dataset.oldText = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = text;
-  } else {
-    button.disabled = false;
-    button.innerHTML =
-      button.dataset.oldText || button.innerHTML;
-  }
-}
+let diaryItems = [];
+let projectItems = [];
 
 
-/* =========================================================
-   API HELPER
-========================================================= */
+// =====================================================
+// API HELPER
+// =====================================================
 
-async function api(url, options = {}) {
-  const config = {
-    credentials: "same-origin",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {})
+async function api(
+  url,
+  options = {}
+) {
+  const response = await fetch(
+    url,
+    {
+      credentials: "same-origin",
+
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      },
+
+      ...options
     }
-  };
-
-  const response = await fetch(url, config);
+  );
 
   let data = {};
 
@@ -89,189 +54,118 @@ async function api(url, options = {}) {
   }
 
   if (!response.ok) {
-    const error = new Error(
+    const error =
       data.error ||
-      data.message ||
-      `Request failed (${response.status})`
-    );
+      `Request failed (${response.status})`;
 
-    error.status = response.status;
-    error.data = data;
-
-    throw error;
+    throw new Error(error);
   }
 
   return data;
 }
 
 
-/* =========================================================
-   GLOBAL STATE
-========================================================= */
+// =====================================================
+// MESSAGE
+// =====================================================
 
-let siteData = null;
-let diaryData = [];
-let projectData = [];
+function message(
+  element,
+  text,
+  type = "success"
+) {
+  if (!element) return;
 
-let isLoggedIn = false;
+  element.textContent = text;
 
+  element.className =
+    `message ${type}`;
 
-/* =========================================================
-   PAGE ELEMENTS
-========================================================= */
-
-const loginSection =
-  $("loginSection") ||
-  qs(".login-section");
-
-const dashboardSection =
-  $("dashboardSection") ||
-  qs(".dashboard");
-
-const loginForm =
-  $("loginForm");
-
-const logoutBtn =
-  $("logoutBtn");
-
-const loginBtn =
-  $("loginBtn");
+  setTimeout(() => {
+    element.textContent = "";
+  }, 4000);
+}
 
 
-/* =========================================================
-   LOGIN
-========================================================= */
+// =====================================================
+// LOGIN
+// =====================================================
 
 async function checkSession() {
   try {
-    const data = await api(
-      "/api/admin/session",
-      {
-        method: "GET"
-      }
-    );
+    const data =
+      await api("/api/admin/session");
 
-    isLoggedIn = data.loggedIn === true;
-
-    if (isLoggedIn) {
-      await openDashboard();
+    if (data.loggedIn) {
+      showDashboard();
     } else {
-      openLogin();
+      showLogin();
     }
 
   } catch (error) {
     console.error(error);
-    openLogin();
-  }
-}
 
+    showLogin();
 
-function openLogin() {
-
-  isLoggedIn = false;
-
-  if (loginSection) {
-    loginSection.style.display = "";
-  }
-
-  if (dashboardSection) {
-    dashboardSection.style.display = "none";
-  }
-}
-
-
-async function openDashboard() {
-
-  isLoggedIn = true;
-
-  if (loginSection) {
-    loginSection.style.display = "none";
-  }
-
-  if (dashboardSection) {
-    dashboardSection.style.display = "";
-  }
-
-  try {
-
-    await loadSite();
-
-    await loadDiary();
-
-    await loadProjects();
-
-    renderAll();
-
-  } catch (error) {
-
-    console.error(error);
-
-    if (error.status === 401) {
-      isLoggedIn = false;
-      openLogin();
-
-      showMessage(
-        "সেশন শেষ হয়েছে। আবার Login করুন।",
-        "error"
-      );
-
-      return;
-    }
-
-    showMessage(
-      error.message || "Data load failed",
+    message(
+      $("loginMessage"),
+      "Server connection পাওয়া যাচ্ছে না।",
       "error"
     );
   }
 }
 
 
-if (loginForm) {
+function showLogin() {
+  $("loginBox")
+    .classList.remove("hidden");
 
-  loginForm.addEventListener(
-    "submit",
-    async (event) => {
+  $("dashboard")
+    .classList.add("hidden");
 
-      event.preventDefault();
+  $("logoutBtn")
+    .classList.add("hidden");
+}
 
-      const usernameInput =
-        $("username") ||
-        $("adminUsername") ||
-        qs('input[name="username"]');
 
-      const passwordInput =
-        $("password") ||
-        $("adminPassword") ||
-        qs('input[name="password"]');
+async function showDashboard() {
+  $("loginBox")
+    .classList.add("hidden");
 
-      const username =
-        usernameInput?.value.trim() || "";
+  $("dashboard")
+    .classList.remove("hidden");
 
-      const password =
-        passwordInput?.value || "";
+  $("logoutBtn")
+    .classList.remove("hidden");
 
-      if (!username || !password) {
+  await loadEverything();
+}
 
-        showMessage(
-          "Username এবং Password দিন।",
-          "error"
-        );
 
-        return;
-      }
+// =====================================================
+// LOGIN FORM
+// =====================================================
 
-      setLoading(
-        loginBtn,
-        true,
-        "Login হচ্ছে..."
-      );
+$("loginForm").addEventListener(
+  "submit",
+  async (event) => {
 
-      try {
+    event.preventDefault();
 
-        const data = await api(
+    const username =
+      $("username").value.trim();
+
+    const password =
+      $("password").value;
+
+    try {
+
+      const data =
+        await api(
           "/api/admin/login",
           {
             method: "POST",
+
             body: JSON.stringify({
               username,
               password
@@ -279,1601 +173,1446 @@ if (loginForm) {
           }
         );
 
-        if (!data.success) {
-          throw new Error(
-            data.error ||
-            "Login failed"
-          );
-        }
-
-        isLoggedIn = true;
-
-        showMessage(
-          "Login সফল হয়েছে ✓",
+      if (data.success) {
+        message(
+          $("loginMessage"),
+          "Login successful!",
           "success"
         );
 
-        await openDashboard();
-
-      } catch (error) {
-
-        console.error(error);
-
-        showMessage(
-          error.message ||
-          "Username অথবা Password ভুল।",
-          "error"
-        );
-
-      } finally {
-
-        setLoading(
-          loginBtn,
-          false
-        );
-
+        await showDashboard();
       }
 
-    }
-  );
-}
+    } catch (error) {
 
-
-/* =========================================================
-   LOGOUT
-========================================================= */
-
-if (logoutBtn) {
-
-  logoutBtn.addEventListener(
-    "click",
-    async () => {
-
-      try {
-
-        await api(
-          "/api/admin/logout",
-          {
-            method: "POST"
-          }
-        );
-
-      } catch (error) {
-
-        console.error(error);
-
-      }
-
-      isLoggedIn = false;
-
-      openLogin();
-
-      showMessage(
-        "Logout হয়েছে।",
-        "success"
+      message(
+        $("loginMessage"),
+        error.message,
+        "error"
       );
     }
-  );
+  }
+);
+
+
+// =====================================================
+// LOGOUT
+// =====================================================
+
+$("logoutBtn").addEventListener(
+  "click",
+  async () => {
+
+    try {
+
+      await api(
+        "/api/admin/logout",
+        {
+          method: "POST"
+        }
+      );
+
+      location.reload();
+
+    } catch (error) {
+
+      alert(error.message);
+    }
+  }
+);
+
+
+// =====================================================
+// LOAD EVERYTHING
+// =====================================================
+
+async function loadEverything() {
+
+  await Promise.all([
+    loadSite(),
+    loadDiary(),
+    loadProjects()
+  ]);
+
+  renderButtons();
 }
 
 
-/* =========================================================
-   SITE CONTENT
-========================================================= */
+// =====================================================
+// SITE
+// =====================================================
 
 async function loadSite() {
 
-  const data = await api(
-    "/api/admin/content",
-    {
-      method: "GET"
-    }
-  );
+  try {
 
-  siteData = data || {};
+    siteData =
+      await api("/api/admin/content");
 
-  return siteData;
+    fillSiteForm();
+
+  } catch (error) {
+
+    console.error(
+      "SITE ERROR:",
+      error
+    );
+
+    message(
+      $("siteMessage"),
+      error.message,
+      "error"
+    );
+  }
 }
 
 
 function fillSiteForm() {
 
-  if (!siteData) return;
+  $("siteName").value =
+    siteData.name || "";
 
-  const map = {
+  $("siteTagline").value =
+    siteData.tagline || "";
 
-    name: siteData.name,
+  $("siteCollege").value =
+    siteData.college || "";
 
-    tagline: siteData.tagline,
+  $("siteEducation").value =
+    siteData.education || "";
 
-    college: siteData.college,
+  $("sitePhoto").value =
+    siteData.photo || "";
 
-    education: siteData.education,
+  $("siteAbout").value =
+    siteData.about || "";
 
-    photo: siteData.photo,
-
-    about: siteData.about
-
-  };
-
-  Object.entries(map).forEach(
-    ([key, value]) => {
-
-      const input =
-        $(key) ||
-        qs(`[name="${key}"]`);
-
-      if (input) {
-        input.value = value || "";
-      }
-
-    }
-  );
-
-
-  /* Skills */
-
-  const skillsInput =
-    $("skills") ||
-    qs('[name="skills"]');
-
-  if (skillsInput) {
-
-    skillsInput.value =
-      Array.isArray(siteData.skills)
-        ? siteData.skills.join("\n")
-        : "";
-
-  }
-
-
-  /* Social */
+  $("siteSkills").value =
+    Array.isArray(siteData.skills)
+      ? siteData.skills.join("\n")
+      : "";
 
   const social =
     siteData.social || {};
 
-  const socialMap = {
+  $("facebook").value =
+    social.facebook || "";
 
-    facebook: social.facebook,
+  $("instagram").value =
+    social.instagram || "";
 
-    instagram: social.instagram,
+  $("whatsapp").value =
+    social.whatsapp || "";
 
-    whatsapp: social.whatsapp,
+  $("github").value =
+    social.github || "";
 
-    github: social.github,
-
-    email: social.email
-
-  };
-
-  Object.entries(socialMap).forEach(
-    ([key, value]) => {
-
-      const input =
-        $(key) ||
-        qs(`[name="${key}"]`);
-
-      if (input) {
-        input.value = value || "";
-      }
-
-    }
-  );
-
-
-  renderButtons();
+  $("email").value =
+    social.email || "";
 }
 
 
-async function saveSite() {
+// =====================================================
+// SAVE SITE
+// =====================================================
 
-  if (!isLoggedIn) {
-    showMessage(
-      "আগে Login করুন।",
-      "error"
-    );
-    return;
-  }
+$("siteForm").addEventListener(
+  "submit",
+  async (event) => {
 
-  const getValue = (key) => {
+    event.preventDefault();
 
-    const input =
-      $(key) ||
-      qs(`[name="${key}"]`);
+    const updated = {
 
-    return input
-      ? input.value.trim()
-      : undefined;
-  };
+      ...siteData,
 
+      name:
+        $("siteName").value.trim(),
 
-  const skillsInput =
-    $("skills") ||
-    qs('[name="skills"]');
+      tagline:
+        $("siteTagline").value.trim(),
 
+      college:
+        $("siteCollege").value.trim(),
 
-  const skills =
-    skillsInput
-      ? skillsInput.value
+      education:
+        $("siteEducation").value.trim(),
+
+      photo:
+        $("sitePhoto").value.trim(),
+
+      about:
+        $("siteAbout").value.trim(),
+
+      skills:
+        $("siteSkills")
+          .value
           .split("\n")
           .map(x => x.trim())
-          .filter(Boolean)
-      : (
-          Array.isArray(siteData?.skills)
-            ? siteData.skills
-            : []
+          .filter(Boolean),
+
+      social: {
+
+        ...(siteData.social || {}),
+
+        facebook:
+          $("facebook").value.trim(),
+
+        instagram:
+          $("instagram").value.trim(),
+
+        whatsapp:
+          $("whatsapp").value.trim(),
+
+        github:
+          $("github").value.trim(),
+
+        email:
+          $("email").value.trim()
+      }
+    };
+
+    try {
+
+      const result =
+        await api(
+          "/api/admin/content",
+          {
+            method: "PUT",
+
+            body:
+              JSON.stringify(updated)
+          }
         );
 
+      siteData =
+        result.data;
 
-  const updated = {
-
-    ...siteData,
-
-    name:
-      getValue("name") ??
-      siteData.name,
-
-    tagline:
-      getValue("tagline") ??
-      siteData.tagline,
-
-    college:
-      getValue("college") ??
-      siteData.college,
-
-    education:
-      getValue("education") ??
-      siteData.education,
-
-    photo:
-      getValue("photo") ??
-      siteData.photo,
-
-    about:
-      getValue("about") ??
-      siteData.about,
-
-    skills
-
-  };
-
-
-  /* Social */
-
-  updated.social = {
-    ...(siteData.social || {})
-  };
-
-  [
-    "facebook",
-    "instagram",
-    "whatsapp",
-    "github",
-    "email"
-  ].forEach(key => {
-
-    const value = getValue(key);
-
-    if (value !== undefined) {
-      updated.social[key] = value;
-    }
-
-  });
-
-
-  const saveButton =
-    $("saveSiteBtn") ||
-    qs('[data-action="save-site"]');
-
-
-  setLoading(
-    saveButton,
-    true,
-    "সংরক্ষণ হচ্ছে..."
-  );
-
-
-  try {
-
-    const result = await api(
-      "/api/admin/content",
-      {
-        method: "PUT",
-        body: JSON.stringify(updated)
-      }
-    );
-
-    siteData =
-      result.data || updated;
-
-    fillSiteForm();
-
-    showMessage(
-      "সাইটের তথ্য সফলভাবে Save হয়েছে ✓",
-      "success"
-    );
-
-  } catch (error) {
-
-    console.error(error);
-
-    if (error.status === 401) {
-      openLogin();
-      showMessage(
-        "Login session শেষ হয়েছে। আবার Login করুন।",
-        "error"
+      message(
+        $("siteMessage"),
+        "✅ সাইটের তথ্য সফলভাবে সংরক্ষণ হয়েছে।",
+        "success"
       );
-    } else {
-      showMessage(
-        error.message ||
-        "Save করা যায়নি।",
+
+    } catch (error) {
+
+      message(
+        $("siteMessage"),
+        error.message,
         "error"
       );
     }
-
-  } finally {
-
-    setLoading(
-      saveButton,
-      false
-    );
-
   }
-}
+);
 
 
-/* =========================================================
-   BUTTON MANAGER
-========================================================= */
+// =====================================================
+// BUTTON MANAGER
+// =====================================================
 
 function renderButtons() {
 
   const container =
-    $("buttonsList") ||
-    $("buttonList") ||
-    qs(".buttons-list");
+    $("buttonsList");
 
-  if (!container) return;
+  container.innerHTML = "";
 
   const buttons =
-    Array.isArray(siteData?.buttons)
+    Array.isArray(siteData.buttons)
       ? [...siteData.buttons]
-          .sort(
-            (a, b) =>
-              Number(a.order || 0) -
-              Number(b.order || 0)
-          )
       : [];
 
+  buttons.sort(
+    (a, b) =>
+      Number(a.order || 0) -
+      Number(b.order || 0)
+  );
 
   if (!buttons.length) {
 
-    container.innerHTML = `
-      <div class="empty-state">
+    container.innerHTML =
+      `<div class="item">
         এখনো কোনো Button নেই।
-      </div>
-    `;
+      </div>`;
 
     return;
   }
 
+  buttons.forEach(
+    (button, index) => {
 
-  container.innerHTML =
-    buttons.map(
-      (button, index) => `
+      const div =
+        document.createElement("div");
 
-      <div
-        class="manager-card button-card"
-        data-button-id="${escapeHTML(button.id || index)}"
-      >
+      div.className =
+        `item ${
+          button.visible === false
+            ? "hidden-item"
+            : ""
+        }`;
 
-        <div class="manager-number">
-          ${String(index + 1).padStart(2, "0")}
-        </div>
+      div.innerHTML = `
+        <div class="item-head">
 
-        <div class="manager-content">
+          <div>
+            <div class="item-title">
+              ${escapeHtml(button.label || "Untitled")}
+            </div>
 
-          <input
-            class="button-label"
-            type="text"
-            value="${escapeHTML(button.label || "")}"
-            placeholder="Button text"
-          >
+            <div class="item-meta">
+              ${escapeHtml(button.url || "")}
+              · Order ${button.order || index + 1}
+            </div>
+          </div>
 
-          <input
-            class="button-url"
-            type="text"
-            value="${escapeHTML(button.url || "")}"
-            placeholder="Button link"
-          >
-
-        </div>
-
-        <div class="manager-actions">
-
-          <button
-            type="button"
-            class="btn small"
-            data-button-up="${index}"
-            ${index === 0 ? "disabled" : ""}
-          >
-            ↑
-          </button>
-
-          <button
-            type="button"
-            class="btn small"
-            data-button-down="${index}"
-            ${index === buttons.length - 1 ? "disabled" : ""}
-          >
-            ↓
-          </button>
-
-          <button
-            type="button"
-            class="btn small ${
+          <div>
+            ${
               button.visible === false
-                ? "danger"
-                : "success"
-            }"
-            data-button-toggle="${index}"
+                ? "🙈 Hidden"
+                : "👁️ Visible"
+            }
+          </div>
+
+        </div>
+
+        <div class="item-actions">
+
+          <button
+            class="small-btn edit"
+            onclick="editButton('${button.id}')"
+          >
+            ✏️ Edit
+          </button>
+
+          <button
+            class="small-btn toggle"
+            onclick="toggleButton('${button.id}')"
           >
             ${
               button.visible === false
-                ? "Show"
-                : "Hide"
+                ? "👁️ Show"
+                : "🙈 Hide"
             }
           </button>
 
           <button
-            type="button"
-            class="btn small danger"
-            data-button-delete="${index}"
+            class="small-btn delete"
+            onclick="deleteButton('${button.id}')"
           >
-            Delete
+            🗑️ Delete
           </button>
 
         </div>
+      `;
 
-      </div>
-    `
-    ).join("");
+      container.appendChild(div);
+    }
+  );
 }
 
 
-/* Button Manager events */
+// =====================================================
+// ADD BUTTON
+// =====================================================
 
-document.addEventListener(
-  "input",
-  event => {
-
-    if (
-      event.target.classList.contains(
-        "button-label"
-      )
-    ) {
-
-      const card =
-        event.target.closest(
-          ".button-card"
-        );
-
-      const index =
-        [...qsa(".button-card")]
-          .indexOf(card);
-
-      if (
-        siteData?.buttons?.[index]
-      ) {
-
-        siteData.buttons[index].label =
-          event.target.value;
-
-      }
-
-    }
-
-
-    if (
-      event.target.classList.contains(
-        "button-url"
-      )
-    ) {
-
-      const card =
-        event.target.closest(
-          ".button-card"
-        );
-
-      const index =
-        [...qsa(".button-card")]
-          .indexOf(card);
-
-      if (
-        siteData?.buttons?.[index]
-      ) {
-
-        siteData.buttons[index].url =
-          event.target.value;
-
-      }
-
-    }
-
-  }
-);
-
-
-document.addEventListener(
+$("addButtonBtn").addEventListener(
   "click",
-  async event => {
+  () => {
 
-    const up =
-      event.target.closest(
-        "[data-button-up]"
-      );
+    openModal(`
+      <div class="modal-title">
+        + নতুন বাটন
+      </div>
 
-    const down =
-      event.target.closest(
-        "[data-button-down]"
-      );
+      <label>
+        Button Name
+        <input id="modalButtonLabel">
+      </label>
 
-    const toggle =
-      event.target.closest(
-        "[data-button-toggle]"
-      );
+      <label>
+        Link / URL
+        <input
+          id="modalButtonUrl"
+          placeholder="/about.html"
+        >
+      </label>
 
-    const del =
-      event.target.closest(
-        "[data-button-delete]"
-      );
+      <label>
+        Order
+        <input
+          id="modalButtonOrder"
+          type="number"
+          value="${siteData.buttons.length + 1}"
+        >
+      </label>
 
-
-    if (up) {
-
-      const index =
-        Number(
-          up.dataset.buttonUp
-        );
-
-      moveButton(index, index - 1);
-
-    }
-
-
-    if (down) {
-
-      const index =
-        Number(
-          down.dataset.buttonDown
-        );
-
-      moveButton(index, index + 1);
-
-    }
-
-
-    if (toggle) {
-
-      const index =
-        Number(
-          toggle.dataset.buttonToggle
-        );
-
-      if (siteData?.buttons?.[index]) {
-
-        siteData.buttons[index].visible =
-          siteData.buttons[index].visible === false;
-
-        renderButtons();
-
-      }
-
-    }
-
-
-    if (del) {
-
-      const index =
-        Number(
-          del.dataset.buttonDelete
-        );
-
-      if (
-        !confirm(
-          "এই Button টি Delete করবেন?"
-        )
-      ) return;
-
-      siteData.buttons.splice(
-        index,
-        1
-      );
-
-      normalizeButtonOrder();
-
-      renderButtons();
-
-      showMessage(
-        "Button মুছে ফেলা হয়েছে। Save চাপুন।",
-        "success"
-      );
-
-    }
-
+      <button
+        class="gold-btn"
+        onclick="saveNewButton()"
+      >
+        💾 Add Button
+      </button>
+    `);
   }
 );
 
 
-function moveButton(from, to) {
+window.saveNewButton =
+  async function () {
 
-  if (!siteData?.buttons) return;
+    const label =
+      $("modalButtonLabel")
+        .value
+        .trim();
 
-  if (
-    from < 0 ||
-    to < 0 ||
-    from >= siteData.buttons.length ||
-    to >= siteData.buttons.length
-  ) return;
+    const url =
+      $("modalButtonUrl")
+        .value
+        .trim();
 
-  const item =
-    siteData.buttons.splice(
-      from,
-      1
-    )[0];
+    const order =
+      Number(
+        $("modalButtonOrder")
+          .value || 1
+      );
 
-  siteData.buttons.splice(
-    to,
-    0,
-    item
-  );
+    if (!label) {
+      alert("Button name দিন");
+      return;
+    }
 
-  normalizeButtonOrder();
+    const button = {
+      id:
+        "btn-" +
+        Date.now(),
 
-  renderButtons();
-}
+      label,
+      url,
+
+      visible: true,
+
+      order
+    };
+
+    siteData.buttons =
+      Array.isArray(siteData.buttons)
+        ? siteData.buttons
+        : [];
+
+    siteData.buttons.push(button);
+
+    await saveButtons();
+
+    closeModal();
+  };
 
 
-function normalizeButtonOrder() {
+// =====================================================
+// EDIT BUTTON
+// =====================================================
 
-  if (!Array.isArray(siteData?.buttons)) {
-    return;
+window.editButton =
+  function (id) {
+
+    const button =
+      siteData.buttons.find(
+        x => x.id === id
+      );
+
+    if (!button) return;
+
+    openModal(`
+      <div class="modal-title">
+        ✏️ Button Edit
+      </div>
+
+      <label>
+        Button Name
+        <input
+          id="modalButtonLabel"
+          value="${escapeAttr(button.label || "")}"
+        >
+      </label>
+
+      <label>
+        Link / URL
+        <input
+          id="modalButtonUrl"
+          value="${escapeAttr(button.url || "")}"
+        >
+      </label>
+
+      <label>
+        Order
+        <input
+          id="modalButtonOrder"
+          type="number"
+          value="${button.order || 1}"
+        >
+      </label>
+
+      <button
+        class="gold-btn"
+        onclick="updateButton('${id}')"
+      >
+        💾 Save Changes
+      </button>
+    `);
+  };
+
+
+window.updateButton =
+  async function (id) {
+
+    const button =
+      siteData.buttons.find(
+        x => x.id === id
+      );
+
+    if (!button) return;
+
+    button.label =
+      $("modalButtonLabel")
+        .value
+        .trim();
+
+    button.url =
+      $("modalButtonUrl")
+        .value
+        .trim();
+
+    button.order =
+      Number(
+        $("modalButtonOrder")
+          .value || 1
+      );
+
+    await saveButtons();
+
+    closeModal();
+  };
+
+
+// =====================================================
+// TOGGLE BUTTON
+// =====================================================
+
+window.toggleButton =
+  async function (id) {
+
+    const button =
+      siteData.buttons.find(
+        x => x.id === id
+      );
+
+    if (!button) return;
+
+    button.visible =
+      button.visible === false;
+
+    await saveButtons();
+  };
+
+
+// =====================================================
+// DELETE BUTTON
+// =====================================================
+
+window.deleteButton =
+  async function (id) {
+
+    if (
+      !confirm(
+        "এই Button টি Delete করবেন?"
+      )
+    ) return;
+
+    siteData.buttons =
+      siteData.buttons.filter(
+        x => x.id !== id
+      );
+
+    await saveButtons();
+  };
+
+
+async function saveButtons() {
+
+  try {
+
+    const result =
+      await api(
+        "/api/admin/content",
+        {
+          method: "PUT",
+
+          body:
+            JSON.stringify({
+              buttons:
+                siteData.buttons
+            })
+        }
+      );
+
+    siteData =
+      result.data;
+
+    renderButtons();
+
+  } catch (error) {
+
+    alert(error.message);
   }
-
-  siteData.buttons.forEach(
-    (button, index) => {
-      button.order = index + 1;
-    }
-  );
 }
 
 
-/* Add new button */
-
-const addButtonBtn =
-  $("addButtonBtn") ||
-  qs('[data-action="add-button"]');
-
-if (addButtonBtn) {
-
-  addButtonBtn.addEventListener(
-    "click",
-    () => {
-
-      if (!siteData) return;
-
-      if (!Array.isArray(siteData.buttons)) {
-        siteData.buttons = [];
-      }
-
-      const newButton = {
-
-        id:
-          "button-" +
-          Date.now(),
-
-        label:
-          "New Button",
-
-        url:
-          "/",
-
-        visible:
-          true,
-
-        order:
-          siteData.buttons.length + 1
-
-      };
-
-      siteData.buttons.push(
-        newButton
-      );
-
-      renderButtons();
-
-      showMessage(
-        "নতুন Button যোগ হয়েছে। এখন Edit করে Save করুন।",
-        "success"
-      );
-
-    }
-  );
-}
-
-
-/* =========================================================
-   DIARY
-========================================================= */
+// =====================================================
+// DIARY
+// =====================================================
 
 async function loadDiary() {
 
-  const data = await api(
-    "/api/admin/diary",
-    {
-      method: "GET"
-    }
-  );
+  try {
 
-  diaryData =
-    Array.isArray(data)
-      ? data
-      : [];
+    const data =
+      await api(
+        "/api/admin/diary"
+      );
 
-  return diaryData;
+    diaryItems =
+      data.items || [];
+
+    renderDiary();
+
+  } catch (error) {
+
+    console.error(
+      "DIARY ERROR:",
+      error
+    );
+
+    $("diaryList").innerHTML =
+      `
+      <div class="item">
+        <div class="item-title">
+          ❌ Diary Load Error
+        </div>
+
+        <div class="item-content">
+          ${escapeHtml(error.message)}
+        </div>
+      </div>
+      `;
+  }
 }
 
 
 function renderDiary() {
 
   const container =
-    $("diaryList") ||
-    qs(".diary-list");
+    $("diaryList");
 
-  if (!container) return;
+  container.innerHTML = "";
 
+  if (!diaryItems.length) {
 
-  if (!diaryData.length) {
-
-    container.innerHTML = `
-      <div class="empty-state">
-        এখনো কোনো Diary Chapter নেই।
+    container.innerHTML =
+      `
+      <div class="item">
+        এখনো কোনো Diary নেই।
       </div>
-    `;
+      `;
 
     return;
   }
 
+  diaryItems.forEach(
+    item => {
 
-  container.innerHTML =
-    diaryData.map(
-      diary => `
+      const div =
+        document.createElement("div");
 
-      <div
-        class="manager-card diary-card"
-        data-diary-id="${diary.id}"
-      >
+      div.className =
+        `item ${
+          item.visible === false
+            ? "hidden-item"
+            : ""
+        }`;
 
-        <div class="manager-content">
+      div.innerHTML = `
 
-          <input
-            class="diary-title"
-            value="${escapeHTML(diary.title)}"
-            placeholder="অধ্যায়ের নাম"
-          >
+        <div class="item-head">
 
-          <input
-            class="diary-date"
-            value="${escapeHTML(diary.date || "")}"
-            placeholder="তারিখ"
-          >
+          <div>
 
-          <textarea
-            class="diary-content"
-            placeholder="অধ্যায়ের বিস্তারিত লেখা"
-          >${escapeHTML(diary.content)}</textarea>
+            <div class="item-title">
+              ${escapeHtml(item.title)}
+            </div>
+
+            <div class="item-meta">
+              ${escapeHtml(item.date || "")}
+            </div>
+
+          </div>
+
+          <div>
+            ${
+              item.visible === false
+                ? "🙈 Hidden"
+                : "👁️ Visible"
+            }
+          </div>
 
         </div>
 
-        <div class="manager-actions">
+        <div class="item-content">
+          ${escapeHtml(item.content)}
+        </div>
+
+        <div class="item-actions">
 
           <button
-            type="button"
-            class="btn small ${
-              diary.visible
-                ? "success"
-                : "danger"
-            }"
-            data-diary-toggle="${diary.id}"
+            class="small-btn edit"
+            onclick="editDiary(${item.id})"
+          >
+            ✏️ Edit
+          </button>
+
+          <button
+            class="small-btn toggle"
+            onclick="toggleDiary(${item.id})"
           >
             ${
-              diary.visible
-                ? "Hide"
-                : "Show"
+              item.visible === false
+                ? "👁️ Show"
+                : "🙈 Hide"
             }
           </button>
 
           <button
-            type="button"
-            class="btn small"
-            data-diary-save="${diary.id}"
+            class="small-btn delete"
+            onclick="deleteDiary(${item.id})"
           >
-            Save
-          </button>
-
-          <button
-            type="button"
-            class="btn small danger"
-            data-diary-delete="${diary.id}"
-          >
-            Delete
+            🗑️ Delete
           </button>
 
         </div>
+      `;
 
-      </div>
-    `
-    ).join("");
-}
-
-
-/* Add diary */
-
-const diaryForm =
-  $("diaryForm");
-
-if (diaryForm) {
-
-  diaryForm.addEventListener(
-    "submit",
-    async event => {
-
-      event.preventDefault();
-
-      const title =
-        $("diaryTitle")?.value.trim() ||
-        qs('[name="diaryTitle"]')?.value.trim() ||
-        "";
-
-      const content =
-        $("diaryContent")?.value.trim() ||
-        qs('[name="diaryContent"]')?.value.trim() ||
-        "";
-
-      const date =
-        $("diaryDate")?.value.trim() ||
-        qs('[name="diaryDate"]')?.value.trim() ||
-        "";
-
-
-      if (!title || !content) {
-
-        showMessage(
-          "Diary title এবং content দিন।",
-          "error"
-        );
-
-        return;
-      }
-
-
-      const button =
-        qs(
-          'button[type="submit"]',
-          diaryForm
-        );
-
-
-      setLoading(
-        button,
-        true,
-        "যোগ হচ্ছে..."
-      );
-
-
-      try {
-
-        await api(
-          "/api/admin/diary",
-          {
-            method: "POST",
-
-            body: JSON.stringify({
-              title,
-              content,
-              date
-            })
-          }
-        );
-
-
-        diaryForm.reset();
-
-        await loadDiary();
-
-        renderDiary();
-
-        showMessage(
-          "নতুন Diary Chapter যোগ হয়েছে ✓",
-          "success"
-        );
-
-      } catch (error) {
-
-        console.error(error);
-
-        showMessage(
-          error.message ||
-          "Diary যোগ করা যায়নি।",
-          "error"
-        );
-
-      } finally {
-
-        setLoading(
-          button,
-          false
-        );
-
-      }
-
+      container.appendChild(div);
     }
   );
 }
 
 
-/* Diary actions */
+// =====================================================
+// ADD DIARY
+// =====================================================
 
-document.addEventListener(
+$("addDiaryBtn").addEventListener(
   "click",
-  async event => {
-
-    const save =
-      event.target.closest(
-        "[data-diary-save]"
-      );
-
-    const toggle =
-      event.target.closest(
-        "[data-diary-toggle]"
-      );
-
-    const del =
-      event.target.closest(
-        "[data-diary-delete]"
-      );
-
-
-    if (save) {
-
-      const id =
-        save.dataset.diarySave;
-
-      const card =
-        qs(
-          `.diary-card[data-diary-id="${id}"]`
-        );
-
-      if (!card) return;
-
-
-      const title =
-        qs(".diary-title", card)
-          ?.value.trim() || "";
-
-      const date =
-        qs(".diary-date", card)
-          ?.value.trim() || "";
-
-      const content =
-        qs(".diary-content", card)
-          ?.value.trim() || "";
-
-
-      if (!title || !content) {
-
-        showMessage(
-          "Title এবং Content খালি রাখা যাবে না।",
-          "error"
-        );
-
-        return;
-      }
-
-
-      setLoading(
-        save,
-        true,
-        "Saving..."
-      );
-
-
-      try {
-
-        const item =
-          diaryData.find(
-            x => String(x.id) === String(id)
-          );
-
-
-        await api(
-          `/api/admin/diary/${id}`,
-          {
-            method: "PUT",
-
-            body: JSON.stringify({
-
-              title,
-
-              content,
-
-              date,
-
-              visible:
-                item
-                  ? item.visible !== false
-                  : true
-
-            })
-          }
-        );
-
-
-        await loadDiary();
-
-        renderDiary();
-
-        showMessage(
-          "Diary আপডেট হয়েছে ✓",
-          "success"
-        );
-
-      } catch (error) {
-
-        console.error(error);
-
-        showMessage(
-          error.message ||
-          "Diary update failed",
-          "error"
-        );
-
-      } finally {
-
-        setLoading(
-          save,
-          false
-        );
-
-      }
-
-    }
-
-
-    if (toggle) {
-
-      const id =
-        toggle.dataset.diaryToggle;
-
-      const item =
-        diaryData.find(
-          x => String(x.id) === String(id)
-        );
-
-      if (!item) return;
-
-
-      try {
-
-        await api(
-          `/api/admin/diary/${id}`,
-          {
-            method: "PUT",
-
-            body: JSON.stringify({
-
-              title:
-                item.title,
-
-              content:
-                item.content,
-
-              date:
-                item.date || "",
-
-              visible:
-                !item.visible
-
-            })
-          }
-        );
-
-
-        await loadDiary();
-
-        renderDiary();
-
-        showMessage(
-          item.visible
-            ? "Diary Hide হয়েছে।"
-            : "Diary Show হয়েছে।",
-          "success"
-        );
-
-      } catch (error) {
-
-        showMessage(
-          error.message ||
-          "Visibility change failed",
-          "error"
-        );
-
-      }
-
-    }
-
-
-    if (del) {
-
-      const id =
-        del.dataset.diaryDelete;
-
-      if (
-        !confirm(
-          "এই Diary Chapter স্থায়ীভাবে Delete করবেন?"
-        )
-      ) return;
-
-
-      setLoading(
-        del,
-        true,
-        "Deleting..."
-      );
-
-
-      try {
-
-        await api(
-          `/api/admin/diary/${id}`,
-          {
-            method: "DELETE"
-          }
-        );
-
-
-        await loadDiary();
-
-        renderDiary();
-
-        showMessage(
-          "Diary Delete হয়েছে ✓",
-          "success"
-        );
-
-      } catch (error) {
-
-        showMessage(
-          error.message ||
-          "Delete failed",
-          "error"
-        );
-
-      } finally {
-
-        setLoading(
-          del,
-          false
-        );
-
-      }
-
-    }
-
+  () => {
+
+    openModal(`
+
+      <div class="modal-title">
+        + নতুন ডায়েরি অধ্যায়
+      </div>
+
+      <label>
+        অধ্যায়ের নাম
+        <input id="modalDiaryTitle">
+      </label>
+
+      <label>
+        তারিখ
+        <input
+          id="modalDiaryDate"
+          type="date"
+        >
+      </label>
+
+      <label>
+        বিস্তারিত লেখা
+        <textarea
+          id="modalDiaryContent"
+          rows="8"
+        ></textarea>
+      </label>
+
+      <button
+        class="gold-btn"
+        onclick="saveNewDiary()"
+      >
+        💾 অধ্যায় যোগ করুন
+      </button>
+
+    `);
   }
 );
 
 
-/* =========================================================
-   PROJECTS
-========================================================= */
+window.saveNewDiary =
+  async function () {
+
+    const title =
+      $("modalDiaryTitle")
+        .value
+        .trim();
+
+    const date =
+      $("modalDiaryDate")
+        .value;
+
+    const content =
+      $("modalDiaryContent")
+        .value
+        .trim();
+
+    if (!title || !content) {
+      alert(
+        "অধ্যায়ের নাম ও লেখা দিতে হবে"
+      );
+      return;
+    }
+
+    try {
+
+      await api(
+        "/api/admin/diary",
+        {
+          method: "POST",
+
+          body:
+            JSON.stringify({
+              title,
+              content,
+              date,
+              visible: true
+            })
+        }
+      );
+
+      closeModal();
+
+      await loadDiary();
+
+    } catch (error) {
+
+      alert(error.message);
+    }
+  };
+
+
+// =====================================================
+// EDIT DIARY
+// =====================================================
+
+window.editDiary =
+  function (id) {
+
+    const item =
+      diaryItems.find(
+        x => x.id === id
+      );
+
+    if (!item) return;
+
+    openModal(`
+
+      <div class="modal-title">
+        ✏️ Diary Edit
+      </div>
+
+      <label>
+        অধ্যায়ের নাম
+        <input
+          id="modalDiaryTitle"
+          value="${escapeAttr(item.title)}"
+        >
+      </label>
+
+      <label>
+        তারিখ
+        <input
+          id="modalDiaryDate"
+          value="${escapeAttr(item.date || "")}"
+          type="date"
+        >
+      </label>
+
+      <label>
+        বিস্তারিত লেখা
+        <textarea
+          id="modalDiaryContent"
+          rows="9"
+        >${escapeHtml(item.content)}</textarea>
+      </label>
+
+      <button
+        class="gold-btn"
+        onclick="updateDiary(${id})"
+      >
+        💾 Save Changes
+      </button>
+
+    `);
+  };
+
+
+window.updateDiary =
+  async function (id) {
+
+    const item =
+      diaryItems.find(
+        x => x.id === id
+      );
+
+    if (!item) return;
+
+    const title =
+      $("modalDiaryTitle")
+        .value
+        .trim();
+
+    const date =
+      $("modalDiaryDate")
+        .value;
+
+    const content =
+      $("modalDiaryContent")
+        .value
+        .trim();
+
+    try {
+
+      await api(
+        `/api/admin/diary/${id}`,
+        {
+          method: "PUT",
+
+          body:
+            JSON.stringify({
+              title,
+              content,
+              date,
+              visible:
+                item.visible !== false
+            })
+        }
+      );
+
+      closeModal();
+
+      await loadDiary();
+
+    } catch (error) {
+
+      alert(error.message);
+    }
+  };
+
+
+// =====================================================
+// TOGGLE DIARY
+// =====================================================
+
+window.toggleDiary =
+  async function (id) {
+
+    const item =
+      diaryItems.find(
+        x => x.id === id
+      );
+
+    if (!item) return;
+
+    try {
+
+      await api(
+        `/api/admin/diary/${id}`,
+        {
+          method: "PUT",
+
+          body:
+            JSON.stringify({
+              title: item.title,
+              content: item.content,
+              date: item.date || "",
+              visible:
+                item.visible === false
+            })
+        }
+      );
+
+      await loadDiary();
+
+    } catch (error) {
+
+      alert(error.message);
+    }
+  };
+
+
+// =====================================================
+// DELETE DIARY
+// =====================================================
+
+window.deleteDiary =
+  async function (id) {
+
+    if (
+      !confirm(
+        "এই Diary chapter টি Delete করবেন?"
+      )
+    ) return;
+
+    try {
+
+      await api(
+        `/api/admin/diary/${id}`,
+        {
+          method: "DELETE"
+        }
+      );
+
+      await loadDiary();
+
+    } catch (error) {
+
+      alert(error.message);
+    }
+  };
+
+
+// =====================================================
+// PROJECTS
+// =====================================================
 
 async function loadProjects() {
 
-  const data = await api(
-    "/api/admin/projects",
-    {
-      method: "GET"
-    }
-  );
+  try {
 
-  projectData =
-    Array.isArray(data)
-      ? data
-      : [];
+    const data =
+      await api(
+        "/api/admin/projects"
+      );
 
-  return projectData;
+    projectItems =
+      data.items || [];
+
+    renderProjects();
+
+  } catch (error) {
+
+    console.error(
+      "PROJECT ERROR:",
+      error
+    );
+
+    $("projectsList").innerHTML =
+      `
+      <div class="item">
+        <div class="item-title">
+          ❌ Project Load Error
+        </div>
+
+        <div class="item-content">
+          ${escapeHtml(error.message)}
+        </div>
+      </div>
+      `;
+  }
 }
 
 
 function renderProjects() {
 
   const container =
-    $("projectsList") ||
-    qs(".projects-list");
+    $("projectsList");
 
-  if (!container) return;
+  container.innerHTML = "";
 
+  if (!projectItems.length) {
 
-  if (!projectData.length) {
-
-    container.innerHTML = `
-      <div class="empty-state">
+    container.innerHTML =
+      `
+      <div class="item">
         এখনো কোনো Project নেই।
       </div>
-    `;
+      `;
 
     return;
   }
 
+  projectItems.forEach(
+    item => {
 
-  container.innerHTML =
-    projectData.map(
-      project => `
+      const div =
+        document.createElement("div");
 
-      <div
-        class="manager-card project-card"
-        data-project-id="${project.id}"
-      >
+      div.className =
+        `item ${
+          item.visible === false
+            ? "hidden-item"
+            : ""
+        }`;
 
-        <div class="manager-content">
+      div.innerHTML = `
 
-          <input
-            class="project-title"
-            value="${escapeHTML(project.title)}"
-            placeholder="Project name"
-          >
+        <div class="item-head">
 
-          <input
-            class="project-url"
-            value="${escapeHTML(project.url || "")}"
-            placeholder="Project link"
-          >
+          <div>
 
-          <input
-            class="project-image"
-            value="${escapeHTML(project.image || "")}"
-            placeholder="Image URL"
-          >
+            <div class="item-title">
+              ${escapeHtml(item.title)}
+            </div>
 
-          <textarea
-            class="project-description"
-            placeholder="Project description"
-          >${escapeHTML(project.description || "")}</textarea>
+            <div class="item-meta">
+              Order: ${item.sort_order || 0}
+            </div>
 
-          <input
-            class="project-order"
-            type="number"
-            value="${Number(project.sort_order || 0)}"
-            placeholder="Order"
-          >
+          </div>
+
+          <div>
+            ${
+              item.visible === false
+                ? "🙈 Hidden"
+                : "👁️ Visible"
+            }
+          </div>
 
         </div>
 
-        <div class="manager-actions">
+        <div class="item-content">
+          ${escapeHtml(item.description || "")}
+        </div>
+
+        <div class="item-actions">
 
           <button
-            type="button"
-            class="btn small ${
-              project.visible
-                ? "success"
-                : "danger"
-            }"
-            data-project-toggle="${project.id}"
+            class="small-btn edit"
+            onclick="editProject(${item.id})"
+          >
+            ✏️ Edit
+          </button>
+
+          <button
+            class="small-btn toggle"
+            onclick="toggleProject(${item.id})"
           >
             ${
-              project.visible
-                ? "Hide"
-                : "Show"
+              item.visible === false
+                ? "👁️ Show"
+                : "🙈 Hide"
             }
           </button>
 
           <button
-            type="button"
-            class="btn small"
-            data-project-save="${project.id}"
+            class="small-btn delete"
+            onclick="deleteProject(${item.id})"
           >
-            Save
-          </button>
-
-          <button
-            type="button"
-            class="btn small danger"
-            data-project-delete="${project.id}"
-          >
-            Delete
+            🗑️ Delete
           </button>
 
         </div>
 
-      </div>
-    `
-    ).join("");
-}
+      `;
 
-
-/* Add project */
-
-const projectForm =
-  $("projectForm");
-
-if (projectForm) {
-
-  projectForm.addEventListener(
-    "submit",
-    async event => {
-
-      event.preventDefault();
-
-
-      const title =
-        $("projectTitle")?.value.trim() ||
-        qs('[name="projectTitle"]')?.value.trim() ||
-        "";
-
-      const description =
-        $("projectDescription")?.value.trim() ||
-        qs('[name="projectDescription"]')?.value.trim() ||
-        "";
-
-      const url =
-        $("projectUrl")?.value.trim() ||
-        qs('[name="projectUrl"]')?.value.trim() ||
-        "";
-
-      const image =
-        $("projectImage")?.value.trim() ||
-        qs('[name="projectImage"]')?.value.trim() ||
-        "";
-
-
-      if (!title) {
-
-        showMessage(
-          "Project name দিন।",
-          "error"
-        );
-
-        return;
-      }
-
-
-      const button =
-        qs(
-          'button[type="submit"]',
-          projectForm
-        );
-
-
-      setLoading(
-        button,
-        true,
-        "যোগ হচ্ছে..."
-      );
-
-
-      try {
-
-        await api(
-          "/api/admin/projects",
-          {
-            method: "POST",
-
-            body: JSON.stringify({
-
-              title,
-
-              description,
-
-              url,
-
-              image
-
-            })
-          }
-        );
-
-
-        projectForm.reset();
-
-        await loadProjects();
-
-        renderProjects();
-
-        showMessage(
-          "নতুন Project যোগ হয়েছে ✓",
-          "success"
-        );
-
-      } catch (error) {
-
-        console.error(error);
-
-        showMessage(
-          error.message ||
-          "Project যোগ করা যায়নি।",
-          "error"
-        );
-
-      } finally {
-
-        setLoading(
-          button,
-          false
-        );
-
-      }
-
+      container.appendChild(div);
     }
   );
 }
 
 
-/* Project actions */
+// =====================================================
+// ADD PROJECT
+// =====================================================
 
-document.addEventListener(
+$("addProjectBtn").addEventListener(
   "click",
-  async event => {
+  () => {
 
-    const save =
-      event.target.closest(
-        "[data-project-save]"
+    openModal(`
+
+      <div class="modal-title">
+        + নতুন প্রজেক্ট
+      </div>
+
+      <label>
+        Project Name
+        <input id="modalProjectTitle">
+      </label>
+
+      <label>
+        Description
+        <textarea
+          id="modalProjectDescription"
+          rows="6"
+        ></textarea>
+      </label>
+
+      <label>
+        Project Link
+        <input
+          id="modalProjectUrl"
+          placeholder="https://..."
+        >
+      </label>
+
+      <label>
+        Image Link
+        <input
+          id="modalProjectImage"
+          placeholder="https://..."
+        >
+      </label>
+
+      <label>
+        Order
+        <input
+          id="modalProjectOrder"
+          type="number"
+          value="0"
+        >
+      </label>
+
+      <button
+        class="gold-btn"
+        onclick="saveNewProject()"
+      >
+        💾 Project যোগ করুন
+      </button>
+
+    `);
+  }
+);
+
+
+window.saveNewProject =
+  async function () {
+
+    const title =
+      $("modalProjectTitle")
+        .value
+        .trim();
+
+    const description =
+      $("modalProjectDescription")
+        .value
+        .trim();
+
+    const url =
+      $("modalProjectUrl")
+        .value
+        .trim();
+
+    const image =
+      $("modalProjectImage")
+        .value
+        .trim();
+
+    const sort_order =
+      Number(
+        $("modalProjectOrder")
+          .value || 0
       );
 
-    const toggle =
-      event.target.closest(
-        "[data-project-toggle]"
-      );
-
-    const del =
-      event.target.closest(
-        "[data-project-delete]"
-      );
-
-
-    if (save) {
-
-      const id =
-        save.dataset.projectSave;
-
-      const card =
-        qs(
-          `.project-card[data-project-id="${id}"]`
-        );
-
-      if (!card) return;
-
-
-      const title =
-        qs(".project-title", card)
-          ?.value.trim() || "";
-
-      const description =
-        qs(".project-description", card)
-          ?.value.trim() || "";
-
-      const url =
-        qs(".project-url", card)
-          ?.value.trim() || "";
-
-      const image =
-        qs(".project-image", card)
-          ?.value.trim() || "";
-
-      const sort_order =
-        Number(
-          qs(".project-order", card)
-            ?.value || 0
-        );
-
-
-      const item =
-        projectData.find(
-          x => String(x.id) === String(id)
-        );
-
-
-      setLoading(
-        save,
-        true,
-        "Saving..."
-      );
-
-
-      try {
-
-        await api(
-          `/api/admin/projects/${id}`,
-          {
-            method: "PUT",
-
-            body: JSON.stringify({
-
-              title,
-
-              description,
-
-              url,
-
-              image,
-
-              visible:
-                item
-                  ? item.visible !== false
-                  : true,
-
-              sort_order
-
-            })
-          }
-        );
-
-
-        await loadProjects();
-
-        renderProjects();
-
-        showMessage(
-          "Project আপডেট হয়েছে ✓",
-          "success"
-        );
-
-      } catch (error) {
-
-        console.error(error);
-
-        showMessage(
-          error.message ||
-          "Project update failed",
-          "error"
-        );
-
-      } finally {
-
-        setLoading(
-          save,
-          false
-        );
-
-      }
-
+    if (!title) {
+      alert("Project name দিন");
+      return;
     }
 
+    try {
 
-    if (toggle) {
+      await api(
+        "/api/admin/projects",
+        {
+          method: "POST",
 
-      const id =
-        toggle.dataset.projectToggle;
+          body:
+            JSON.stringify({
+              title,
+              description,
+              url,
+              image,
+              sort_order,
+              visible: true
+            })
+        }
+      );
 
-      const item =
-        projectData.find(
-          x => String(x.id) === String(id)
-        );
+      closeModal();
 
-      if (!item) return;
+      await loadProjects();
+
+    } catch (error) {
+
+      alert(error.message);
+    }
+  };
 
 
-      try {
+// =====================================================
+// EDIT PROJECT
+// =====================================================
 
-        await api(
-          `/api/admin/projects/${id}`,
-          {
-            method: "PUT",
+window.editProject =
+  function (id) {
 
-            body: JSON.stringify({
+    const item =
+      projectItems.find(
+        x => x.id === id
+      );
+
+    if (!item) return;
+
+    openModal(`
+
+      <div class="modal-title">
+        ✏️ Project Edit
+      </div>
+
+      <label>
+        Project Name
+        <input
+          id="modalProjectTitle"
+          value="${escapeAttr(item.title)}"
+        >
+      </label>
+
+      <label>
+        Description
+        <textarea
+          id="modalProjectDescription"
+          rows="7"
+        >${escapeHtml(item.description || "")}</textarea>
+      </label>
+
+      <label>
+        Project Link
+        <input
+          id="modalProjectUrl"
+          value="${escapeAttr(item.url || "")}"
+        >
+      </label>
+
+      <label>
+        Image Link
+        <input
+          id="modalProjectImage"
+          value="${escapeAttr(item.image || "")}"
+        >
+      </label>
+
+      <label>
+        Order
+        <input
+          id="modalProjectOrder"
+          type="number"
+          value="${item.sort_order || 0}"
+        >
+      </label>
+
+      <button
+        class="gold-btn"
+        onclick="updateProject(${id})"
+      >
+        💾 Save Changes
+      </button>
+
+    `);
+  };
+
+
+window.updateProject =
+  async function (id) {
+
+    const item =
+      projectItems.find(
+        x => x.id === id
+      );
+
+    if (!item) return;
+
+    try {
+
+      await api(
+        `/api/admin/projects/${id}`,
+        {
+          method: "PUT",
+
+          body:
+            JSON.stringify({
 
               title:
-                item.title,
+                $("modalProjectTitle")
+                  .value
+                  .trim(),
+
+              description:
+                $("modalProjectDescription")
+                  .value
+                  .trim(),
+
+              url:
+                $("modalProjectUrl")
+                  .value
+                  .trim(),
+
+              image:
+                $("modalProjectImage")
+                  .value
+                  .trim(),
+
+              sort_order:
+                Number(
+                  $("modalProjectOrder")
+                    .value || 0
+                ),
+
+              visible:
+                item.visible !== false
+            })
+        }
+      );
+
+      closeModal();
+
+      await loadProjects();
+
+    } catch (error) {
+
+      alert(error.message);
+    }
+  };
+
+
+// =====================================================
+// TOGGLE PROJECT
+// =====================================================
+
+window.toggleProject =
+  async function (id) {
+
+    const item =
+      projectItems.find(
+        x => x.id === id
+      );
+
+    if (!item) return;
+
+    try {
+
+      await api(
+        `/api/admin/projects/${id}`,
+        {
+          method: "PUT",
+
+          body:
+            JSON.stringify({
+
+              title: item.title,
 
               description:
                 item.description || "",
@@ -1884,221 +1623,167 @@ document.addEventListener(
               image:
                 item.image || "",
 
-              visible:
-                !item.visible,
-
               sort_order:
-                Number(
-                  item.sort_order || 0
-                )
+                item.sort_order || 0,
 
+              visible:
+                item.visible === false
             })
-          }
-        );
-
-
-        await loadProjects();
-
-        renderProjects();
-
-        showMessage(
-          item.visible
-            ? "Project Hide হয়েছে।"
-            : "Project Show হয়েছে।",
-          "success"
-        );
-
-      } catch (error) {
-
-        showMessage(
-          error.message ||
-          "Visibility change failed",
-          "error"
-        );
-
-      }
-
-    }
-
-
-    if (del) {
-
-      const id =
-        del.dataset.projectDelete;
-
-
-      if (
-        !confirm(
-          "এই Project স্থায়ীভাবে Delete করবেন?"
-        )
-      ) return;
-
-
-      setLoading(
-        del,
-        true,
-        "Deleting..."
+        }
       );
 
+      await loadProjects();
 
-      try {
+    } catch (error) {
 
-        await api(
-          `/api/admin/projects/${id}`,
-          {
-            method: "DELETE"
-          }
-        );
-
-
-        await loadProjects();
-
-        renderProjects();
-
-        showMessage(
-          "Project Delete হয়েছে ✓",
-          "success"
-        );
-
-      } catch (error) {
-
-        showMessage(
-          error.message ||
-          "Delete failed",
-          "error"
-        );
-
-      } finally {
-
-        setLoading(
-          del,
-          false
-        );
-
-      }
-
+      alert(error.message);
     }
-
-  }
-);
+  };
 
 
-/* =========================================================
-   RENDER EVERYTHING
-========================================================= */
+// =====================================================
+// DELETE PROJECT
+// =====================================================
 
-function renderAll() {
+window.deleteProject =
+  async function (id) {
 
-  fillSiteForm();
+    if (
+      !confirm(
+        "এই Project টি Delete করবেন?"
+      )
+    ) return;
 
-  renderButtons();
+    try {
 
-  renderDiary();
+      await api(
+        `/api/admin/projects/${id}`,
+        {
+          method: "DELETE"
+        }
+      );
 
-  renderProjects();
+      await loadProjects();
+
+    } catch (error) {
+
+      alert(error.message);
+    }
+  };
+
+
+// =====================================================
+// TABS
+// =====================================================
+
+document
+  .querySelectorAll(".tab")
+  .forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        document
+          .querySelectorAll(".tab")
+          .forEach(
+            x =>
+              x.classList.remove(
+                "active"
+              )
+          );
+
+        button.classList.add("active");
+
+        document
+          .querySelectorAll(
+            '[id^="section-"]'
+          )
+          .forEach(
+            x =>
+              x.classList.add("hidden")
+          );
+
+        const section =
+          button.dataset.section;
+
+        $(
+          `section-${section}`
+        )
+          .classList
+          .remove("hidden");
+      }
+    );
+  });
+
+
+// =====================================================
+// MODAL
+// =====================================================
+
+function openModal(html) {
+
+  $("modalContent").innerHTML =
+    html;
+
+  $("modal")
+    .classList
+    .remove("hidden");
 }
 
 
-/* =========================================================
-   SAVE SITE BUTTON
-========================================================= */
+function closeModal() {
 
-const saveSiteBtn =
-  $("saveSiteBtn") ||
-  qs('[data-action="save-site"]');
+  $("modal")
+    .classList
+    .add("hidden");
+}
 
-if (saveSiteBtn) {
 
-  saveSiteBtn.addEventListener(
+$("closeModal")
+  .addEventListener(
+    "click",
+    closeModal
+  );
+
+
+$("modal")
+  .addEventListener(
     "click",
     event => {
 
-      event.preventDefault();
-
-      saveSite();
-
-    }
-  );
-}
-
-
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
-document.addEventListener(
-  "click",
-  event => {
-
-    const tab =
-      event.target.closest(
-        "[data-admin-tab]"
-      );
-
-    if (!tab) return;
-
-    const target =
-      tab.dataset.adminTab;
-
-    qsa(
-      "[data-admin-tab]"
-    ).forEach(
-      item =>
-        item.classList.remove(
-          "active"
-        )
-    );
-
-    tab.classList.add("active");
-
-
-    qsa(
-      "[data-admin-section]"
-    ).forEach(
-      section => {
-
-        section.style.display =
-          section.dataset.adminSection === target
-            ? ""
-            : "none";
-
+      if (
+        event.target ===
+        $("modal")
+      ) {
+        closeModal();
       }
-    );
-
-  }
-);
-
-
-/* =========================================================
-   WEBSITE BUTTON
-========================================================= */
-
-const websiteBtn =
-  $("websiteBtn") ||
-  qs('[data-action="website"]');
-
-if (websiteBtn) {
-
-  websiteBtn.addEventListener(
-    "click",
-    () => {
-
-      window.location.href = "/";
-
     }
   );
+
+
+// =====================================================
+// ESCAPE HTML
+// =====================================================
+
+function escapeHtml(value) {
+
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 
-/* =========================================================
-   INITIALIZE
-========================================================= */
+function escapeAttr(value) {
+  return escapeHtml(value);
+}
 
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
 
-    checkSession();
+// =====================================================
+// START
+// =====================================================
 
-  }
-);
+checkSession();
