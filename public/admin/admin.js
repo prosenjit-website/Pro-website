@@ -1,40 +1,41 @@
-/* =========================================================
-   PROSENJIT RAY — ADMIN PANEL
-========================================================= */
+"use strict";
 
-let currentButtons = [];
-let currentDiary = [];
-let currentProjects = [];
+let siteData = null;
+let diaryData = [];
+let projectData = [];
 
-let editingId = null;
+const $ = (id) => document.getElementById(id);
 
 
-/* =========================================================
-   BASIC API
-========================================================= */
+/* =====================================================
+   API HELPER
+===================================================== */
 
 async function api(url, options = {}) {
 
   const response = await fetch(url, {
-    credentials: "include",
+    credentials: "same-origin",
+    ...options,
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {})
-    },
-    ...options
+    }
   });
 
   let data = {};
 
   try {
     data = await response.json();
-  } catch {
-    data = {};
-  }
+  } catch (e) {}
 
   if (!response.ok) {
+
+    if (response.status === 401) {
+      showLogin();
+    }
+
     throw new Error(
-      data.error || "কাজটি সম্পন্ন করা যায়নি"
+      data.error || "Something went wrong"
     );
   }
 
@@ -42,212 +43,170 @@ async function api(url, options = {}) {
 }
 
 
-/* =========================================================
-   LOGIN CHECK
-========================================================= */
+/* =====================================================
+   TOAST
+===================================================== */
 
-async function checkLogin() {
+function toast(message) {
 
-  try {
+  const box = $("toast");
 
-    const data = await api("/api/me");
+  box.textContent = message;
 
-    if (data.loggedIn) {
+  box.classList.add("show");
 
-      document
-        .getElementById("loginScreen")
-        .classList.add("hidden");
-
-      document
-        .getElementById("dashboard")
-        .classList.remove("hidden");
-
-      await loadContent();
-
-    }
-
-  } catch (error) {
-
-    console.log(error);
-
-  }
-
+  setTimeout(() => {
+    box.classList.remove("show");
+  }, 2500);
 }
 
 
-/* =========================================================
-   LOGIN
-========================================================= */
+/* =====================================================
+   LOGIN / SESSION
+===================================================== */
 
-async function login() {
-
-  const username =
-    document.getElementById("loginUser").value.trim();
-
-  const password =
-    document.getElementById("loginPass").value;
-
-  const errorBox =
-    document.getElementById("loginError");
-
-  errorBox.textContent = "";
-
-  if (!username || !password) {
-
-    errorBox.textContent =
-      "ইউজারনেম এবং পাসওয়ার্ড দিন।";
-
-    return;
-
-  }
-
-  try {
-
-    await api("/api/login", {
-      method: "POST",
-      body: JSON.stringify({
-        username,
-        password
-      })
-    });
-
-    document
-      .getElementById("loginScreen")
-      .classList.add("hidden");
-
-    document
-      .getElementById("dashboard")
-      .classList.remove("hidden");
-
-    await loadContent();
-
-    toast("লগইন সফল হয়েছে ✓");
-
-  } catch (error) {
-
-    errorBox.textContent =
-      error.message;
-
-  }
-
-}
-
-
-/* =========================================================
-   LOGOUT
-========================================================= */
-
-async function logout() {
-
-  try {
-
-    await api("/api/logout", {
-      method: "POST"
-    });
-
-  } catch {}
-
-  location.reload();
-
-}
-
-
-/* =========================================================
-   PANEL SWITCH
-========================================================= */
-
-function showPanel(name, button) {
-
-  const panels = [
-    "content",
-    "buttons",
-    "diary",
-    "projects"
-  ];
-
-  panels.forEach(item => {
-
-    const panel =
-      document.getElementById(
-        item + "Panel"
-      );
-
-    if (panel) {
-      panel.classList.add("hidden");
-    }
-
-  });
-
-  document
-    .getElementById(name + "Panel")
-    .classList.remove("hidden");
-
-
-  document
-    .querySelectorAll(".nav-btn")
-    .forEach(btn => {
-
-      btn.classList.remove("active");
-
-    });
-
-  if (button) {
-    button.classList.add("active");
-  }
-
-
-  const titles = {
-
-    content: "সাইটের তথ্য",
-    buttons: "বাটন",
-    diary: "ডায়েরি",
-    projects: "প্রজেক্ট"
-
-  };
-
-  document
-    .getElementById("pageTitle")
-    .textContent =
-      titles[name] || "অ্যাডমিন";
-
-
-  if (name === "buttons") {
-    loadButtons();
-  }
-
-  if (name === "diary") {
-    loadDiary();
-  }
-
-  if (name === "projects") {
-    loadProjects();
-  }
-
-}
-
-
-/* =========================================================
-   CONTENT
-========================================================= */
-
-async function loadContent() {
+async function checkSession() {
 
   try {
 
     const data =
+      await api("/api/admin/session");
+
+    if (data.loggedIn) {
+
+      showAdmin();
+
+      await loadEverything();
+
+    } else {
+
+      showLogin();
+
+    }
+
+  } catch (error) {
+
+    showLogin();
+
+  }
+
+}
+
+
+function showLogin() {
+
+  $("loginSection").classList.remove("hidden");
+
+  $("adminSection").classList.add("hidden");
+
+}
+
+
+function showAdmin() {
+
+  $("loginSection").classList.add("hidden");
+
+  $("adminSection").classList.remove("hidden");
+
+}
+
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+$("loginForm").addEventListener(
+  "submit",
+  async function(e) {
+
+    e.preventDefault();
+
+    const username =
+      $("username").value.trim();
+
+    const password =
+      $("password").value;
+
+    const message =
+      $("loginMessage");
+
+    message.textContent = "লগইন হচ্ছে...";
+    message.classList.remove("error");
+
+    try {
+
+      await api(
+        "/api/admin/login",
+        {
+          method: "POST",
+
+          body: JSON.stringify({
+            username,
+            password
+          })
+        }
+      );
+
+      message.textContent = "";
+
+      showAdmin();
+
+      await loadEverything();
+
+      toast("লগইন সফল হয়েছে ✓");
+
+    } catch (error) {
+
+      message.textContent =
+        error.message || "লগইন ব্যর্থ";
+
+      message.classList.add("error");
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   LOGOUT
+===================================================== */
+
+$("logoutBtn").addEventListener(
+  "click",
+  async function() {
+
+    try {
+
+      await api(
+        "/api/admin/logout",
+        {
+          method: "POST"
+        }
+      );
+
+    } catch (error) {}
+
+    showLogin();
+
+    toast("লগআউট হয়েছে");
+
+  }
+);
+
+
+/* =====================================================
+   LOAD EVERYTHING
+===================================================== */
+
+async function loadEverything() {
+
+  try {
+
+    siteData =
       await api("/api/admin/content");
 
-    setValue("c_name", data.name);
-    setValue("c_tagline", data.tagline);
-    setValue("c_college", data.college);
-    setValue("c_education", data.education);
-    setValue("c_photo", data.photo);
-    setValue("c_about", data.about);
-    setValue("c_skills", data.skills);
-    setValue("c_facebook", data.facebook);
-    setValue("c_instagram", data.instagram);
-    setValue("c_whatsapp", data.whatsapp);
-    setValue("c_email", data.email);
+    fillSiteForm();
 
   } catch (error) {
 
@@ -255,1646 +214,1176 @@ async function loadContent() {
 
   }
 
-}
-
-
-function setValue(id, value) {
-
-  const element =
-    document.getElementById(id);
-
-  if (element) {
-
-    element.value =
-      value || "";
-
-  }
-
-}
-
-
-/* =========================================================
-   SAVE CONTENT
-========================================================= */
-
-async function saveContent() {
-
-  const content = {
-
-    name:
-      getValue("c_name"),
-
-    tagline:
-      getValue("c_tagline"),
-
-    college:
-      getValue("c_college"),
-
-    education:
-      getValue("c_education"),
-
-    photo:
-      getValue("c_photo"),
-
-    about:
-      getValue("c_about"),
-
-    skills:
-      getValue("c_skills"),
-
-    facebook:
-      getValue("c_facebook"),
-
-    instagram:
-      getValue("c_instagram"),
-
-    whatsapp:
-      getValue("c_whatsapp"),
-
-    email:
-      getValue("c_email")
-
-  };
-
 
   try {
 
-    await api("/api/admin/content", {
-
-      method: "PUT",
-
-      body:
-        JSON.stringify(content)
-
-    });
-
-    document
-      .getElementById("contentStatus")
-      .textContent =
-      "✓ তথ্য সফলভাবে সংরক্ষণ হয়েছে";
-
-    toast("তথ্য সংরক্ষণ হয়েছে ✓");
-
-  } catch (error) {
-
-    document
-      .getElementById("contentStatus")
-      .textContent =
-      "✕ " + error.message;
-
-  }
-
-}
-
-
-function getValue(id) {
-
-  const element =
-    document.getElementById(id);
-
-  return element
-    ? element.value.trim()
-    : "";
-
-}
-
-
-/* =========================================================
-   BUTTONS
-========================================================= */
-
-async function loadButtons() {
-
-  const list =
-    document.getElementById("buttonsList");
-
-  list.innerHTML =
-    `<div class="loading">লোড হচ্ছে...</div>`;
-
-  try {
-
-    currentButtons =
-      await api("/api/admin/buttons");
-
-    renderButtons();
-
-  } catch (error) {
-
-    list.innerHTML =
-      `<div class="empty">
-        ${escapeHtml(error.message)}
-      </div>`;
-
-  }
-
-}
-
-
-function renderButtons() {
-
-  const list =
-    document.getElementById("buttonsList");
-
-  if (!currentButtons.length) {
-
-    list.innerHTML = `
-      <div class="empty">
-        এখনো কোনো বাটন নেই।
-        <br><br>
-        উপরের “＋ নতুন বাটন” চাপুন।
-      </div>
-    `;
-
-    return;
-
-  }
-
-
-  list.innerHTML =
-    currentButtons
-      .map(button => buttonCard(button))
-      .join("");
-
-}
-
-
-function buttonCard(button) {
-
-  return `
-
-    <div class="item-card">
-
-      <div class="item-top">
-
-        <div>
-
-          <span class="item-number">
-            #${button.sort_order || 0}
-          </span>
-
-          <h3>
-            ${escapeHtml(button.label || "নামহীন বাটন")}
-          </h3>
-
-          <p class="item-url">
-            ${escapeHtml(button.url || "")}
-          </p>
-
-        </div>
-
-        <span class="${
-          button.visible
-            ? "badge show"
-            : "badge hide"
-        }">
-
-          ${
-            button.visible
-              ? "● দেখা যাচ্ছে"
-              : "● লুকানো"
-          }
-
-        </span>
-
-      </div>
-
-
-      <div class="item-actions">
-
-        <button
-          class="edit-btn"
-          onclick="editButton(${button.id})"
-        >
-          ✏️ Edit
-        </button>
-
-        <button
-          class="toggle-btn"
-          onclick="toggleButton(${button.id})"
-        >
-          ${
-            button.visible
-              ? "👁️ Hide"
-              : "👁️ Show"
-          }
-        </button>
-
-        <button
-          class="delete-btn"
-          onclick="deleteButton(${button.id})"
-        >
-          🗑️ Delete
-        </button>
-
-      </div>
-
-    </div>
-
-  `;
-
-}
-
-
-/* =========================================================
-   NEW BUTTON
-========================================================= */
-
-function newButton() {
-
-  editingId = null;
-
-  document
-    .getElementById("modalTitle")
-    .textContent =
-      "নতুন বাটন যোগ করুন";
-
-
-  document
-    .getElementById("modalBody")
-    .innerHTML = `
-
-      <div class="field">
-        <label>বাটনের নাম</label>
-        <input id="m_label"
-          placeholder="আমার সম্পর্কে">
-      </div>
-
-      <div class="field">
-        <label>লিংক</label>
-        <input id="m_url"
-          placeholder="/about.html">
-      </div>
-
-      <div class="field">
-        <label>আইকন</label>
-        <input id="m_icon"
-          value="→"
-          placeholder="→">
-      </div>
-
-      <div class="field">
-        <label>অবস্থান</label>
-        <input id="m_location"
-          value="custom"
-          placeholder="custom">
-      </div>
-
-      <div class="field">
-        <label>ক্রম</label>
-        <input id="m_order"
-          type="number"
-          value="0">
-      </div>
-
-      <label class="switch-row">
-        <input id="m_visible"
-          type="checkbox"
-          checked>
-        <span>ওয়েবসাইটে দেখাবেন</span>
-      </label>
-
-      <button
-        class="gold-btn full"
-        onclick="saveNewButton()"
-      >
-        💾 বাটন যোগ করুন
-      </button>
-
-    `;
-
-  openModal();
-
-}
-
-
-/* =========================================================
-   EDIT BUTTON
-========================================================= */
-
-function editButton(id) {
-
-  const button =
-    currentButtons.find(
-      item => Number(item.id) === Number(id)
-    );
-
-  if (!button) return;
-
-  editingId = id;
-
-  document
-    .getElementById("modalTitle")
-    .textContent =
-      "বাটন সম্পাদনা করুন";
-
-
-  document
-    .getElementById("modalBody")
-    .innerHTML = `
-
-      <div class="field">
-        <label>বাটনের নাম</label>
-        <input id="m_label"
-          value="${escapeAttr(button.label)}">
-      </div>
-
-      <div class="field">
-        <label>লিংক</label>
-        <input id="m_url"
-          value="${escapeAttr(button.url)}">
-      </div>
-
-      <div class="field">
-        <label>আইকন</label>
-        <input id="m_icon"
-          value="${escapeAttr(button.icon || "→")}">
-      </div>
-
-      <div class="field">
-        <label>অবস্থান</label>
-        <input id="m_location"
-          value="${escapeAttr(button.location || "custom")}">
-      </div>
-
-      <div class="field">
-        <label>ক্রম</label>
-        <input id="m_order"
-          type="number"
-          value="${Number(button.sort_order) || 0}">
-      </div>
-
-      <label class="switch-row">
-        <input id="m_visible"
-          type="checkbox"
-          ${button.visible ? "checked" : ""}>
-        <span>ওয়েবসাইটে দেখাবেন</span>
-      </label>
-
-      <button
-        class="gold-btn full"
-        onclick="saveButtonEdit()"
-      >
-        💾 পরিবর্তন সংরক্ষণ করুন
-      </button>
-
-    `;
-
-  openModal();
-
-}
-
-
-/* =========================================================
-   SAVE NEW BUTTON
-========================================================= */
-
-async function saveNewButton() {
-
-  const data = getButtonForm();
-
-  if (!data.label || !data.url) {
-
-    toast("বাটনের নাম এবং লিংক দিন");
-
-    return;
-
-  }
-
-  try {
-
-    await api("/api/admin/buttons", {
-
-      method: "POST",
-
-      body:
-        JSON.stringify(data)
-
-    });
-
-    closeModal();
-
-    await loadButtons();
-
-    toast("নতুন বাটন যোগ হয়েছে ✓");
-
-  } catch (error) {
-
-    toast(error.message);
-
-  }
-
-}
-
-
-/* =========================================================
-   SAVE BUTTON EDIT
-========================================================= */
-
-async function saveButtonEdit() {
-
-  const data =
-    getButtonForm();
-
-  try {
-
-    await api(
-      `/api/admin/buttons/${editingId}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(data)
-      }
-    );
-
-    closeModal();
-
-    await loadButtons();
-
-    toast("বাটন পরিবর্তন হয়েছে ✓");
-
-  } catch (error) {
-
-    toast(error.message);
-
-  }
-
-}
-
-
-function getButtonForm() {
-
-  return {
-
-    label:
-      getValue("m_label"),
-
-    url:
-      getValue("m_url"),
-
-    icon:
-      getValue("m_icon") || "→",
-
-    location:
-      getValue("m_location") || "custom",
-
-    visible:
-      document.getElementById("m_visible")
-        ?.checked ?? true,
-
-    sort_order:
-      Number(getValue("m_order")) || 0
-
-  };
-
-}
-
-
-/* =========================================================
-   TOGGLE BUTTON
-========================================================= */
-
-async function toggleButton(id) {
-
-  const button =
-    currentButtons.find(
-      item => Number(item.id) === Number(id)
-    );
-
-  if (!button) return;
-
-  try {
-
-    await api(
-      `/api/admin/buttons/${id}`,
-      {
-        method: "PUT",
-        body: JSON.stringify({
-
-          label: button.label,
-          url: button.url,
-          icon: button.icon,
-          location: button.location,
-          visible: !button.visible,
-          sort_order: button.sort_order
-
-        })
-      }
-    );
-
-    await loadButtons();
-
-    toast(
-      button.visible
-        ? "বাটন লুকানো হয়েছে"
-        : "বাটন দেখানো হয়েছে"
-    );
-
-  } catch (error) {
-
-    toast(error.message);
-
-  }
-
-}
-
-
-/* =========================================================
-   DELETE BUTTON
-========================================================= */
-
-async function deleteButton(id) {
-
-  if (
-    !confirm(
-      "এই বাটনটি মুছে ফেলতে চান?"
-    )
-  ) return;
-
-  try {
-
-    await api(
-      `/api/admin/buttons/${id}`,
-      {
-        method: "DELETE"
-      }
-    );
-
-    await loadButtons();
-
-    toast("বাটন মুছে ফেলা হয়েছে ✓");
-
-  } catch (error) {
-
-    toast(error.message);
-
-  }
-
-}
-
-
-/* =========================================================
-   DIARY
-========================================================= */
-
-async function loadDiary() {
-
-  const list =
-    document.getElementById("diaryList");
-
-  list.innerHTML =
-    `<div class="loading">ডায়েরি লোড হচ্ছে...</div>`;
-
-  try {
-
-    currentDiary =
+    diaryData =
       await api("/api/admin/diary");
 
     renderDiary();
 
   } catch (error) {
 
-    list.innerHTML =
-      `<div class="empty">${escapeHtml(error.message)}</div>`;
+    console.error(error);
 
   }
 
-}
-
-
-function renderDiary() {
-
-  const list =
-    document.getElementById("diaryList");
-
-  if (!currentDiary.length) {
-
-    list.innerHTML = `
-      <div class="empty">
-        এখনো কোনো ডায়েরি অধ্যায় নেই।
-        <br><br>
-        “＋ নতুন অধ্যায়” চাপুন।
-      </div>
-    `;
-
-    return;
-
-  }
-
-
-  list.innerHTML =
-    currentDiary
-      .map(item => diaryCard(item))
-      .join("");
-
-}
-
-
-function diaryCard(item) {
-
-  return `
-
-    <div class="item-card">
-
-      <div class="item-top">
-
-        <div>
-
-          <span class="item-number">
-            ${escapeHtml(item.chapter || "")}
-          </span>
-
-          <h3>
-            ${escapeHtml(item.title || "")}
-          </h3>
-
-          <p>
-            ${escapeHtml(item.excerpt || "")}
-          </p>
-
-        </div>
-
-        <span class="${
-          item.visible
-            ? "badge show"
-            : "badge hide"
-        }">
-
-          ${
-            item.visible
-              ? "● দেখা যাচ্ছে"
-              : "● লুকানো"
-          }
-
-        </span>
-
-      </div>
-
-
-      <div class="item-actions">
-
-        <button
-          class="edit-btn"
-          onclick="editDiary(${item.id})"
-        >
-          ✏️ Edit
-        </button>
-
-        <button
-          class="toggle-btn"
-          onclick="toggleDiary(${item.id})"
-        >
-          ${
-            item.visible
-              ? "👁️ Hide"
-              : "👁️ Show"
-          }
-        </button>
-
-        <button
-          class="delete-btn"
-          onclick="deleteDiary(${item.id})"
-        >
-          🗑️ Delete
-        </button>
-
-      </div>
-
-    </div>
-
-  `;
-
-}
-
-
-/* =========================================================
-   NEW DIARY
-========================================================= */
-
-function newDiary() {
-
-  editingId = null;
-
-  document
-    .getElementById("modalTitle")
-    .textContent =
-      "নতুন অধ্যায় যোগ করুন";
-
-
-  document
-    .getElementById("modalBody")
-    .innerHTML = `
-
-      <div class="field">
-        <label>অধ্যায়</label>
-        <input id="m_chapter"
-          placeholder="অধ্যায় ০১">
-      </div>
-
-      <div class="field">
-        <label>শিরোনাম</label>
-        <input id="m_title"
-          placeholder="আমার নতুন অধ্যায়">
-      </div>
-
-      <div class="field">
-        <label>ছোট বিবরণ</label>
-        <input id="m_excerpt"
-          placeholder="এই অধ্যায়ের সংক্ষিপ্ত বিবরণ">
-      </div>
-
-      <div class="field">
-        <label>বিস্তারিত লেখা</label>
-        <textarea id="m_body"
-          placeholder="অধ্যায়ের বিস্তারিত লিখুন..."></textarea>
-      </div>
-
-      <div class="field">
-        <label>তারিখ</label>
-        <input id="m_date"
-          placeholder="০২ সেপ্টেম্বর ২০২৬">
-      </div>
-
-      <div class="field">
-        <label>ক্রম</label>
-        <input id="m_order"
-          type="number"
-          value="0">
-      </div>
-
-      <label class="switch-row">
-        <input id="m_visible"
-          type="checkbox"
-          checked>
-        <span>ওয়েবসাইটে দেখাবেন</span>
-      </label>
-
-      <button
-        class="gold-btn full"
-        onclick="saveNewDiary()"
-      >
-        💾 অধ্যায় যোগ করুন
-      </button>
-
-    `;
-
-  openModal();
-
-}
-
-
-/* =========================================================
-   EDIT DIARY
-========================================================= */
-
-function editDiary(id) {
-
-  const item =
-    currentDiary.find(
-      x => Number(x.id) === Number(id)
-    );
-
-  if (!item) return;
-
-  editingId = id;
-
-  document
-    .getElementById("modalTitle")
-    .textContent =
-      "অধ্যায় সম্পাদনা করুন";
-
-
-  document
-    .getElementById("modalBody")
-    .innerHTML = `
-
-      <div class="field">
-        <label>অধ্যায়</label>
-        <input id="m_chapter"
-          value="${escapeAttr(item.chapter)}">
-      </div>
-
-      <div class="field">
-        <label>শিরোনাম</label>
-        <input id="m_title"
-          value="${escapeAttr(item.title)}">
-      </div>
-
-      <div class="field">
-        <label>ছোট বিবরণ</label>
-        <input id="m_excerpt"
-          value="${escapeAttr(item.excerpt)}">
-      </div>
-
-      <div class="field">
-        <label>বিস্তারিত লেখা</label>
-        <textarea id="m_body">${escapeHtml(item.body || "")}</textarea>
-      </div>
-
-      <div class="field">
-        <label>তারিখ</label>
-        <input id="m_date"
-          value="${escapeAttr(item.date_text || "")}">
-      </div>
-
-      <div class="field">
-        <label>ক্রম</label>
-        <input id="m_order"
-          type="number"
-          value="${Number(item.sort_order) || 0}">
-      </div>
-
-      <label class="switch-row">
-        <input id="m_visible"
-          type="checkbox"
-          ${item.visible ? "checked" : ""}>
-        <span>ওয়েবসাইটে দেখাবেন</span>
-      </label>
-
-      <button
-        class="gold-btn full"
-        onclick="saveDiaryEdit()"
-      >
-        💾 পরিবর্তন সংরক্ষণ করুন
-      </button>
-
-    `;
-
-  openModal();
-
-}
-
-
-/* =========================================================
-   DIARY FORM
-========================================================= */
-
-function getDiaryForm() {
-
-  return {
-
-    chapter:
-      getValue("m_chapter"),
-
-    title:
-      getValue("m_title"),
-
-    excerpt:
-      getValue("m_excerpt"),
-
-    body:
-      getValue("m_body"),
-
-    date_text:
-      getValue("m_date"),
-
-    visible:
-      document.getElementById("m_visible")
-        ?.checked ?? true,
-
-    sort_order:
-      Number(getValue("m_order")) || 0
-
-  };
-
-}
-
-
-/* =========================================================
-   SAVE NEW DIARY
-========================================================= */
-
-async function saveNewDiary() {
-
-  const data =
-    getDiaryForm();
-
-  if (!data.chapter || !data.title) {
-
-    toast("অধ্যায় এবং শিরোনাম দিন");
-
-    return;
-
-  }
 
   try {
 
-    await api("/api/admin/diary", {
-
-      method: "POST",
-
-      body:
-        JSON.stringify(data)
-
-    });
-
-    closeModal();
-
-    await loadDiary();
-
-    toast("নতুন অধ্যায় যোগ হয়েছে ✓");
-
-  } catch (error) {
-
-    toast(error.message);
-
-  }
-
-}
-
-
-/* =========================================================
-   SAVE DIARY EDIT
-========================================================= */
-
-async function saveDiaryEdit() {
-
-  const data =
-    getDiaryForm();
-
-  try {
-
-    await api(
-      `/api/admin/diary/${editingId}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(data)
-      }
-    );
-
-    closeModal();
-
-    await loadDiary();
-
-    toast("অধ্যায় পরিবর্তন হয়েছে ✓");
-
-  } catch (error) {
-
-    toast(error.message);
-
-  }
-
-}
-
-
-/* =========================================================
-   TOGGLE DIARY
-========================================================= */
-
-async function toggleDiary(id) {
-
-  const item =
-    currentDiary.find(
-      x => Number(x.id) === Number(id)
-    );
-
-  if (!item) return;
-
-  try {
-
-    await api(
-      `/api/admin/diary/${id}`,
-      {
-        method: "PUT",
-
-        body:
-          JSON.stringify({
-
-            chapter: item.chapter,
-            title: item.title,
-            excerpt: item.excerpt,
-            body: item.body,
-            date_text: item.date_text,
-            visible: !item.visible,
-            sort_order: item.sort_order
-
-          })
-      }
-    );
-
-    await loadDiary();
-
-    toast(
-      item.visible
-        ? "অধ্যায় লুকানো হয়েছে"
-        : "অধ্যায় দেখানো হয়েছে"
-    );
-
-  } catch (error) {
-
-    toast(error.message);
-
-  }
-
-}
-
-
-/* =========================================================
-   DELETE DIARY
-========================================================= */
-
-async function deleteDiary(id) {
-
-  if (
-    !confirm(
-      "এই অধ্যায়টি মুছে ফেলতে চান?"
-    )
-  ) return;
-
-  try {
-
-    await api(
-      `/api/admin/diary/${id}`,
-      {
-        method: "DELETE"
-      }
-    );
-
-    await loadDiary();
-
-    toast("অধ্যায় মুছে ফেলা হয়েছে ✓");
-
-  } catch (error) {
-
-    toast(error.message);
-
-  }
-
-}
-
-
-/* =========================================================
-   PROJECTS
-========================================================= */
-
-async function loadProjects() {
-
-  const list =
-    document.getElementById("projectsList");
-
-  list.innerHTML =
-    `<div class="loading">প্রজেক্ট লোড হচ্ছে...</div>`;
-
-  try {
-
-    currentProjects =
+    projectData =
       await api("/api/admin/projects");
 
     renderProjects();
 
   } catch (error) {
 
-    list.innerHTML =
-      `<div class="empty">${escapeHtml(error.message)}</div>`;
+    console.error(error);
 
   }
 
 }
 
 
-function renderProjects() {
+/* =====================================================
+   SITE FORM
+===================================================== */
 
-  const list =
-    document.getElementById("projectsList");
+function fillSiteForm() {
 
-  if (!currentProjects.length) {
+  if (!siteData) return;
 
-    list.innerHTML = `
-      <div class="empty">
-        এখনো কোনো প্রজেক্ট নেই।
-        <br><br>
-        “＋ নতুন প্রজেক্ট” চাপুন।
+  $("siteName").value =
+    siteData.name || "";
+
+  $("siteTagline").value =
+    siteData.tagline || "";
+
+  $("siteCollege").value =
+    siteData.college || "";
+
+  $("siteEducation").value =
+    siteData.education || "";
+
+  $("sitePhoto").value =
+    siteData.photo || "";
+
+  $("siteAbout").value =
+    siteData.about || "";
+
+  $("siteSkills").value =
+    Array.isArray(siteData.skills)
+      ? siteData.skills.join("\n")
+      : "";
+
+
+  const social =
+    siteData.social || {};
+
+  $("facebook").value =
+    social.facebook || "";
+
+  $("instagram").value =
+    social.instagram || "";
+
+  $("whatsapp").value =
+    social.whatsapp || "";
+
+  $("email").value =
+    social.email || "";
+
+
+  renderButtons();
+
+}
+
+
+/* =====================================================
+   SAVE SITE
+===================================================== */
+
+$("siteForm").addEventListener(
+  "submit",
+  async function(e) {
+
+    e.preventDefault();
+
+    const skills =
+      $("siteSkills")
+        .value
+        .split("\n")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+
+    const newData = {
+
+      name:
+        $("siteName").value.trim(),
+
+      tagline:
+        $("siteTagline").value.trim(),
+
+      college:
+        $("siteCollege").value.trim(),
+
+      education:
+        $("siteEducation").value.trim(),
+
+      photo:
+        $("sitePhoto").value.trim(),
+
+      about:
+        $("siteAbout").value.trim(),
+
+      skills,
+
+      social: {
+
+        facebook:
+          $("facebook").value.trim(),
+
+        instagram:
+          $("instagram").value.trim(),
+
+        whatsapp:
+          $("whatsapp").value.trim(),
+
+        email:
+          $("email").value.trim()
+
+      }
+
+    };
+
+
+    try {
+
+      const result =
+        await api(
+          "/api/admin/content",
+          {
+            method: "PUT",
+            body: JSON.stringify(newData)
+          }
+        );
+
+      siteData =
+        result.data;
+
+      fillSiteForm();
+
+      toast("সাইটের তথ্য সংরক্ষণ হয়েছে ✓");
+
+    } catch (error) {
+
+      toast(error.message);
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   BUTTON MANAGER
+===================================================== */
+
+function renderButtons() {
+
+  const container =
+    $("buttonsList");
+
+  container.innerHTML = "";
+
+  if (!siteData) return;
+
+  if (!Array.isArray(siteData.buttons)) {
+    siteData.buttons = [];
+  }
+
+
+  const buttons =
+    [...siteData.buttons]
+      .sort(
+        (a,b) =>
+          Number(a.order || 0) -
+          Number(b.order || 0)
+      );
+
+
+  if (buttons.length === 0) {
+
+    container.innerHTML = `
+      <div class="item-card">
+        কোনো বাটন নেই।
       </div>
     `;
 
     return;
-
   }
 
 
-  list.innerHTML =
-    currentProjects
-      .map(item => projectCard(item))
-      .join("");
+  buttons.forEach(
+    (button,index) => {
 
-}
+      const card =
+        document.createElement("div");
 
+      card.className = "item-card";
 
-function projectCard(item) {
+      card.innerHTML = `
 
-  return `
-
-    <div class="item-card">
-
-      <div class="item-top">
-
-        <div>
-
-          <span class="item-number">
-            ${escapeHtml(item.type || "PROJECT")}
-          </span>
+        <div class="item-head">
 
           <h3>
-            ${escapeHtml(item.title || item.name || "")}
+            🔘 বাটন ${index + 1}
           </h3>
 
-          <p>
-            ${escapeHtml(
-              item.description ||
-              item.excerpt ||
-              ""
-            )}
-          </p>
+          <div class="item-actions">
+
+            <button
+              class="edit-btn"
+              onclick="saveButton('${escapeAttr(button.id)}')"
+            >
+              💾 Save
+            </button>
+
+            <button
+              class="secondary-btn"
+              onclick="moveButton('${escapeAttr(button.id)}',-1)"
+            >
+              ↑
+            </button>
+
+            <button
+              class="secondary-btn"
+              onclick="moveButton('${escapeAttr(button.id)}',1)"
+            >
+              ↓
+            </button>
+
+            <button
+              class="danger-btn"
+              onclick="deleteButton('${escapeAttr(button.id)}')"
+            >
+              🗑️
+            </button>
+
+          </div>
 
         </div>
 
-        <span class="${
-          item.visible
-            ? "badge show"
-            : "badge hide"
-        }">
 
-          ${
-            item.visible
-              ? "● দেখা যাচ্ছে"
-              : "● লুকানো"
-          }
-
-        </span>
-
-      </div>
+        <label>
+          Button Label
+          <input
+            id="btn-label-${escapeAttr(button.id)}"
+            value="${escapeAttr(button.label || "")}"
+          >
+        </label>
 
 
-      <div class="item-actions">
+        <label>
+          Button Link
+          <input
+            id="btn-url-${escapeAttr(button.id)}"
+            value="${escapeAttr(button.url || "")}"
+            placeholder="/about.html"
+          >
+        </label>
 
-        <button
-          class="edit-btn"
-          onclick="editProject(${item.id})"
-        >
-          ✏️ Edit
-        </button>
 
-        <button
-          class="toggle-btn"
-          onclick="toggleProject(${item.id})"
-        >
-          ${
-            item.visible
-              ? "👁️ Hide"
-              : "👁️ Show"
-          }
-        </button>
+        <label class="hidden-label">
 
-        <button
-          class="delete-btn"
-          onclick="deleteProject(${item.id})"
-        >
-          🗑️ Delete
-        </button>
+          <input
+            id="btn-visible-${escapeAttr(button.id)}"
+            type="checkbox"
+            ${button.visible !== false ? "checked" : ""}
+          >
 
-      </div>
+          ওয়েবসাইটে দেখাবেন
 
-    </div>
+        </label>
 
-  `;
+      `;
+
+      container.appendChild(card);
+
+    }
+  );
 
 }
 
 
-/* =========================================================
-   NEW PROJECT
-========================================================= */
+/* =====================================================
+   SAVE BUTTON
+===================================================== */
 
-function newProject() {
+window.saveButton =
+  async function(id) {
 
-  editingId = null;
+    const button =
+      siteData.buttons.find(
+        x => String(x.id) === String(id)
+      );
 
-  document
-    .getElementById("modalTitle")
-    .textContent =
-      "নতুন প্রজেক্ট যোগ করুন";
-
-
-  document
-    .getElementById("modalBody")
-    .innerHTML = `
-
-      <div class="field">
-        <label>প্রজেক্টের নাম</label>
-        <input id="m_projectTitle"
-          placeholder="আমার নতুন প্রজেক্ট">
-      </div>
-
-      <div class="field">
-        <label>ধরন</label>
-        <input id="m_projectType"
-          placeholder="Personal Project">
-      </div>
-
-      <div class="field">
-        <label>প্রজেক্টের বিবরণ</label>
-        <textarea id="m_projectDescription"
-          placeholder="প্রজেক্ট সম্পর্কে লিখুন..."></textarea>
-      </div>
-
-      <div class="field">
-        <label>লিংক</label>
-        <input id="m_projectUrl"
-          placeholder="https://...">
-      </div>
-
-      <div class="field">
-        <label>ক্রম</label>
-        <input id="m_projectOrder"
-          type="number"
-          value="0">
-      </div>
-
-      <label class="switch-row">
-        <input id="m_projectVisible"
-          type="checkbox"
-          checked>
-        <span>ওয়েবসাইটে দেখাবেন</span>
-      </label>
-
-      <button
-        class="gold-btn full"
-        onclick="saveNewProject()"
-      >
-        💾 প্রজেক্ট যোগ করুন
-      </button>
-
-    `;
-
-  openModal();
-
-}
+    if (!button) return;
 
 
-/* =========================================================
-   EDIT PROJECT
-========================================================= */
+    button.label =
+      $(`btn-label-${id}`).value.trim();
 
-function editProject(id) {
+    button.url =
+      $(`btn-url-${id}`).value.trim();
 
-  const item =
-    currentProjects.find(
-      x => Number(x.id) === Number(id)
-    );
-
-  if (!item) return;
-
-  editingId = id;
-
-  document
-    .getElementById("modalTitle")
-    .textContent =
-      "প্রজেক্ট সম্পাদনা করুন";
+    button.visible =
+      $(`btn-visible-${id}`).checked;
 
 
-  document
-    .getElementById("modalBody")
-    .innerHTML = `
-
-      <div class="field">
-        <label>প্রজেক্টের নাম</label>
-        <input id="m_projectTitle"
-          value="${escapeAttr(
-            item.title || item.name || ""
-          )}">
-      </div>
-
-      <div class="field">
-        <label>ধরন</label>
-        <input id="m_projectType"
-          value="${escapeAttr(
-            item.type || ""
-          )}">
-      </div>
-
-      <div class="field">
-        <label>প্রজেক্টের বিবরণ</label>
-        <textarea id="m_projectDescription">${escapeHtml(
-          item.description ||
-          item.excerpt ||
-          ""
-        )}</textarea>
-      </div>
-
-      <div class="field">
-        <label>লিংক</label>
-        <input id="m_projectUrl"
-          value="${escapeAttr(
-            item.url || item.link || ""
-          )}">
-      </div>
-
-      <div class="field">
-        <label>ক্রম</label>
-        <input id="m_projectOrder"
-          type="number"
-          value="${Number(item.sort_order) || 0}">
-      </div>
-
-      <label class="switch-row">
-        <input id="m_projectVisible"
-          type="checkbox"
-          ${item.visible ? "checked" : ""}>
-        <span>ওয়েবসাইটে দেখাবেন</span>
-      </label>
-
-      <button
-        class="gold-btn full"
-        onclick="saveProjectEdit()"
-      >
-        💾 পরিবর্তন সংরক্ষণ করুন
-      </button>
-
-    `;
-
-  openModal();
-
-}
-
-
-/* =========================================================
-   PROJECT DATA
-========================================================= */
-
-function getProjectForm() {
-
-  return {
-
-    title:
-      getValue("m_projectTitle"),
-
-    type:
-      getValue("m_projectType"),
-
-    description:
-      getValue("m_projectDescription"),
-
-    url:
-      getValue("m_projectUrl"),
-
-    visible:
-      document.getElementById(
-        "m_projectVisible"
-      )?.checked ?? true,
-
-    sort_order:
-      Number(
-        getValue("m_projectOrder")
-      ) || 0
+    await saveButtons();
 
   };
 
-}
 
+async function saveButtons() {
 
-/* =========================================================
-   SAVE NEW PROJECT
-========================================================= */
+  siteData.buttons =
+    siteData.buttons.map(
+      (button,index) => ({
+        ...button,
+        order:index + 1
+      })
+    );
 
-async function saveNewProject() {
-
-  const data =
-    getProjectForm();
-
-  if (!data.title) {
-
-    toast("প্রজেক্টের নাম দিন");
-
-    return;
-
-  }
 
   try {
 
-    await api("/api/admin/projects", {
+    const result =
+      await api(
+        "/api/admin/content",
+        {
+          method:"PUT",
 
-      method: "POST",
+          body:JSON.stringify({
+            buttons:
+              siteData.buttons
+          })
+        }
+      );
 
-      body:
-        JSON.stringify(data)
+    siteData =
+      result.data;
+
+    renderButtons();
+
+    toast("বাটন আপডেট হয়েছে ✓");
+
+  } catch(error) {
+
+    toast(error.message);
+
+  }
+
+}
+
+
+/* =====================================================
+   ADD BUTTON
+===================================================== */
+
+$("addButtonBtn").addEventListener(
+  "click",
+  async function() {
+
+    const label =
+      prompt(
+        "নতুন বাটনের নাম লিখুন:"
+      );
+
+    if (!label) return;
+
+
+    const url =
+      prompt(
+        "বাটনের Link লিখুন:",
+        "/"
+      );
+
+
+    const id =
+      "button_" +
+      Date.now();
+
+
+    siteData.buttons =
+      Array.isArray(siteData.buttons)
+        ? siteData.buttons
+        : [];
+
+
+    siteData.buttons.push({
+
+      id,
+
+      label,
+
+      url: url || "/",
+
+      visible:true,
+
+      order:
+        siteData.buttons.length + 1
 
     });
 
-    closeModal();
 
-    await loadProjects();
-
-    toast("নতুন প্রজেক্ট যোগ হয়েছে ✓");
-
-  } catch (error) {
-
-    toast(error.message);
+    await saveButtons();
 
   }
-
-}
-
-
-/* =========================================================
-   SAVE PROJECT EDIT
-========================================================= */
-
-async function saveProjectEdit() {
-
-  const data =
-    getProjectForm();
-
-  try {
-
-    await api(
-      `/api/admin/projects/${editingId}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(data)
-      }
-    );
-
-    closeModal();
-
-    await loadProjects();
-
-    toast("প্রজেক্ট পরিবর্তন হয়েছে ✓");
-
-  } catch (error) {
-
-    toast(error.message);
-
-  }
-
-}
+);
 
 
-/* =========================================================
-   TOGGLE PROJECT
-========================================================= */
+/* =====================================================
+   DELETE BUTTON
+===================================================== */
 
-async function toggleProject(id) {
+window.deleteButton =
+  async function(id) {
 
-  const item =
-    currentProjects.find(
-      x => Number(x.id) === Number(id)
-    );
+    if (
+      !confirm(
+        "এই বাটনটি মুছে ফেলবেন?"
+      )
+    ) return;
 
-  if (!item) return;
 
-  const data = {
+    siteData.buttons =
+      siteData.buttons.filter(
+        x => String(x.id) !== String(id)
+      );
 
-    title:
-      item.title || item.name || "",
 
-    type:
-      item.type || "",
-
-    description:
-      item.description ||
-      item.excerpt ||
-      "",
-
-    url:
-      item.url ||
-      item.link ||
-      "",
-
-    visible:
-      !item.visible,
-
-    sort_order:
-      item.sort_order || 0
+    await saveButtons();
 
   };
 
-  try {
 
-    await api(
-      `/api/admin/projects/${id}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(data)
-      }
+/* =====================================================
+   MOVE BUTTON
+===================================================== */
+
+window.moveButton =
+  async function(id,direction) {
+
+    const arr =
+      [...siteData.buttons]
+        .sort(
+          (a,b) =>
+            Number(a.order || 0) -
+            Number(b.order || 0)
+        );
+
+
+    const index =
+      arr.findIndex(
+        x => String(x.id) === String(id)
+      );
+
+
+    const newIndex =
+      index + direction;
+
+
+    if (
+      index < 0 ||
+      newIndex < 0 ||
+      newIndex >= arr.length
+    ) return;
+
+
+    [
+      arr[index],
+      arr[newIndex]
+    ] =
+    [
+      arr[newIndex],
+      arr[index]
+    ];
+
+
+    arr.forEach(
+      (x,i) => x.order = i + 1
     );
 
-    await loadProjects();
 
-    toast(
-      item.visible
-        ? "প্রজেক্ট লুকানো হয়েছে"
-        : "প্রজেক্ট দেখানো হয়েছে"
-    );
+    siteData.buttons = arr;
 
-  } catch (error) {
+    await saveButtons();
 
-    toast(error.message);
+  };
+
+
+/* =====================================================
+   DIARY
+===================================================== */
+
+async function loadDiary() {
+
+  diaryData =
+    await api("/api/admin/diary");
+
+  renderDiary();
+
+}
+
+
+$("addDiaryBtn").addEventListener(
+  "click",
+  async function() {
+
+    const title =
+      $("newDiaryTitle").value.trim();
+
+    const content =
+      $("newDiaryContent").value.trim();
+
+    const date =
+      $("newDiaryDate").value.trim();
+
+
+    if (!title || !content) {
+
+      toast(
+        "অধ্যায়ের নাম ও লেখা দিন"
+      );
+
+      return;
+
+    }
+
+
+    try {
+
+      await api(
+        "/api/admin/diary",
+        {
+          method:"POST",
+
+          body:JSON.stringify({
+            title,
+            content,
+            date
+          })
+        }
+      );
+
+
+      $("newDiaryTitle").value = "";
+      $("newDiaryContent").value = "";
+      $("newDiaryDate").value = "";
+
+
+      await loadDiary();
+
+      toast("নতুন অধ্যায় যোগ হয়েছে ✓");
+
+    } catch(error) {
+
+      toast(error.message);
+
+    }
 
   }
+);
 
-}
+
+/* =====================================================
+   RENDER DIARY
+===================================================== */
+
+function renderDiary() {
+
+  const container =
+    $("diaryList");
+
+  container.innerHTML = "";
 
 
-/* =========================================================
-   DELETE PROJECT
-========================================================= */
+  if (!diaryData.length) {
 
-async function deleteProject(id) {
+    container.innerHTML = `
+      <div class="item-card">
+        এখনো কোনো ডায়েরি নেই।
+      </div>
+    `;
 
-  if (
-    !confirm(
-      "এই প্রজেক্টটি মুছে ফেলতে চান?"
-    )
-  ) return;
-
-  try {
-
-    await api(
-      `/api/admin/projects/${id}`,
-      {
-        method: "DELETE"
-      }
-    );
-
-    await loadProjects();
-
-    toast("প্রজেক্ট মুছে ফেলা হয়েছে ✓");
-
-  } catch (error) {
-
-    toast(error.message);
-
+    return;
   }
 
-}
+
+  diaryData.forEach(
+    diary => {
+
+      const card =
+        document.createElement("div");
+
+      card.className = "item-card";
 
 
-/* =========================================================
-   MODAL
-========================================================= */
+      card.innerHTML = `
 
-function openModal() {
+        <div class="item-head">
 
-  document
-    .getElementById("modal")
-    .classList.remove("hidden");
+          <h3>
+            📖 ${escapeHtml(diary.title)}
+          </h3>
 
-  document.body.style.overflow =
-    "hidden";
+          <div class="item-actions">
 
-}
+            <button
+              class="edit-btn"
+              onclick="updateDiary(${diary.id})"
+            >
+              💾 Save
+            </button>
+
+            <button
+              class="danger-btn"
+              onclick="deleteDiary(${diary.id})"
+            >
+              🗑️ Delete
+            </button>
+
+          </div>
+
+        </div>
 
 
-function closeModal() {
+        <label>
+          অধ্যায়ের নাম
 
-  document
-    .getElementById("modal")
-    .classList.add("hidden");
+          <input
+            id="diary-title-${diary.id}"
+            value="${escapeAttr(diary.title)}"
+          >
 
-  document.body.style.overflow =
-    "";
-
-}
+        </label>
 
 
-/* =========================================================
-   TOAST
-========================================================= */
+        <label>
+          বিস্তারিত
 
-function toast(message) {
+          <textarea
+            id="diary-content-${diary.id}"
+            rows="6"
+          >${escapeHtml(diary.content)}</textarea>
 
-  const box =
-    document.getElementById("toast");
+        </label>
 
-  box.textContent =
-    message;
 
-  box.classList.add("show");
+        <label>
+          তারিখ
 
-  clearTimeout(
-    window.toastTimer
+          <input
+            id="diary-date-${diary.id}"
+            value="${escapeAttr(diary.date || "")}"
+          >
+
+        </label>
+
+
+        <label class="hidden-label">
+
+          <input
+            id="diary-visible-${diary.id}"
+            type="checkbox"
+            ${diary.visible !== false ? "checked" : ""}
+          >
+
+          ওয়েবসাইটে দেখাবেন
+
+        </label>
+
+      `;
+
+
+      container.appendChild(card);
+
+    }
   );
 
-  window.toastTimer =
-    setTimeout(() => {
+}
 
-      box.classList.remove("show");
 
-    }, 2500);
+/* =====================================================
+   UPDATE DIARY
+===================================================== */
+
+window.updateDiary =
+  async function(id) {
+
+    try {
+
+      await api(
+        `/api/admin/diary/${id}`,
+        {
+          method:"PUT",
+
+          body:JSON.stringify({
+
+            title:
+              $(`diary-title-${id}`).value.trim(),
+
+            content:
+              $(`diary-content-${id}`).value.trim(),
+
+            date:
+              $(`diary-date-${id}`).value.trim(),
+
+            visible:
+              $(`diary-visible-${id}`).checked
+
+          })
+        }
+      );
+
+
+      await loadDiary();
+
+      toast("ডায়েরি আপডেট হয়েছে ✓");
+
+    } catch(error) {
+
+      toast(error.message);
+
+    }
+
+  };
+
+
+/* =====================================================
+   DELETE DIARY
+===================================================== */
+
+window.deleteDiary =
+  async function(id) {
+
+    if (
+      !confirm(
+        "এই ডায়েরি মুছে ফেলবেন?"
+      )
+    ) return;
+
+
+    try {
+
+      await api(
+        `/api/admin/diary/${id}`,
+        {
+          method:"DELETE"
+        }
+      );
+
+
+      await loadDiary();
+
+      toast("ডায়েরি মুছে ফেলা হয়েছে");
+
+    } catch(error) {
+
+      toast(error.message);
+
+    }
+
+  };
+
+
+/* =====================================================
+   PROJECT
+===================================================== */
+
+async function loadProjects() {
+
+  projectData =
+    await api("/api/admin/projects");
+
+  renderProjects();
 
 }
 
 
-/* =========================================================
-   ESCAPE
-========================================================= */
+$("addProjectBtn").addEventListener(
+  "click",
+  async function() {
+
+    const title =
+      $("newProjectTitle").value.trim();
+
+    const description =
+      $("newProjectDescription").value.trim();
+
+    const url =
+      $("newProjectUrl").value.trim();
+
+    const image =
+      $("newProjectImage").value.trim();
+
+
+    if (!title) {
+
+      toast("প্রজেক্টের নাম দিন");
+
+      return;
+
+    }
+
+
+    try {
+
+      await api(
+        "/api/admin/projects",
+        {
+          method:"POST",
+
+          body:JSON.stringify({
+
+            title,
+
+            description,
+
+            url,
+
+            image
+
+          })
+        }
+      );
+
+
+      $("newProjectTitle").value = "";
+      $("newProjectType").value = "";
+      $("newProjectDescription").value = "";
+      $("newProjectUrl").value = "";
+      $("newProjectImage").value = "";
+
+
+      await loadProjects();
+
+      toast("নতুন প্রজেক্ট যোগ হয়েছে ✓");
+
+    } catch(error) {
+
+      toast(error.message);
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   RENDER PROJECTS
+===================================================== */
+
+function renderProjects() {
+
+  const container =
+    $("projectList");
+
+  container.innerHTML = "";
+
+
+  if (!projectData.length) {
+
+    container.innerHTML = `
+      <div class="item-card">
+        এখনো কোনো প্রজেক্ট নেই।
+      </div>
+    `;
+
+    return;
+  }
+
+
+  projectData.forEach(
+    project => {
+
+      const card =
+        document.createElement("div");
+
+      card.className = "item-card";
+
+
+      card.innerHTML = `
+
+        <div class="item-head">
+
+          <h3>
+            🚀 ${escapeHtml(project.title)}
+          </h3>
+
+          <div class="item-actions">
+
+            <button
+              class="edit-btn"
+              onclick="updateProject(${project.id})"
+            >
+              💾 Save
+            </button>
+
+            <button
+              class="danger-btn"
+              onclick="deleteProject(${project.id})"
+            >
+              🗑️ Delete
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <label>
+          প্রজেক্টের নাম
+
+          <input
+            id="project-title-${project.id}"
+            value="${escapeAttr(project.title)}"
+          >
+
+        </label>
+
+
+        <label>
+          ধরন
+
+          <input
+            id="project-type-${project.id}"
+            value="${escapeAttr(project.type || "")}"
+          >
+
+        </label>
+
+
+        <label>
+          বিবরণ
+
+          <textarea
+            id="project-description-${project.id}"
+            rows="5"
+          >${escapeHtml(project.description || "")}</textarea>
+
+        </label>
+
+
+        <label>
+          প্রজেক্ট লিংক
+
+          <input
+            id="project-url-${project.id}"
+            value="${escapeAttr(project.url || "")}"
+            placeholder="https://..."
+          >
+
+        </label>
+
+
+        <label>
+          ছবির লিংক
+
+          <input
+            id="project-image-${project.id}"
+            value="${escapeAttr(project.image || "")}"
+            placeholder="https://..."
+          >
+
+        </label>
+
+
+        <label>
+          Sort Order
+
+          <input
+            id="project-order-${project.id}"
+            type="number"
+            value="${Number(project.sort_order || 0)}"
+          >
+
+        </label>
+
+
+        <label class="hidden-label">
+
+          <input
+            id="project-visible-${project.id}"
+            type="checkbox"
+            ${project.visible !== false ? "checked" : ""}
+          >
+
+          ওয়েবসাইটে দেখাবেন
+
+        </label>
+
+      `;
+
+
+      container.appendChild(card);
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   UPDATE PROJECT
+===================================================== */
+
+window.updateProject =
+  async function(id) {
+
+    try {
+
+      await api(
+        `/api/admin/projects/${id}`,
+        {
+          method:"PUT",
+
+          body:JSON.stringify({
+
+            title:
+              $(`project-title-${id}`).value.trim(),
+
+            description:
+              $(`project-description-${id}`).value.trim(),
+
+            url:
+              $(`project-url-${id}`).value.trim(),
+
+            image:
+              $(`project-image-${id}`).value.trim(),
+
+            visible:
+              $(`project-visible-${id}`).checked,
+
+            sort_order:
+              Number(
+                $(`project-order-${id}`).value || 0
+              )
+
+          })
+        }
+      );
+
+
+      await loadProjects();
+
+      toast("প্রজেক্ট আপডেট হয়েছে ✓");
+
+    } catch(error) {
+
+      toast(error.message);
+
+    }
+
+  };
+
+
+/* =====================================================
+   DELETE PROJECT
+===================================================== */
+
+window.deleteProject =
+  async function(id) {
+
+    if (
+      !confirm(
+        "এই প্রজেক্ট মুছে ফেলবেন?"
+      )
+    ) return;
+
+
+    try {
+
+      await api(
+        `/api/admin/projects/${id}`,
+        {
+          method:"DELETE"
+        }
+      );
+
+
+      await loadProjects();
+
+      toast("প্রজেক্ট মুছে ফেলা হয়েছে");
+
+    } catch(error) {
+
+      toast(error.message);
+
+    }
+
+  };
+
+
+/* =====================================================
+   NAVIGATION
+===================================================== */
+
+document
+  .querySelectorAll(".nav-btn")
+  .forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        function() {
+
+          document
+            .querySelectorAll(".nav-btn")
+            .forEach(
+              x =>
+                x.classList.remove("active")
+            );
+
+
+          this.classList.add("active");
+
+
+          document
+            .querySelectorAll(".panel")
+            .forEach(
+              panel =>
+                panel.classList.add("hidden")
+            );
+
+
+          const target =
+            this.dataset.target;
+
+          $(target)
+            .classList.remove("hidden");
+
+        }
+      );
+
+    }
+  );
+
+
+/* =====================================================
+   SECURITY HELPERS
+===================================================== */
 
 function escapeHtml(value) {
 
   return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 
 }
 
@@ -1906,28 +1395,8 @@ function escapeAttr(value) {
 }
 
 
-/* =========================================================
-   KEYBOARD
-========================================================= */
-
-document.addEventListener(
-  "keydown",
-  event => {
-
-    if (
-      event.key === "Escape"
-    ) {
-
-      closeModal();
-
-    }
-
-  }
-);
-
-
-/* =========================================================
+/* =====================================================
    START
-========================================================= */
+===================================================== */
 
-checkLogin();
+checkSession();
