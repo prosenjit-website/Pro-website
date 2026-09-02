@@ -1,26 +1,8 @@
-"use strict";
-
-
 // =====================================================
-// HELPERS
+// PROSENJIT ADMIN PANEL
 // =====================================================
 
-const $ = (id) => document.getElementById(id);
-
-let siteData = {
-  name: "",
-  tagline: "",
-  college: "",
-  education: "",
-  photo: "",
-  about: "",
-  skills: [],
-  social: {},
-  buttons: []
-};
-
-let diaryItems = [];
-let projectItems = [];
+const API = "";
 
 
 // =====================================================
@@ -31,19 +13,24 @@ async function api(
   url,
   options = {}
 ) {
-  const response = await fetch(
-    url,
-    {
-      credentials: "same-origin",
 
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {})
-      },
+  const response =
+    await fetch(
+      API + url,
+      {
+        credentials: "same-origin",
 
-      ...options
-    }
-  );
+        headers: {
+          "Content-Type":
+            "application/json",
+
+          ...(options.headers || {})
+        },
+
+        ...options
+      }
+    );
+
 
   let data = {};
 
@@ -53,461 +40,769 @@ async function api(
     data = {};
   }
 
-  if (!response.ok) {
-    const error =
-      data.error ||
-      `Request failed (${response.status})`;
 
-    throw new Error(error);
+  if (!response.ok) {
+
+    if (
+      response.status === 401
+    ) {
+
+      throw new Error(
+        "SESSION_EXPIRED"
+      );
+
+    }
+
+
+    throw new Error(
+      data.error ||
+      "Something went wrong"
+    );
+
   }
+
 
   return data;
 }
 
 
 // =====================================================
-// MESSAGE
+// ELEMENTS
 // =====================================================
 
-function message(
-  element,
-  text,
-  type = "success"
-) {
-  if (!element) return;
+const loginBox =
+  document.getElementById("login");
 
-  element.textContent = text;
-
-  element.className =
-    `message ${type}`;
-
-  setTimeout(() => {
-    element.textContent = "";
-  }, 4000);
-}
+const appBox =
+  document.getElementById("app");
 
 
 // =====================================================
 // LOGIN
 // =====================================================
 
-async function checkSession() {
-  try {
-    const data =
-      await api("/api/admin/session");
+async function login() {
 
-    if (data.loggedIn) {
-      showDashboard();
+  const username =
+    document.getElementById("user")?.value
+    .trim();
+
+  const password =
+    document.getElementById("pass")?.value;
+
+
+  if (!username || !password) {
+
+    alert(
+      "Username এবং Password দিন।"
+    );
+
+    return;
+  }
+
+
+  try {
+
+    const data =
+      await api(
+        "/api/login",
+        {
+          method: "POST",
+
+          body: JSON.stringify({
+            username,
+            password
+          })
+        }
+      );
+
+
+    if (
+      data.success ||
+      data.ok
+    ) {
+
+      // Important: session cookie is now saved
+
+      showAdmin();
+
+      await loadAll();
+
     } else {
-      showLogin();
+
+      alert(
+        data.error ||
+        "Login failed"
+      );
+
     }
 
   } catch (error) {
-    console.error(error);
+
+    alert(
+      error.message ||
+      "Login failed"
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// SHOW ADMIN
+// =====================================================
+
+function showAdmin() {
+
+  if (loginBox) {
+
+    loginBox.style.display =
+      "none";
+
+  }
+
+
+  if (appBox) {
+
+    appBox.classList.remove(
+      "hidden"
+    );
+
+    appBox.style.display =
+      "block";
+
+  }
+
+}
+
+
+// =====================================================
+// SHOW LOGIN
+// =====================================================
+
+function showLogin() {
+
+  if (loginBox) {
+
+    loginBox.style.display =
+      "flex";
+
+  }
+
+
+  if (appBox) {
+
+    appBox.classList.add(
+      "hidden"
+    );
+
+    appBox.style.display =
+      "none";
+
+  }
+
+}
+
+
+// =====================================================
+// CHECK SESSION
+// =====================================================
+
+async function checkSession() {
+
+  try {
+
+    const data =
+      await api(
+        "/api/me"
+      );
+
+
+    if (data.loggedIn) {
+
+      showAdmin();
+
+      await loadAll();
+
+    } else {
+
+      showLogin();
+
+    }
+
+  } catch {
 
     showLogin();
 
-    message(
-      $("loginMessage"),
-      "Server connection পাওয়া যাচ্ছে না।",
-      "error"
-    );
   }
+
 }
-
-
-function showLogin() {
-  $("loginBox")
-    .classList.remove("hidden");
-
-  $("dashboard")
-    .classList.add("hidden");
-
-  $("logoutBtn")
-    .classList.add("hidden");
-}
-
-
-async function showDashboard() {
-  $("loginBox")
-    .classList.add("hidden");
-
-  $("dashboard")
-    .classList.remove("hidden");
-
-  $("logoutBtn")
-    .classList.remove("hidden");
-
-  await loadEverything();
-}
-
-
-// =====================================================
-// LOGIN FORM
-// =====================================================
-
-$("loginForm").addEventListener(
-  "submit",
-  async (event) => {
-
-    event.preventDefault();
-
-    const username =
-      $("username").value.trim();
-
-    const password =
-      $("password").value;
-
-    try {
-
-      const data =
-        await api(
-          "/api/admin/login",
-          {
-            method: "POST",
-
-            body: JSON.stringify({
-              username,
-              password
-            })
-          }
-        );
-
-      if (data.success) {
-        message(
-          $("loginMessage"),
-          "Login successful!",
-          "success"
-        );
-
-        await showDashboard();
-      }
-
-    } catch (error) {
-
-      message(
-        $("loginMessage"),
-        error.message,
-        "error"
-      );
-    }
-  }
-);
 
 
 // =====================================================
 // LOGOUT
 // =====================================================
 
-$("logoutBtn").addEventListener(
-  "click",
-  async () => {
+async function logout() {
 
-    try {
+  try {
 
-      await api(
-        "/api/admin/logout",
-        {
-          method: "POST"
-        }
-      );
+    await api(
+      "/api/logout",
+      {
+        method: "POST"
+      }
+    );
 
-      location.reload();
+  } catch {}
 
-    } catch (error) {
+  location.reload();
 
-      alert(error.message);
+}
+
+
+// =====================================================
+// SECTION SWITCH
+// =====================================================
+
+function show(section) {
+
+  const sections = [
+    "content",
+    "buttons",
+    "diary",
+    "projects"
+  ];
+
+
+  sections.forEach(
+    name => {
+
+      const el =
+        document.getElementById(
+          name
+        );
+
+      if (!el) return;
+
+
+      if (name === section) {
+
+        el.classList.remove(
+          "hidden"
+        );
+
+        el.style.display =
+          "block";
+
+      } else {
+
+        el.classList.add(
+          "hidden"
+        );
+
+        el.style.display =
+          "none";
+
+      }
+
     }
+  );
+
+
+  const title =
+    document.getElementById(
+      "title"
+    );
+
+
+  const titles = {
+
+    content:
+      "Site Content",
+
+    buttons:
+      "Button Manager",
+
+    diary:
+      "Diary",
+
+    projects:
+      "Projects"
+
+  };
+
+
+  if (title) {
+
+    title.textContent =
+      titles[section] ||
+      "Admin Panel";
+
   }
-);
+
+}
 
 
 // =====================================================
 // LOAD EVERYTHING
 // =====================================================
 
-async function loadEverything() {
-
-  await Promise.all([
-    loadSite(),
-    loadDiary(),
-    loadProjects()
-  ]);
-
-  renderButtons();
-}
-
-
-// =====================================================
-// SITE
-// =====================================================
-
-async function loadSite() {
+async function loadAll() {
 
   try {
 
-    siteData =
-      await api("/api/admin/content");
+    await loadContent();
 
-    fillSiteForm();
+  } catch (e) {
+
+    handleError(e);
+
+  }
+
+
+  try {
+
+    await loadButtons();
+
+  } catch (e) {
+
+    handleError(e);
+
+  }
+
+
+  try {
+
+    await loadDiary();
+
+  } catch (e) {
+
+    handleError(e);
+
+  }
+
+
+  try {
+
+    await loadProjects();
+
+  } catch (e) {
+
+    handleError(e);
+
+  }
+
+}
+
+
+// =====================================================
+// ERROR HANDLER
+// =====================================================
+
+function handleError(error) {
+
+  if (
+    error.message ===
+    "SESSION_EXPIRED"
+  ) {
+
+    alert(
+      "Login session শেষ হয়েছে। আবার Login করুন।"
+    );
+
+    showLogin();
+
+    return;
+
+  }
+
+  console.error(error);
+
+}
+
+
+// =====================================================
+// CONTENT
+// =====================================================
+
+async function loadContent() {
+
+  const data =
+    await api(
+      "/api/admin/content"
+    );
+
+
+  const box =
+    document.getElementById(
+      "content"
+    );
+
+
+  if (!box) return;
+
+
+  box.innerHTML = `
+
+    <div class="panel">
+
+      <h2>⚙️ Site Information</h2>
+
+      <p class="muted">
+        এখান থেকে website-এর সব basic information edit করুন।
+      </p>
+
+
+      ${input(
+        "name",
+        "নাম",
+        data.name
+      )}
+
+      ${input(
+        "tagline",
+        "Tagline",
+        data.tagline
+      )}
+
+      ${input(
+        "college",
+        "কলেজ",
+        data.college
+      )}
+
+      ${input(
+        "education",
+        "শিক্ষা",
+        data.education
+      )}
+
+      ${input(
+        "profile",
+        "Profile Photo",
+        data.profile
+      )}
+
+      ${textarea(
+        "intro",
+        "Intro",
+        data.intro
+      )}
+
+      ${textarea(
+        "about",
+        "আমার সম্পর্কে",
+        data.about
+      )}
+
+      <h3>🔗 Social Links</h3>
+
+      ${input(
+        "facebook",
+        "Facebook",
+        data.facebook
+      )}
+
+      ${input(
+        "instagram",
+        "Instagram",
+        data.instagram
+      )}
+
+      ${input(
+        "whatsapp",
+        "WhatsApp",
+        data.whatsapp
+      )}
+
+      ${input(
+        "github",
+        "GitHub",
+        data.github
+      )}
+
+      ${input(
+        "gmail",
+        "Gmail",
+        data.gmail
+      )}
+
+      ${input(
+        "phone",
+        "Phone",
+        data.phone
+      )}
+
+
+      <button
+        class="primary-btn"
+        onclick="saveContent()"
+      >
+        💾 Save Information
+      </button>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// INPUT
+// =====================================================
+
+function input(
+  id,
+  label,
+  value = ""
+) {
+
+  return `
+
+    <label>
+      ${label}
+
+      <input
+        id="content_${id}"
+        value="${escapeAttr(value)}"
+        placeholder="${label}"
+      >
+
+    </label>
+
+  `;
+
+}
+
+
+// =====================================================
+// TEXTAREA
+// =====================================================
+
+function textarea(
+  id,
+  label,
+  value = ""
+) {
+
+  return `
+
+    <label>
+      ${label}
+
+      <textarea
+        id="content_${id}"
+        rows="5"
+        placeholder="${label}"
+      >${escapeHtml(value)}</textarea>
+
+    </label>
+
+  `;
+
+}
+
+
+// =====================================================
+// SAVE CONTENT
+// =====================================================
+
+async function saveContent() {
+
+  const fields = [
+
+    "name",
+    "tagline",
+    "college",
+    "education",
+    "profile",
+    "intro",
+    "about",
+    "facebook",
+    "instagram",
+    "whatsapp",
+    "github",
+    "gmail",
+    "phone"
+
+  ];
+
+
+  const data = {};
+
+
+  fields.forEach(
+    key => {
+
+      const el =
+        document.getElementById(
+          "content_" + key
+        );
+
+      if (el) {
+
+        data[key] =
+          el.value;
+
+      }
+
+    }
+  );
+
+
+  try {
+
+    await api(
+      "/api/admin/content",
+      {
+        method: "PUT",
+
+        body:
+          JSON.stringify(data)
+      }
+    );
+
+
+    alert(
+      "✅ Information saved!"
+    );
 
   } catch (error) {
 
-    console.error(
-      "SITE ERROR:",
-      error
-    );
+    handleError(error);
 
-    message(
-      $("siteMessage"),
-      error.message,
-      "error"
-    );
   }
-}
 
-
-function fillSiteForm() {
-
-  $("siteName").value =
-    siteData.name || "";
-
-  $("siteTagline").value =
-    siteData.tagline || "";
-
-  $("siteCollege").value =
-    siteData.college || "";
-
-  $("siteEducation").value =
-    siteData.education || "";
-
-  $("sitePhoto").value =
-    siteData.photo || "";
-
-  $("siteAbout").value =
-    siteData.about || "";
-
-  $("siteSkills").value =
-    Array.isArray(siteData.skills)
-      ? siteData.skills.join("\n")
-      : "";
-
-  const social =
-    siteData.social || {};
-
-  $("facebook").value =
-    social.facebook || "";
-
-  $("instagram").value =
-    social.instagram || "";
-
-  $("whatsapp").value =
-    social.whatsapp || "";
-
-  $("github").value =
-    social.github || "";
-
-  $("email").value =
-    social.email || "";
 }
 
 
 // =====================================================
-// SAVE SITE
+// BUTTONS
 // =====================================================
 
-$("siteForm").addEventListener(
-  "submit",
-  async (event) => {
-
-    event.preventDefault();
-
-    const updated = {
-
-      ...siteData,
-
-      name:
-        $("siteName").value.trim(),
-
-      tagline:
-        $("siteTagline").value.trim(),
-
-      college:
-        $("siteCollege").value.trim(),
-
-      education:
-        $("siteEducation").value.trim(),
-
-      photo:
-        $("sitePhoto").value.trim(),
-
-      about:
-        $("siteAbout").value.trim(),
-
-      skills:
-        $("siteSkills")
-          .value
-          .split("\n")
-          .map(x => x.trim())
-          .filter(Boolean),
-
-      social: {
-
-        ...(siteData.social || {}),
-
-        facebook:
-          $("facebook").value.trim(),
-
-        instagram:
-          $("instagram").value.trim(),
-
-        whatsapp:
-          $("whatsapp").value.trim(),
-
-        github:
-          $("github").value.trim(),
-
-        email:
-          $("email").value.trim()
-      }
-    };
-
-    try {
-
-      const result =
-        await api(
-          "/api/admin/content",
-          {
-            method: "PUT",
-
-            body:
-              JSON.stringify(updated)
-          }
-        );
-
-      siteData =
-        result.data;
-
-      message(
-        $("siteMessage"),
-        "✅ সাইটের তথ্য সফলভাবে সংরক্ষণ হয়েছে।",
-        "success"
-      );
-
-    } catch (error) {
-
-      message(
-        $("siteMessage"),
-        error.message,
-        "error"
-      );
-    }
-  }
-);
-
-
-// =====================================================
-// BUTTON MANAGER
-// =====================================================
-
-function renderButtons() {
-
-  const container =
-    $("buttonsList");
-
-  container.innerHTML = "";
+async function loadButtons() {
 
   const buttons =
-    Array.isArray(siteData.buttons)
-      ? [...siteData.buttons]
-      : [];
+    await api(
+      "/api/admin/buttons"
+    );
 
-  buttons.sort(
-    (a, b) =>
-      Number(a.order || 0) -
-      Number(b.order || 0)
-  );
 
-  if (!buttons.length) {
+  const box =
+    document.getElementById(
+      "buttons"
+    );
 
-    container.innerHTML =
-      `<div class="item">
-        এখনো কোনো Button নেই।
-      </div>`;
 
-    return;
-  }
+  if (!box) return;
 
-  buttons.forEach(
-    (button, index) => {
 
-      const div =
-        document.createElement("div");
+  box.innerHTML = `
 
-      div.className =
-        `item ${
-          button.visible === false
-            ? "hidden-item"
-            : ""
-        }`;
+    <div class="panel">
 
-      div.innerHTML = `
-        <div class="item-head">
+      <h2>🔘 Button Manager</h2>
 
-          <div>
-            <div class="item-title">
-              ${escapeHtml(button.label || "Untitled")}
-            </div>
+      <p class="muted">
+        Button Edit / Add / Delete / Show / Hide / Order
+      </p>
 
-            <div class="item-meta">
-              ${escapeHtml(button.url || "")}
-              · Order ${button.order || index + 1}
-            </div>
-          </div>
 
-          <div>
-            ${
-              button.visible === false
-                ? "🙈 Hidden"
-                : "👁️ Visible"
-            }
-          </div>
+      <button
+        class="primary-btn"
+        onclick="addButtonForm()"
+      >
+        ＋ নতুন Button
+      </button>
 
-        </div>
 
-        <div class="item-actions">
+      <div id="buttonList">
 
-          <button
-            class="small-btn edit"
-            onclick="editButton('${button.id}')"
-          >
-            ✏️ Edit
-          </button>
+        ${
+          buttons.length
+            ? buttons.map(
+                buttonCard
+              ).join("")
+            : "<p>কোনো Button নেই।</p>"
+        }
 
-          <button
-            class="small-btn toggle"
-            onclick="toggleButton('${button.id}')"
-          >
-            ${
-              button.visible === false
-                ? "👁️ Show"
-                : "🙈 Hide"
-            }
-          </button>
+      </div>
 
-          <button
-            class="small-btn delete"
-            onclick="deleteButton('${button.id}')"
-          >
-            🗑️ Delete
-          </button>
+    </div>
 
-        </div>
-      `;
+  `;
 
-      container.appendChild(div);
-    }
-  );
+}
+
+
+function buttonCard(b) {
+
+  return `
+
+    <div class="item-card">
+
+      <input
+        id="btn_label_${b.id}"
+        value="${escapeAttr(b.label)}"
+        placeholder="Button name"
+      >
+
+      <input
+        id="btn_url_${b.id}"
+        value="${escapeAttr(b.url)}"
+        placeholder="URL"
+      >
+
+      <input
+        id="btn_icon_${b.id}"
+        value="${escapeAttr(b.icon || "→")}"
+        placeholder="Icon"
+      >
+
+      <input
+        id="btn_location_${b.id}"
+        value="${escapeAttr(b.location || "home")}"
+        placeholder="Location"
+      >
+
+      <input
+        id="btn_order_${b.id}"
+        type="number"
+        value="${Number(b.sort_order) || 0}"
+        placeholder="Order"
+      >
+
+      <label class="check">
+        <input
+          id="btn_visible_${b.id}"
+          type="checkbox"
+          ${b.visible ? "checked" : ""}
+        >
+        Show
+      </label>
+
+
+      <button
+        class="primary-btn"
+        onclick="updateButton(${b.id})"
+      >
+        ✏️ Edit
+      </button>
+
+
+      <button
+        onclick="deleteButton(${b.id})"
+      >
+        🗑️ Delete
+      </button>
+
+    </div>
+
+  `;
+
 }
 
 
@@ -515,254 +810,175 @@ function renderButtons() {
 // ADD BUTTON
 // =====================================================
 
-$("addButtonBtn").addEventListener(
-  "click",
-  () => {
+async function addButtonForm() {
 
-    openModal(`
-      <div class="modal-title">
-        + নতুন বাটন
-      </div>
+  const label =
+    prompt(
+      "Button name:"
+    );
 
-      <label>
-        Button Name
-        <input id="modalButtonLabel">
-      </label>
+  if (!label) return;
 
-      <label>
-        Link / URL
-        <input
-          id="modalButtonUrl"
-          placeholder="/about.html"
-        >
-      </label>
 
-      <label>
-        Order
-        <input
-          id="modalButtonOrder"
-          type="number"
-          value="${siteData.buttons.length + 1}"
-        >
-      </label>
+  const url =
+    prompt(
+      "Button URL:"
+    );
 
-      <button
-        class="gold-btn"
-        onclick="saveNewButton()"
-      >
-        💾 Add Button
-      </button>
-    `);
+  if (!url) return;
+
+
+  const icon =
+    prompt(
+      "Icon:",
+      "→"
+    ) || "→";
+
+
+  try {
+
+    await api(
+      "/api/admin/buttons",
+      {
+        method: "POST",
+
+        body:
+          JSON.stringify({
+
+            label,
+
+            url,
+
+            icon,
+
+            location: "home",
+
+            visible: true,
+
+            sort_order: 0
+
+          })
+      }
+    );
+
+
+    await loadButtons();
+
+    alert(
+      "✅ Button added!"
+    );
+
+  } catch (error) {
+
+    handleError(error);
+
   }
-);
+
+}
 
 
-window.saveNewButton =
-  async function () {
+// =====================================================
+// UPDATE BUTTON
+// =====================================================
 
-    const label =
-      $("modalButtonLabel")
-        .value
-        .trim();
+async function updateButton(id) {
 
-    const url =
-      $("modalButtonUrl")
-        .value
-        .trim();
+  const data = {
 
-    const order =
+    label:
+      document.getElementById(
+        `btn_label_${id}`
+      ).value,
+
+    url:
+      document.getElementById(
+        `btn_url_${id}`
+      ).value,
+
+    icon:
+      document.getElementById(
+        `btn_icon_${id}`
+      ).value,
+
+    location:
+      document.getElementById(
+        `btn_location_${id}`
+      ).value,
+
+    sort_order:
       Number(
-        $("modalButtonOrder")
-          .value || 1
-      );
+        document.getElementById(
+          `btn_order_${id}`
+        ).value
+      ) || 0,
 
-    if (!label) {
-      alert("Button name দিন");
-      return;
-    }
+    visible:
+      document.getElementById(
+        `btn_visible_${id}`
+      ).checked
 
-    const button = {
-      id:
-        "btn-" +
-        Date.now(),
-
-      label,
-      url,
-
-      visible: true,
-
-      order
-    };
-
-    siteData.buttons =
-      Array.isArray(siteData.buttons)
-        ? siteData.buttons
-        : [];
-
-    siteData.buttons.push(button);
-
-    await saveButtons();
-
-    closeModal();
   };
 
 
-// =====================================================
-// EDIT BUTTON
-// =====================================================
+  try {
 
-window.editButton =
-  function (id) {
+    await api(
+      `/api/admin/buttons/${id}`,
+      {
+        method: "PUT",
 
-    const button =
-      siteData.buttons.find(
-        x => x.id === id
-      );
-
-    if (!button) return;
-
-    openModal(`
-      <div class="modal-title">
-        ✏️ Button Edit
-      </div>
-
-      <label>
-        Button Name
-        <input
-          id="modalButtonLabel"
-          value="${escapeAttr(button.label || "")}"
-        >
-      </label>
-
-      <label>
-        Link / URL
-        <input
-          id="modalButtonUrl"
-          value="${escapeAttr(button.url || "")}"
-        >
-      </label>
-
-      <label>
-        Order
-        <input
-          id="modalButtonOrder"
-          type="number"
-          value="${button.order || 1}"
-        >
-      </label>
-
-      <button
-        class="gold-btn"
-        onclick="updateButton('${id}')"
-      >
-        💾 Save Changes
-      </button>
-    `);
-  };
+        body:
+          JSON.stringify(data)
+      }
+    );
 
 
-window.updateButton =
-  async function (id) {
+    alert(
+      "✅ Button updated!"
+    );
 
-    const button =
-      siteData.buttons.find(
-        x => x.id === id
-      );
+    await loadButtons();
 
-    if (!button) return;
+  } catch (error) {
 
-    button.label =
-      $("modalButtonLabel")
-        .value
-        .trim();
+    handleError(error);
 
-    button.url =
-      $("modalButtonUrl")
-        .value
-        .trim();
+  }
 
-    button.order =
-      Number(
-        $("modalButtonOrder")
-          .value || 1
-      );
-
-    await saveButtons();
-
-    closeModal();
-  };
-
-
-// =====================================================
-// TOGGLE BUTTON
-// =====================================================
-
-window.toggleButton =
-  async function (id) {
-
-    const button =
-      siteData.buttons.find(
-        x => x.id === id
-      );
-
-    if (!button) return;
-
-    button.visible =
-      button.visible === false;
-
-    await saveButtons();
-  };
+}
 
 
 // =====================================================
 // DELETE BUTTON
 // =====================================================
 
-window.deleteButton =
-  async function (id) {
+async function deleteButton(id) {
 
-    if (
-      !confirm(
-        "এই Button টি Delete করবেন?"
-      )
-    ) return;
+  if (
+    !confirm(
+      "এই Button delete করবেন?"
+    )
+  ) return;
 
-    siteData.buttons =
-      siteData.buttons.filter(
-        x => x.id !== id
-      );
-
-    await saveButtons();
-  };
-
-
-async function saveButtons() {
 
   try {
 
-    const result =
-      await api(
-        "/api/admin/content",
-        {
-          method: "PUT",
+    await api(
+      `/api/admin/buttons/${id}`,
+      {
+        method: "DELETE"
+      }
+    );
 
-          body:
-            JSON.stringify({
-              buttons:
-                siteData.buttons
-            })
-        }
-      );
 
-    siteData =
-      result.data;
-
-    renderButtons();
+    await loadButtons();
 
   } catch (error) {
 
-    alert(error.message);
+    handleError(error);
+
   }
+
 }
 
 
@@ -772,136 +988,133 @@ async function saveButtons() {
 
 async function loadDiary() {
 
-  try {
-
-    const data =
-      await api(
-        "/api/admin/diary"
-      );
-
-    diaryItems =
-      data.items || [];
-
-    renderDiary();
-
-  } catch (error) {
-
-    console.error(
-      "DIARY ERROR:",
-      error
+  const diary =
+    await api(
+      "/api/admin/diary"
     );
 
-    $("diaryList").innerHTML =
-      `
-      <div class="item">
-        <div class="item-title">
-          ❌ Diary Load Error
-        </div>
 
-        <div class="item-content">
-          ${escapeHtml(error.message)}
-        </div>
+  const box =
+    document.getElementById(
+      "diary"
+    );
+
+
+  if (!box) return;
+
+
+  box.innerHTML = `
+
+    <div class="panel">
+
+      <h2>📖 Diary Manager</h2>
+
+      <p class="muted">
+        নতুন chapter add করুন অথবা পুরোনো chapter edit করুন।
+      </p>
+
+
+      <button
+        class="primary-btn"
+        onclick="addDiary()"
+      >
+        ＋ নতুন অধ্যায়
+      </button>
+
+
+      <div>
+
+        ${
+          diary.length
+            ? diary.map(
+                diaryCard
+              ).join("")
+            : "<p>এখনো কোনো diary নেই।</p>"
+        }
+
       </div>
-      `;
-  }
+
+    </div>
+
+  `;
+
 }
 
 
-function renderDiary() {
+function diaryCard(d) {
 
-  const container =
-    $("diaryList");
+  return `
 
-  container.innerHTML = "";
+    <div class="item-card">
 
-  if (!diaryItems.length) {
+      <input
+        id="diary_chapter_${d.id}"
+        value="${escapeAttr(d.chapter)}"
+        placeholder="Chapter"
+      >
 
-    container.innerHTML =
-      `
-      <div class="item">
-        এখনো কোনো Diary নেই।
-      </div>
-      `;
+      <input
+        id="diary_title_${d.id}"
+        value="${escapeAttr(d.title)}"
+        placeholder="Title"
+      >
 
-    return;
-  }
+      <input
+        id="diary_excerpt_${d.id}"
+        value="${escapeAttr(d.excerpt || "")}"
+        placeholder="Short description"
+      >
 
-  diaryItems.forEach(
-    item => {
+      <textarea
+        id="diary_body_${d.id}"
+        rows="6"
+        placeholder="Diary content"
+      >${escapeHtml(d.body || "")}</textarea>
 
-      const div =
-        document.createElement("div");
+      <input
+        id="diary_date_${d.id}"
+        value="${escapeAttr(d.date_text || "")}"
+        placeholder="Date"
+      >
 
-      div.className =
-        `item ${
-          item.visible === false
-            ? "hidden-item"
-            : ""
-        }`;
+      <input
+        id="diary_order_${d.id}"
+        type="number"
+        value="${Number(d.sort_order) || 0}"
+        placeholder="Order"
+      >
 
-      div.innerHTML = `
+      <label class="check">
 
-        <div class="item-head">
+        <input
+          id="diary_visible_${d.id}"
+          type="checkbox"
+          ${d.visible ? "checked" : ""}
+        >
 
-          <div>
+        Show
 
-            <div class="item-title">
-              ${escapeHtml(item.title)}
-            </div>
+      </label>
 
-            <div class="item-meta">
-              ${escapeHtml(item.date || "")}
-            </div>
 
-          </div>
+      <button
+        class="primary-btn"
+        onclick="updateDiary(${d.id})"
+      >
+        ✏️ Edit
+      </button>
 
-          <div>
-            ${
-              item.visible === false
-                ? "🙈 Hidden"
-                : "👁️ Visible"
-            }
-          </div>
 
-        </div>
+      <button
+        onclick="deleteDiary(${d.id})"
+      >
+        🗑️ Delete
+      </button>
 
-        <div class="item-content">
-          ${escapeHtml(item.content)}
-        </div>
+    </div>
 
-        <div class="item-actions">
+  `;
 
-          <button
-            class="small-btn edit"
-            onclick="editDiary(${item.id})"
-          >
-            ✏️ Edit
-          </button>
-
-          <button
-            class="small-btn toggle"
-            onclick="toggleDiary(${item.id})"
-          >
-            ${
-              item.visible === false
-                ? "👁️ Show"
-                : "🙈 Hide"
-            }
-          </button>
-
-          <button
-            class="small-btn delete"
-            onclick="deleteDiary(${item.id})"
-          >
-            🗑️ Delete
-          </button>
-
-        </div>
-      `;
-
-      container.appendChild(div);
-    }
-  );
 }
 
 
@@ -909,280 +1122,186 @@ function renderDiary() {
 // ADD DIARY
 // =====================================================
 
-$("addDiaryBtn").addEventListener(
-  "click",
-  () => {
+async function addDiary() {
 
-    openModal(`
+  const chapter =
+    prompt(
+      "Chapter name:",
+      "CHAPTER 01"
+    );
 
-      <div class="modal-title">
-        + নতুন ডায়েরি অধ্যায়
-      </div>
+  if (!chapter) return;
 
-      <label>
-        অধ্যায়ের নাম
-        <input id="modalDiaryTitle">
-      </label>
 
-      <label>
-        তারিখ
-        <input
-          id="modalDiaryDate"
-          type="date"
-        >
-      </label>
+  const title =
+    prompt(
+      "Diary title:"
+    );
 
-      <label>
-        বিস্তারিত লেখা
-        <textarea
-          id="modalDiaryContent"
-          rows="8"
-        ></textarea>
-      </label>
+  if (!title) return;
 
-      <button
-        class="gold-btn"
-        onclick="saveNewDiary()"
-      >
-        💾 অধ্যায় যোগ করুন
-      </button>
 
-    `);
+  const body =
+    prompt(
+      "Diary content:"
+    ) || "";
+
+
+  try {
+
+    await api(
+      "/api/admin/diary",
+      {
+        method: "POST",
+
+        body:
+          JSON.stringify({
+
+            chapter,
+
+            title,
+
+            excerpt: "",
+
+            body,
+
+            date_text:
+              new Date()
+                .getFullYear()
+                .toString(),
+
+            visible: true,
+
+            sort_order: 0
+
+          })
+      }
+    );
+
+
+    await loadDiary();
+
+    alert(
+      "✅ Diary added!"
+    );
+
+  } catch (error) {
+
+    handleError(error);
+
   }
-);
 
-
-window.saveNewDiary =
-  async function () {
-
-    const title =
-      $("modalDiaryTitle")
-        .value
-        .trim();
-
-    const date =
-      $("modalDiaryDate")
-        .value;
-
-    const content =
-      $("modalDiaryContent")
-        .value
-        .trim();
-
-    if (!title || !content) {
-      alert(
-        "অধ্যায়ের নাম ও লেখা দিতে হবে"
-      );
-      return;
-    }
-
-    try {
-
-      await api(
-        "/api/admin/diary",
-        {
-          method: "POST",
-
-          body:
-            JSON.stringify({
-              title,
-              content,
-              date,
-              visible: true
-            })
-        }
-      );
-
-      closeModal();
-
-      await loadDiary();
-
-    } catch (error) {
-
-      alert(error.message);
-    }
-  };
+}
 
 
 // =====================================================
-// EDIT DIARY
+// UPDATE DIARY
 // =====================================================
 
-window.editDiary =
-  function (id) {
+async function updateDiary(id) {
 
-    const item =
-      diaryItems.find(
-        x => x.id === id
-      );
+  const data = {
 
-    if (!item) return;
+    chapter:
+      document.getElementById(
+        `diary_chapter_${id}`
+      ).value,
 
-    openModal(`
+    title:
+      document.getElementById(
+        `diary_title_${id}`
+      ).value,
 
-      <div class="modal-title">
-        ✏️ Diary Edit
-      </div>
+    excerpt:
+      document.getElementById(
+        `diary_excerpt_${id}`
+      ).value,
 
-      <label>
-        অধ্যায়ের নাম
-        <input
-          id="modalDiaryTitle"
-          value="${escapeAttr(item.title)}"
-        >
-      </label>
+    body:
+      document.getElementById(
+        `diary_body_${id}`
+      ).value,
 
-      <label>
-        তারিখ
-        <input
-          id="modalDiaryDate"
-          value="${escapeAttr(item.date || "")}"
-          type="date"
-        >
-      </label>
+    date_text:
+      document.getElementById(
+        `diary_date_${id}`
+      ).value,
 
-      <label>
-        বিস্তারিত লেখা
-        <textarea
-          id="modalDiaryContent"
-          rows="9"
-        >${escapeHtml(item.content)}</textarea>
-      </label>
+    sort_order:
+      Number(
+        document.getElementById(
+          `diary_order_${id}`
+        ).value
+      ) || 0,
 
-      <button
-        class="gold-btn"
-        onclick="updateDiary(${id})"
-      >
-        💾 Save Changes
-      </button>
+    visible:
+      document.getElementById(
+        `diary_visible_${id}`
+      ).checked
 
-    `);
   };
 
 
-window.updateDiary =
-  async function (id) {
+  try {
 
-    const item =
-      diaryItems.find(
-        x => x.id === id
-      );
+    await api(
+      `/api/admin/diary/${id}`,
+      {
+        method: "PUT",
 
-    if (!item) return;
-
-    const title =
-      $("modalDiaryTitle")
-        .value
-        .trim();
-
-    const date =
-      $("modalDiaryDate")
-        .value;
-
-    const content =
-      $("modalDiaryContent")
-        .value
-        .trim();
-
-    try {
-
-      await api(
-        `/api/admin/diary/${id}`,
-        {
-          method: "PUT",
-
-          body:
-            JSON.stringify({
-              title,
-              content,
-              date,
-              visible:
-                item.visible !== false
-            })
-        }
-      );
-
-      closeModal();
-
-      await loadDiary();
-
-    } catch (error) {
-
-      alert(error.message);
-    }
-  };
+        body:
+          JSON.stringify(data)
+      }
+    );
 
 
-// =====================================================
-// TOGGLE DIARY
-// =====================================================
+    alert(
+      "✅ Diary updated!"
+    );
 
-window.toggleDiary =
-  async function (id) {
+    await loadDiary();
 
-    const item =
-      diaryItems.find(
-        x => x.id === id
-      );
+  } catch (error) {
 
-    if (!item) return;
+    handleError(error);
 
-    try {
+  }
 
-      await api(
-        `/api/admin/diary/${id}`,
-        {
-          method: "PUT",
-
-          body:
-            JSON.stringify({
-              title: item.title,
-              content: item.content,
-              date: item.date || "",
-              visible:
-                item.visible === false
-            })
-        }
-      );
-
-      await loadDiary();
-
-    } catch (error) {
-
-      alert(error.message);
-    }
-  };
+}
 
 
 // =====================================================
 // DELETE DIARY
 // =====================================================
 
-window.deleteDiary =
-  async function (id) {
+async function deleteDiary(id) {
 
-    if (
-      !confirm(
-        "এই Diary chapter টি Delete করবেন?"
-      )
-    ) return;
+  if (
+    !confirm(
+      "এই Diary delete করবেন?"
+    )
+  ) return;
 
-    try {
 
-      await api(
-        `/api/admin/diary/${id}`,
-        {
-          method: "DELETE"
-        }
-      );
+  try {
 
-      await loadDiary();
+    await api(
+      `/api/admin/diary/${id}`,
+      {
+        method: "DELETE"
+      }
+    );
 
-    } catch (error) {
 
-      alert(error.message);
-    }
-  };
+    await loadDiary();
+
+  } catch (error) {
+
+    handleError(error);
+
+  }
+
+}
 
 
 // =====================================================
@@ -1191,137 +1310,127 @@ window.deleteDiary =
 
 async function loadProjects() {
 
-  try {
-
-    const data =
-      await api(
-        "/api/admin/projects"
-      );
-
-    projectItems =
-      data.items || [];
-
-    renderProjects();
-
-  } catch (error) {
-
-    console.error(
-      "PROJECT ERROR:",
-      error
+  const projects =
+    await api(
+      "/api/admin/projects"
     );
 
-    $("projectsList").innerHTML =
-      `
-      <div class="item">
-        <div class="item-title">
-          ❌ Project Load Error
-        </div>
 
-        <div class="item-content">
-          ${escapeHtml(error.message)}
-        </div>
+  const box =
+    document.getElementById(
+      "projects"
+    );
+
+
+  if (!box) return;
+
+
+  box.innerHTML = `
+
+    <div class="panel">
+
+      <h2>🚀 Project Manager</h2>
+
+      <p class="muted">
+        Project Add / Edit / Delete / Show / Hide / Order
+      </p>
+
+
+      <button
+        class="primary-btn"
+        onclick="addProject()"
+      >
+        ＋ নতুন Project
+      </button>
+
+
+      <div>
+
+        ${
+          projects.length
+            ? projects.map(
+                projectCard
+              ).join("")
+            : "<p>এখনো কোনো project নেই।</p>"
+        }
+
       </div>
-      `;
-  }
+
+    </div>
+
+  `;
+
 }
 
 
-function renderProjects() {
+function projectCard(p) {
 
-  const container =
-    $("projectsList");
+  return `
 
-  container.innerHTML = "";
+    <div class="item-card">
 
-  if (!projectItems.length) {
+      <input
+        id="project_title_${p.id}"
+        value="${escapeAttr(p.title)}"
+        placeholder="Project name"
+      >
 
-    container.innerHTML =
-      `
-      <div class="item">
-        এখনো কোনো Project নেই।
-      </div>
-      `;
+      <textarea
+        id="project_description_${p.id}"
+        rows="5"
+        placeholder="Description"
+      >${escapeHtml(p.description || "")}</textarea>
 
-    return;
-  }
+      <input
+        id="project_url_${p.id}"
+        value="${escapeAttr(p.url || "")}"
+        placeholder="Project link"
+      >
 
-  projectItems.forEach(
-    item => {
+      <input
+        id="project_image_${p.id}"
+        value="${escapeAttr(p.image || "")}"
+        placeholder="Image link"
+      >
 
-      const div =
-        document.createElement("div");
+      <input
+        id="project_order_${p.id}"
+        type="number"
+        value="${Number(p.sort_order) || 0}"
+        placeholder="Order"
+      >
 
-      div.className =
-        `item ${
-          item.visible === false
-            ? "hidden-item"
-            : ""
-        }`;
+      <label class="check">
 
-      div.innerHTML = `
+        <input
+          id="project_visible_${p.id}"
+          type="checkbox"
+          ${p.visible ? "checked" : ""}
+        >
 
-        <div class="item-head">
+        Show
 
-          <div>
+      </label>
 
-            <div class="item-title">
-              ${escapeHtml(item.title)}
-            </div>
 
-            <div class="item-meta">
-              Order: ${item.sort_order || 0}
-            </div>
+      <button
+        class="primary-btn"
+        onclick="updateProject(${p.id})"
+      >
+        ✏️ Edit
+      </button>
 
-          </div>
 
-          <div>
-            ${
-              item.visible === false
-                ? "🙈 Hidden"
-                : "👁️ Visible"
-            }
-          </div>
+      <button
+        onclick="deleteProject(${p.id})"
+      >
+        🗑️ Delete
+      </button>
 
-        </div>
+    </div>
 
-        <div class="item-content">
-          ${escapeHtml(item.description || "")}
-        </div>
+  `;
 
-        <div class="item-actions">
-
-          <button
-            class="small-btn edit"
-            onclick="editProject(${item.id})"
-          >
-            ✏️ Edit
-          </button>
-
-          <button
-            class="small-btn toggle"
-            onclick="toggleProject(${item.id})"
-          >
-            ${
-              item.visible === false
-                ? "👁️ Show"
-                : "🙈 Hide"
-            }
-          </button>
-
-          <button
-            class="small-btn delete"
-            onclick="deleteProject(${item.id})"
-          >
-            🗑️ Delete
-          </button>
-
-        </div>
-
-      `;
-
-      container.appendChild(div);
-    }
-  );
 }
 
 
@@ -1329,461 +1438,238 @@ function renderProjects() {
 // ADD PROJECT
 // =====================================================
 
-$("addProjectBtn").addEventListener(
-  "click",
-  () => {
+async function addProject() {
 
-    openModal(`
+  const title =
+    prompt(
+      "Project name:"
+    );
 
-      <div class="modal-title">
-        + নতুন প্রজেক্ট
-      </div>
+  if (!title) return;
 
-      <label>
-        Project Name
-        <input id="modalProjectTitle">
-      </label>
 
-      <label>
-        Description
-        <textarea
-          id="modalProjectDescription"
-          rows="6"
-        ></textarea>
-      </label>
+  const description =
+    prompt(
+      "Project description:"
+    ) || "";
 
-      <label>
-        Project Link
-        <input
-          id="modalProjectUrl"
-          placeholder="https://..."
-        >
-      </label>
 
-      <label>
-        Image Link
-        <input
-          id="modalProjectImage"
-          placeholder="https://..."
-        >
-      </label>
+  const url =
+    prompt(
+      "Project link:"
+    ) || "";
 
-      <label>
-        Order
-        <input
-          id="modalProjectOrder"
-          type="number"
-          value="0"
-        >
-      </label>
 
-      <button
-        class="gold-btn"
-        onclick="saveNewProject()"
-      >
-        💾 Project যোগ করুন
-      </button>
+  const image =
+    prompt(
+      "Image link:"
+    ) || "";
 
-    `);
+
+  try {
+
+    await api(
+      "/api/admin/projects",
+      {
+        method: "POST",
+
+        body:
+          JSON.stringify({
+
+            title,
+
+            description,
+
+            url,
+
+            image,
+
+            visible: true,
+
+            sort_order: 0
+
+          })
+      }
+    );
+
+
+    await loadProjects();
+
+    alert(
+      "✅ Project added!"
+    );
+
+  } catch (error) {
+
+    handleError(error);
+
   }
-);
+
+}
 
 
-window.saveNewProject =
-  async function () {
+// =====================================================
+// UPDATE PROJECT
+// =====================================================
 
-    const title =
-      $("modalProjectTitle")
-        .value
-        .trim();
+async function updateProject(id) {
 
-    const description =
-      $("modalProjectDescription")
-        .value
-        .trim();
+  const data = {
 
-    const url =
-      $("modalProjectUrl")
-        .value
-        .trim();
+    title:
+      document.getElementById(
+        `project_title_${id}`
+      ).value,
 
-    const image =
-      $("modalProjectImage")
-        .value
-        .trim();
+    description:
+      document.getElementById(
+        `project_description_${id}`
+      ).value,
 
-    const sort_order =
+    url:
+      document.getElementById(
+        `project_url_${id}`
+      ).value,
+
+    image:
+      document.getElementById(
+        `project_image_${id}`
+      ).value,
+
+    sort_order:
       Number(
-        $("modalProjectOrder")
-          .value || 0
-      );
+        document.getElementById(
+          `project_order_${id}`
+        ).value
+      ) || 0,
 
-    if (!title) {
-      alert("Project name দিন");
-      return;
-    }
+    visible:
+      document.getElementById(
+        `project_visible_${id}`
+      ).checked
 
-    try {
-
-      await api(
-        "/api/admin/projects",
-        {
-          method: "POST",
-
-          body:
-            JSON.stringify({
-              title,
-              description,
-              url,
-              image,
-              sort_order,
-              visible: true
-            })
-        }
-      );
-
-      closeModal();
-
-      await loadProjects();
-
-    } catch (error) {
-
-      alert(error.message);
-    }
   };
 
 
-// =====================================================
-// EDIT PROJECT
-// =====================================================
+  try {
 
-window.editProject =
-  function (id) {
+    await api(
+      `/api/admin/projects/${id}`,
+      {
+        method: "PUT",
 
-    const item =
-      projectItems.find(
-        x => x.id === id
-      );
-
-    if (!item) return;
-
-    openModal(`
-
-      <div class="modal-title">
-        ✏️ Project Edit
-      </div>
-
-      <label>
-        Project Name
-        <input
-          id="modalProjectTitle"
-          value="${escapeAttr(item.title)}"
-        >
-      </label>
-
-      <label>
-        Description
-        <textarea
-          id="modalProjectDescription"
-          rows="7"
-        >${escapeHtml(item.description || "")}</textarea>
-      </label>
-
-      <label>
-        Project Link
-        <input
-          id="modalProjectUrl"
-          value="${escapeAttr(item.url || "")}"
-        >
-      </label>
-
-      <label>
-        Image Link
-        <input
-          id="modalProjectImage"
-          value="${escapeAttr(item.image || "")}"
-        >
-      </label>
-
-      <label>
-        Order
-        <input
-          id="modalProjectOrder"
-          type="number"
-          value="${item.sort_order || 0}"
-        >
-      </label>
-
-      <button
-        class="gold-btn"
-        onclick="updateProject(${id})"
-      >
-        💾 Save Changes
-      </button>
-
-    `);
-  };
+        body:
+          JSON.stringify(data)
+      }
+    );
 
 
-window.updateProject =
-  async function (id) {
+    alert(
+      "✅ Project updated!"
+    );
 
-    const item =
-      projectItems.find(
-        x => x.id === id
-      );
+    await loadProjects();
 
-    if (!item) return;
+  } catch (error) {
 
-    try {
+    handleError(error);
 
-      await api(
-        `/api/admin/projects/${id}`,
-        {
-          method: "PUT",
+  }
 
-          body:
-            JSON.stringify({
-
-              title:
-                $("modalProjectTitle")
-                  .value
-                  .trim(),
-
-              description:
-                $("modalProjectDescription")
-                  .value
-                  .trim(),
-
-              url:
-                $("modalProjectUrl")
-                  .value
-                  .trim(),
-
-              image:
-                $("modalProjectImage")
-                  .value
-                  .trim(),
-
-              sort_order:
-                Number(
-                  $("modalProjectOrder")
-                    .value || 0
-                ),
-
-              visible:
-                item.visible !== false
-            })
-        }
-      );
-
-      closeModal();
-
-      await loadProjects();
-
-    } catch (error) {
-
-      alert(error.message);
-    }
-  };
-
-
-// =====================================================
-// TOGGLE PROJECT
-// =====================================================
-
-window.toggleProject =
-  async function (id) {
-
-    const item =
-      projectItems.find(
-        x => x.id === id
-      );
-
-    if (!item) return;
-
-    try {
-
-      await api(
-        `/api/admin/projects/${id}`,
-        {
-          method: "PUT",
-
-          body:
-            JSON.stringify({
-
-              title: item.title,
-
-              description:
-                item.description || "",
-
-              url:
-                item.url || "",
-
-              image:
-                item.image || "",
-
-              sort_order:
-                item.sort_order || 0,
-
-              visible:
-                item.visible === false
-            })
-        }
-      );
-
-      await loadProjects();
-
-    } catch (error) {
-
-      alert(error.message);
-    }
-  };
+}
 
 
 // =====================================================
 // DELETE PROJECT
 // =====================================================
 
-window.deleteProject =
-  async function (id) {
+async function deleteProject(id) {
 
-    if (
-      !confirm(
-        "এই Project টি Delete করবেন?"
-      )
-    ) return;
-
-    try {
-
-      await api(
-        `/api/admin/projects/${id}`,
-        {
-          method: "DELETE"
-        }
-      );
-
-      await loadProjects();
-
-    } catch (error) {
-
-      alert(error.message);
-    }
-  };
+  if (
+    !confirm(
+      "এই Project delete করবেন?"
+    )
+  ) return;
 
 
-// =====================================================
-// TABS
-// =====================================================
+  try {
 
-document
-  .querySelectorAll(".tab")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      () => {
-
-        document
-          .querySelectorAll(".tab")
-          .forEach(
-            x =>
-              x.classList.remove(
-                "active"
-              )
-          );
-
-        button.classList.add("active");
-
-        document
-          .querySelectorAll(
-            '[id^="section-"]'
-          )
-          .forEach(
-            x =>
-              x.classList.add("hidden")
-          );
-
-        const section =
-          button.dataset.section;
-
-        $(
-          `section-${section}`
-        )
-          .classList
-          .remove("hidden");
+    await api(
+      `/api/admin/projects/${id}`,
+      {
+        method: "DELETE"
       }
     );
-  });
 
 
-// =====================================================
-// MODAL
-// =====================================================
+    await loadProjects();
 
-function openModal(html) {
+  } catch (error) {
 
-  $("modalContent").innerHTML =
-    html;
+    handleError(error);
 
-  $("modal")
-    .classList
-    .remove("hidden");
+  }
+
 }
 
 
-function closeModal() {
-
-  $("modal")
-    .classList
-    .add("hidden");
-}
-
-
-$("closeModal")
-  .addEventListener(
-    "click",
-    closeModal
-  );
-
-
-$("modal")
-  .addEventListener(
-    "click",
-    event => {
-
-      if (
-        event.target ===
-        $("modal")
-      ) {
-        closeModal();
-      }
-    }
-  );
-
-
 // =====================================================
-// ESCAPE HTML
+// SECURITY HELPERS
 // =====================================================
 
 function escapeHtml(value) {
 
-  return String(value ?? "")
+  return String(
+    value ?? ""
+  )
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+
 }
 
 
 function escapeAttr(value) {
+
   return escapeHtml(value);
+
 }
+
+
+// =====================================================
+// ENTER KEY LOGIN
+// =====================================================
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key === "Enter" &&
+      document.activeElement?.id === "pass"
+    ) {
+
+      login();
+
+    }
+
+  }
+);
 
 
 // =====================================================
 // START
 // =====================================================
 
-checkSession();
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    showLogin();
+
+    checkSession();
+
+  }
+);
