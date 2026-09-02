@@ -1,489 +1,1102 @@
-const loginBox =
-document.getElementById("loginBox");
+/* =========================================================
+   PROSENJIT RAY — ADMIN PANEL
+========================================================= */
 
-const dashboard =
-document.getElementById("dashboard");
+let diaryData = [];
+let projectData = [];
+let buttonData = [];
 
-const loginForm =
-document.getElementById("loginForm");
 
-const loginMessage =
-document.getElementById("loginMessage");
+/* =========================================================
+   ELEMENTS
+========================================================= */
 
+const loginSection =
+  document.getElementById("loginSection");
+
+const adminApp =
+  document.getElementById("adminApp");
+
+const loginBtn =
+  document.getElementById("loginBtn");
+
+const logoutBtn =
+  document.getElementById("logoutBtn");
+
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+loginBtn.addEventListener("click", async () => {
+
+  const username =
+    document.getElementById("username").value.trim();
+
+  const password =
+    document.getElementById("password").value;
+
+  const message =
+    document.getElementById("loginMessage");
+
+  if(!username || !password){
+
+    message.textContent =
+      "ইউজারনেম ও পাসওয়ার্ড দিন।";
+
+    return;
+  }
+
+  loginBtn.disabled = true;
+  loginBtn.textContent = "লগইন হচ্ছে...";
+
+  try{
+
+    const response = await fetch(
+      "/api/admin/login",
+      {
+        method:"POST",
+
+        headers:{
+          "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+          username,
+          password
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if(!response.ok){
+
+      message.textContent =
+        data.error || "লগইন ব্যর্থ হয়েছে।";
+
+      return;
+    }
+
+    showAdmin();
+
+  }catch(error){
+
+    message.textContent =
+      "সার্ভারের সাথে যোগাযোগ করা যাচ্ছে না।";
+
+  }finally{
+
+    loginBtn.disabled = false;
+    loginBtn.textContent = "লগইন করুন";
+
+  }
+
+});
+
+
+/* ENTER KEY LOGIN */
+
+document
+  .getElementById("password")
+  .addEventListener("keydown", e => {
+
+    if(e.key === "Enter"){
+      loginBtn.click();
+    }
+
+  });
+
+
+/* =========================================================
+   SHOW ADMIN
+========================================================= */
+
+async function showAdmin(){
+
+  loginSection.style.display = "none";
+
+  adminApp.style.display = "block";
+
+  await Promise.all([
+    loadContent(),
+    loadButtons(),
+    loadDiary(),
+    loadProjects()
+  ]);
+
+}
+
+
+/* =========================================================
+   CHECK LOGIN
+========================================================= */
 
 async function checkLogin(){
 
-try{
+  try{
 
-const res =
-await fetch("/api/admin/content");
+    const response =
+      await fetch("/api/admin/content");
 
-if(res.ok){
+    if(response.ok){
 
-showDashboard();
+      showAdmin();
 
-loadContent();
-loadDiary();
-loadProjects();
+    }
 
-}
+  }catch(error){
 
-}catch(e){}
+    console.log(error);
 
-}
-
-
-function showDashboard(){
-
-loginBox.classList.add("hidden");
-dashboard.classList.remove("hidden");
+  }
 
 }
 
+checkLogin();
 
-loginForm.addEventListener("submit",async e=>{
 
-e.preventDefault();
+/* =========================================================
+   LOGOUT
+========================================================= */
 
-loginMessage.textContent="প্রবেশ করা হচ্ছে...";
+logoutBtn.addEventListener("click", async () => {
 
-try{
+  try{
 
-const res=await fetch("/api/admin/login",{
+    await fetch(
+      "/api/admin/logout",
+      {
+        method:"POST"
+      }
+    );
 
-method:"POST",
+  }catch(error){}
 
-headers:{
-"Content-Type":"application/json"
-},
-
-body:JSON.stringify({
-
-username:
-document.getElementById("username").value,
-
-password:
-document.getElementById("password").value
-
-})
+  location.reload();
 
 });
 
-const data=await res.json();
 
-if(!res.ok){
-
-loginMessage.textContent=
-data.error || "লগইন ব্যর্থ হয়েছে।";
-
-return;
-
-}
-
-showDashboard();
-
-loadContent();
-loadDiary();
-loadProjects();
-
-}catch(err){
-
-loginMessage.textContent=
-"সার্ভারের সাথে যোগাযোগ করা যাচ্ছে না।";
-
-}
-
-});
-
+/* =========================================================
+   SITE CONTENT
+========================================================= */
 
 async function loadContent(){
 
-try{
+  try{
 
-const res=
-await fetch("/api/admin/content");
+    const response =
+      await fetch("/api/admin/content");
 
-if(!res.ok)return;
+    if(!response.ok) return;
 
-const data=
-await res.json();
+    const data =
+      await response.json();
 
-document.getElementById("siteName").value=
-data.name || "";
+    setValue("content_name", data.name);
+    setValue("content_tagline", data.tagline);
+    setValue("content_college", data.college);
+    setValue("content_education", data.education);
+    setValue("content_photo", data.photo);
+    setValue("content_about", data.about);
+    setValue(
+      "content_skills",
+      Array.isArray(data.skills)
+        ? data.skills.join(", ")
+        : data.skills
+    );
 
-document.getElementById("tagline").value=
-data.tagline || "";
+  }catch(error){
 
-document.getElementById("college").value=
-data.college || "";
+    console.log("Content load error:",error);
 
-document.getElementById("education").value=
-data.education || "";
+  }
 
-document.getElementById("photo").value=
-data.photo || "";
+}
 
-document.getElementById("about").value=
-data.about || "";
 
-}catch(e){}
+function setValue(id,value){
+
+  const el =
+    document.getElementById(id);
+
+  if(el){
+
+    el.value =
+      value ?? "";
+
+  }
 
 }
 
 
-document
-.getElementById("saveContent")
-.addEventListener("click",async()=>{
+/* =========================================================
+   SAVE CONTENT
+========================================================= */
 
-const message=
-document.getElementById("saveMessage");
+async function saveContent(){
 
-message.textContent=
-"সংরক্ষণ করা হচ্ছে...";
+  const data = {
 
-const content={
+    name:
+      getValue("content_name"),
 
-name:
-document.getElementById("siteName").value,
+    tagline:
+      getValue("content_tagline"),
 
-tagline:
-document.getElementById("tagline").value,
+    college:
+      getValue("content_college"),
 
-college:
-document.getElementById("college").value,
+    education:
+      getValue("content_education"),
 
-education:
-document.getElementById("education").value,
+    photo:
+      getValue("content_photo"),
 
-photo:
-document.getElementById("photo").value,
+    about:
+      getValue("content_about"),
 
-about:
-document.getElementById("about").value
+    skills:
+      getValue("content_skills")
+        .split(",")
+        .map(x => x.trim())
+        .filter(Boolean)
 
-};
+  };
 
-try{
+  try{
 
-const res=
-await fetch("/api/admin/content",{
+    const response =
+      await fetch(
+        "/api/admin/content",
+        {
+          method:"PUT",
 
-method:"PUT",
+          headers:{
+            "Content-Type":"application/json"
+          },
 
-headers:{
-"Content-Type":"application/json"
-},
+          body:JSON.stringify(data)
+        }
+      );
 
-body:JSON.stringify(content)
+    const result =
+      await response.json();
 
-});
+    const message =
+      document.getElementById(
+        "contentMessage"
+      );
 
-if(res.ok){
+    if(!response.ok){
 
-message.textContent=
-"✓ তথ্য সফলভাবে সংরক্ষণ হয়েছে।";
+      message.textContent =
+        result.error ||
+        "তথ্য সংরক্ষণ করা যায়নি।";
 
-}else{
+      return;
+    }
 
-message.textContent=
-"তথ্য সংরক্ষণ করা যায়নি।";
+    message.textContent =
+      "✓ তথ্য সফলভাবে সংরক্ষণ হয়েছে।";
 
-}
+  }catch(error){
 
-}catch(e){
+    document.getElementById(
+      "contentMessage"
+    ).textContent =
+      "সার্ভার সমস্যা হয়েছে।";
 
-message.textContent=
-"সার্ভারের সাথে যোগাযোগ করা যাচ্ছে না।";
-
-}
-
-});
-
-
-const diaryForm=
-document.getElementById("diaryForm");
-
-
-diaryForm.addEventListener("submit",async e=>{
-
-e.preventDefault();
-
-try{
-
-const res=
-await fetch("/api/admin/diary",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json"
-},
-
-body:JSON.stringify({
-
-title:
-document.getElementById("diaryTitle").value,
-
-content:
-document.getElementById("diaryContent").value,
-
-excerpt:
-document.getElementById("diaryExcerpt").value
-
-})
-
-});
-
-if(res.ok){
-
-diaryForm.reset();
-
-loadDiary();
-
-alert("ডায়েরি যোগ হয়েছে ✓");
-
-}else{
-
-alert("ডায়েরি যোগ করা যায়নি।");
+  }
 
 }
 
-}catch(e){
 
-alert("সার্ভারের সাথে যোগাযোগ করা যাচ্ছে না।");
+function getValue(id){
+
+  const el =
+    document.getElementById(id);
+
+  return el
+    ? el.value.trim()
+    : "";
 
 }
 
-});
 
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+async function loadButtons(){
+
+  try{
+
+    const response =
+      await fetch("/api/admin/content");
+
+    if(!response.ok) return;
+
+    const data =
+      await response.json();
+
+    buttonData =
+      data.buttons || [];
+
+    renderButtons();
+
+  }catch(error){
+
+    console.log(error);
+
+  }
+
+}
+
+
+function renderButtons(){
+
+  const container =
+    document.getElementById("buttonsList");
+
+  if(!buttonData.length){
+
+    container.innerHTML =
+      `<div class="empty">
+        এখন কোনো বাটন নেই।
+      </div>`;
+
+    return;
+  }
+
+  container.innerHTML =
+    buttonData.map((item,index) => `
+
+      <div class="item">
+
+        <div class="item-info">
+
+          <h3>${escapeHtml(item.label || "বাটন")}</h3>
+
+          <p>${escapeHtml(item.link || "")}</p>
+
+        </div>
+
+        <div class="item-actions">
+
+          <button
+            class="action"
+            onclick="editButton(${index})"
+          >
+            ✏️
+          </button>
+
+          <button
+            class="action delete"
+            onclick="deleteButton(${index})"
+          >
+            🗑
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("");
+
+}
+
+
+async function addButton(){
+
+  const label =
+    document
+      .getElementById("newButtonLabel")
+      .value.trim();
+
+  const link =
+    document
+      .getElementById("newButtonLink")
+      .value.trim();
+
+  if(!label){
+
+    alert("বাটনের নাম দিন।");
+    return;
+
+  }
+
+  const updated =
+    [...buttonData,{
+      label,
+      link
+    }];
+
+  await updateButtons(updated);
+
+}
+
+
+async function editButton(index){
+
+  const item =
+    buttonData[index];
+
+  const label =
+    prompt(
+      "বাটনের নাম:",
+      item.label || ""
+    );
+
+  if(label === null) return;
+
+  const link =
+    prompt(
+      "বাটনের লিংক:",
+      item.link || ""
+    );
+
+  if(link === null) return;
+
+  buttonData[index] = {
+    ...item,
+    label,
+    link
+  };
+
+  await updateButtons(buttonData);
+
+}
+
+
+async function deleteButton(index){
+
+  if(!confirm(
+    "এই বাটনটি মুছে ফেলতে চান?"
+  )) return;
+
+  buttonData.splice(index,1);
+
+  await updateButtons(buttonData);
+
+}
+
+
+async function updateButtons(buttons){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/admin/content",
+        {
+          method:"PUT",
+
+          headers:{
+            "Content-Type":"application/json"
+          },
+
+          body:JSON.stringify({
+            buttons
+          })
+        }
+      );
+
+    if(!response.ok){
+
+      alert("বাটন পরিবর্তন করা যায়নি।");
+      return;
+
+    }
+
+    buttonData = buttons;
+
+    renderButtons();
+
+    document.getElementById(
+      "newButtonLabel"
+    ).value = "";
+
+    document.getElementById(
+      "newButtonLink"
+    ).value = "";
+
+  }catch(error){
+
+    alert("সার্ভার সমস্যা হয়েছে।");
+
+  }
+
+}
+
+
+/* =========================================================
+   DIARY
+========================================================= */
 
 async function loadDiary(){
 
-const box=
-document.getElementById("diaryList");
+  try{
 
-try{
+    const response =
+      await fetch("/api/admin/diary");
 
-const res=
-await fetch("/api/admin/diary");
+    if(!response.ok) return;
 
-if(!res.ok)return;
+    diaryData =
+      await response.json();
 
-const data=
-await res.json();
+    renderDiary();
 
-box.innerHTML="";
+  }catch(error){
 
-data.forEach(item=>{
+    console.log(error);
 
-const div=
-document.createElement("div");
+  }
 
-div.className="item";
+}
 
-div.innerHTML=`
 
-<h3>${escapeHtml(item.title)}</h3>
+function renderDiary(){
 
-<p>
-${escapeHtml(item.excerpt || "")}
-</p>
+  const container =
+    document.getElementById("diaryList");
 
-<button class="delete">
-মুছে ফেলুন
-</button>
+  if(!diaryData.length){
 
-`;
+    container.innerHTML =
+      `<div>এখন কোনো অধ্যায় নেই।</div>`;
 
-div.querySelector(".delete")
-.onclick=()=>deleteDiary(item.id);
+    return;
 
-box.appendChild(div);
+  }
 
-});
+  container.innerHTML =
+    diaryData.map((item,index) => `
 
-}catch(e){}
+      <div class="item">
+
+        <div class="item-info">
+
+          <h3>
+            ${escapeHtml(item.title || "")}
+          </h3>
+
+          <p>
+            ${escapeHtml(
+              item.short ||
+              item.description ||
+              item.text ||
+              ""
+            )}
+          </p>
+
+        </div>
+
+        <div class="item-actions">
+
+          <button
+            class="action"
+            onclick="editDiary(${index})"
+          >
+            ✏️
+          </button>
+
+          <button
+            class="action delete"
+            onclick="deleteDiary(${item.id})"
+          >
+            🗑
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("");
+
+}
+
+
+async function addDiary(){
+
+  const title =
+    document
+      .getElementById("newDiaryTitle")
+      .value.trim();
+
+  const text =
+    document
+      .getElementById("newDiaryText")
+      .value.trim();
+
+  const short =
+    document
+      .getElementById("newDiaryShort")
+      .value.trim();
+
+  if(!title || !text){
+
+    alert("অধ্যায়ের নাম ও বিস্তারিত লেখা দিন।");
+    return;
+
+  }
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/admin/diary",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":"application/json"
+          },
+
+          body:JSON.stringify({
+            title,
+            text,
+            short
+          })
+        }
+      );
+
+    if(!response.ok){
+
+      alert("অধ্যায় যোগ করা যায়নি।");
+      return;
+
+    }
+
+    document.getElementById(
+      "newDiaryTitle"
+    ).value = "";
+
+    document.getElementById(
+      "newDiaryText"
+    ).value = "";
+
+    document.getElementById(
+      "newDiaryShort"
+    ).value = "";
+
+    await loadDiary();
+
+  }catch(error){
+
+    alert("সার্ভার সমস্যা হয়েছে।");
+
+  }
+
+}
+
+
+async function editDiary(index){
+
+  const item =
+    diaryData[index];
+
+  const title =
+    prompt(
+      "অধ্যায়ের নাম:",
+      item.title || ""
+    );
+
+  if(title === null) return;
+
+  const text =
+    prompt(
+      "অধ্যায়ের বিস্তারিত:",
+      item.text ||
+      item.description ||
+      ""
+    );
+
+  if(text === null) return;
+
+  const short =
+    prompt(
+      "ছোট বিবরণ:",
+      item.short ||
+      ""
+    );
+
+  if(short === null) return;
+
+  try{
+
+    const response =
+      await fetch(
+        `/api/admin/diary/${item.id}`,
+        {
+          method:"PUT",
+
+          headers:{
+            "Content-Type":"application/json"
+          },
+
+          body:JSON.stringify({
+            title,
+            text,
+            short
+          })
+        }
+      );
+
+    if(!response.ok){
+
+      alert("অধ্যায় পরিবর্তন করা যায়নি।");
+      return;
+
+    }
+
+    await loadDiary();
+
+  }catch(error){
+
+    alert("সার্ভার সমস্যা হয়েছে।");
+
+  }
 
 }
 
 
 async function deleteDiary(id){
 
-if(!confirm("এই অধ্যায়টি মুছে ফেলতে চান?"))
-return;
+  if(!confirm(
+    "এই অধ্যায়টি মুছে ফেলতে চান?"
+  )) return;
 
-const res=
-await fetch("/api/admin/diary/"+id,{
+  try{
 
-method:"DELETE"
+    const response =
+      await fetch(
+        `/api/admin/diary/${id}`,
+        {
+          method:"DELETE"
+        }
+      );
 
-});
+    if(!response.ok){
 
-if(res.ok){
+      alert("মুছে ফেলা যায়নি.");
+      return;
 
-loadDiary();
+    }
 
-}
+    await loadDiary();
 
-}
+  }catch(error){
 
+    alert("সার্ভার সমস্যা হয়েছে।");
 
-const projectForm=
-document.getElementById("projectForm");
-
-
-projectForm.addEventListener("submit",async e=>{
-
-e.preventDefault();
-
-try{
-
-const res=
-await fetch("/api/admin/projects",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json"
-},
-
-body:JSON.stringify({
-
-title:
-document.getElementById("projectTitle").value,
-
-category:
-document.getElementById("projectCategory").value,
-
-description:
-document.getElementById("projectDescription").value,
-
-link:
-document.getElementById("projectLink").value
-
-})
-
-});
-
-if(res.ok){
-
-projectForm.reset();
-
-loadProjects();
-
-alert("প্রকল্প যোগ হয়েছে ✓");
-
-}else{
-
-alert("প্রকল্প যোগ করা যায়নি।");
+  }
 
 }
 
-}catch(e){
 
-alert("সার্ভারের সাথে যোগাযোগ করা যাচ্ছে না।");
-
-}
-
-});
-
+/* =========================================================
+   PROJECTS
+========================================================= */
 
 async function loadProjects(){
 
-const box=
-document.getElementById("projectList");
+  try{
 
-try{
+    const response =
+      await fetch("/api/admin/projects");
 
-const res=
-await fetch("/api/admin/projects");
+    if(!response.ok) return;
 
-if(!res.ok)return;
+    projectData =
+      await response.json();
 
-const data=
-await res.json();
+    renderProjects();
 
-box.innerHTML="";
+  }catch(error){
 
-data.forEach(item=>{
+    console.log(error);
 
-const div=
-document.createElement("div");
+  }
 
-div.className="item";
+}
 
-div.innerHTML=`
 
-<h3>
-${escapeHtml(item.title)}
-</h3>
+function renderProjects(){
 
-<p>
-${escapeHtml(item.description || "")}
-</p>
+  const container =
+    document.getElementById("projectsList");
 
-<button class="delete">
-মুছে ফেলুন
-</button>
+  if(!projectData.length){
 
-`;
+    container.innerHTML =
+      `<div>এখন কোনো প্রকল্প নেই।</div>`;
 
-div.querySelector(".delete")
-.onclick=()=>deleteProject(item.id);
+    return;
 
-box.appendChild(div);
+  }
 
-});
+  container.innerHTML =
+    projectData.map((item,index) => `
 
-}catch(e){}
+      <div class="item">
+
+        <div class="item-info">
+
+          <h3>
+            ${escapeHtml(
+              item.name ||
+              item.title ||
+              ""
+            )}
+          </h3>
+
+          <p>
+            ${escapeHtml(
+              item.description ||
+              item.text ||
+              ""
+            )}
+          </p>
+
+        </div>
+
+        <div class="item-actions">
+
+          <button
+            class="action"
+            onclick="editProject(${index})"
+          >
+            ✏️
+          </button>
+
+          <button
+            class="action delete"
+            onclick="deleteProject(${item.id})"
+          >
+            🗑
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("");
+
+}
+
+
+async function addProject(){
+
+  const name =
+    document
+      .getElementById("newProjectName")
+      .value.trim();
+
+  const type =
+    document
+      .getElementById("newProjectType")
+      .value.trim();
+
+  const description =
+    document
+      .getElementById("newProjectDescription")
+      .value.trim();
+
+  const link =
+    document
+      .getElementById("newProjectLink")
+      .value.trim();
+
+  if(!name){
+
+    alert("প্রকল্পের নাম দিন।");
+    return;
+
+  }
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/admin/projects",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":"application/json"
+          },
+
+          body:JSON.stringify({
+            name,
+            type,
+            description,
+            link
+          })
+        }
+      );
+
+    if(!response.ok){
+
+      alert("প্রকল্প যোগ করা যায়নি।");
+      return;
+
+    }
+
+    document.getElementById(
+      "newProjectName"
+    ).value = "";
+
+    document.getElementById(
+      "newProjectType"
+    ).value = "";
+
+    document.getElementById(
+      "newProjectDescription"
+    ).value = "";
+
+    document.getElementById(
+      "newProjectLink"
+    ).value = "";
+
+    await loadProjects();
+
+  }catch(error){
+
+    alert("সার্ভার সমস্যা হয়েছে।");
+
+  }
+
+}
+
+
+async function editProject(index){
+
+  const item =
+    projectData[index];
+
+  const name =
+    prompt(
+      "প্রকল্পের নাম:",
+      item.name ||
+      item.title ||
+      ""
+    );
+
+  if(name === null) return;
+
+  const type =
+    prompt(
+      "ধরন:",
+      item.type || ""
+    );
+
+  if(type === null) return;
+
+  const description =
+    prompt(
+      "প্রকল্পের বিবরণ:",
+      item.description ||
+      item.text ||
+      ""
+    );
+
+  if(description === null) return;
+
+  const link =
+    prompt(
+      "লিংক:",
+      item.link || ""
+    );
+
+  if(link === null) return;
+
+  try{
+
+    const response =
+      await fetch(
+        `/api/admin/projects/${item.id}`,
+        {
+          method:"PUT",
+
+          headers:{
+            "Content-Type":"application/json"
+          },
+
+          body:JSON.stringify({
+            name,
+            type,
+            description,
+            link
+          })
+        }
+      );
+
+    if(!response.ok){
+
+      alert("প্রকল্প পরিবর্তন করা যায়নি।");
+      return;
+
+    }
+
+    await loadProjects();
+
+  }catch(error){
+
+    alert("সার্ভার সমস্যা হয়েছে।");
+
+  }
 
 }
 
 
 async function deleteProject(id){
 
-if(!confirm("এই প্রকল্পটি মুছে ফেলতে চান?"))
-return;
+  if(!confirm(
+    "এই প্রকল্পটি মুছে ফেলতে চান?"
+  )) return;
 
-const res=
-await fetch("/api/admin/projects/"+id,{
+  try{
 
-method:"DELETE"
+    const response =
+      await fetch(
+        `/api/admin/projects/${id}`,
+        {
+          method:"DELETE"
+        }
+      );
 
-});
+    if(!response.ok){
 
-if(res.ok){
+      alert("মুছে ফেলা যায়নি।");
+      return;
 
-loadProjects();
+    }
 
-}
+    await loadProjects();
 
-}
+  }catch(error){
 
+    alert("সার্ভার সমস্যা হয়েছে।");
 
-document
-.getElementById("logout")
-.addEventListener("click",async()=>{
-
-await fetch("/api/admin/logout",{
-method:"POST"
-});
-
-location.reload();
-
-});
-
-
-function escapeHtml(text){
-
-const div=
-document.createElement("div");
-
-div.textContent=text ?? "";
-
-return div.innerHTML;
+  }
 
 }
 
 
-checkLogin();
+/* =========================================================
+   SECURITY / HTML ESCAPE
+========================================================= */
+
+function escapeHtml(value){
+
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+
+}
