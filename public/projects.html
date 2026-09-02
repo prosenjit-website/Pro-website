@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Projects — Prosenjit Ray</title>
+
+  <meta
+    name="description"
+    content="Projects and creative work by Prosenjit Ray."
+  >
+
+  <link rel="stylesheet" href="/style.css">
+
+</head>
+
+
+<body>
+
+<header class="navbar">
+
+  <div class="nav-inner">
+
+    <a href="/" class="logo">
+      Prosenjit<span>.</span>
+    </a>
+
+    <nav class="nav-links">
+
+      <a href="/">Home</a>
+      <a href="/about.html">About</a>
+      <a href="/education.html">Education</a>
+      <a href="/diary.html">Diary</a>
+      <a href="/projects.html">Projects</a>
+      <a href="/contact.html">Contact</a>
+
+    </nav>
+
+
+    <button
+      class="menu-btn"
+      type="button"
+      aria-label="Open menu"
+      aria-expanded="false"
+    >
+      ☰
+    </button>
+
+  </div>
+
+
+  <div class="mobile-menu">
+
+    <a href="/">Home</a>
+    <a href="/about.html">About</a>
+    <a href="/education.html">Education</a>
+    <a href="/diary.html">Diary</a>
+    <a href="/projects.html">Projects</a>
+    <a href="/contact.html">Contact</a>
+
+  </div>
+
+</header>
+
+
+<main>
+
+  <section class="page-hero">
+
+    <div class="container reveal">
+
+      <div class="eyebrow">
+        Selected Work
+      </div>
+
+      <h1>
+        Ideas into<br>
+        <span>projects.</span>
+      </h1>
+
+      <p>
+        A growing collection of experiments, digital projects and
+        things I build while learning.
+      </p>
+
+    </div>
+
+  </section>
+
+
+  <section>
+
+    <div class="container">
+
+      <div
+        id="projectsContainer"
+        class="project-grid"
+      >
+
+        <!-- Default Project -->
+
+        <article class="glass project-card reveal">
+
+          <div class="project-number">
+            PROJECT / 01
+          </div>
+
+          <h3>
+            Personal Website
+          </h3>
+
+          <p>
+            A premium personal website designed to showcase my
+            education, journey, skills and projects.
+          </p>
+
+          <a
+            href="/"
+            class="project-link"
+          >
+            Explore Project →
+          </a>
+
+        </article>
+
+
+        <article class="glass project-card reveal">
+
+          <div class="project-number">
+            PROJECT / 02
+          </div>
+
+          <h3>
+            Future Project
+          </h3>
+
+          <p>
+            More creative projects will be added here as I continue
+            learning and building.
+          </p>
+
+          <a
+            href="#"
+            class="project-link"
+          >
+            Coming Soon →
+          </a>
+
+        </article>
+
+      </div>
+
+
+      <div style="height:30px;"></div>
+
+
+      <div class="glass cta reveal">
+
+        <h2>
+          Build something<br>
+          meaningful.
+        </h2>
+
+        <p>
+          The best projects begin as simple ideas.
+        </p>
+
+        <a
+          href="/contact.html"
+          class="btn btn-primary"
+        >
+          Let's Connect →
+        </a>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<footer>
+
+  <div class="container footer-inner">
+
+    <div class="footer-text">
+      © <span data-year></span> Prosenjit Ray.
+      Built with ambition.
+    </div>
+
+    <div class="socials">
+
+      <a
+        href="#"
+        data-social="facebook"
+      >f</a>
+
+      <a
+        href="#"
+        data-social="instagram"
+      >◎</a>
+
+      <a
+        href="#"
+        data-social="github"
+      >◇</a>
+
+    </div>
+
+  </div>
+
+</footer>
+
+
+<script src="/app.js"></script>
+
+
+<script>
+
+async function loadProjects() {
+
+  const container =
+    document.getElementById(
+      "projectsContainer"
+    );
+
+  if (!container) return;
+
+  try {
+
+    const response =
+      await fetch("/api/projects");
+
+    if (!response.ok) {
+      throw new Error("Projects API error");
+    }
+
+    const projects =
+      await response.json();
+
+    if (
+      !Array.isArray(projects) ||
+      projects.length === 0
+    ) {
+      return;
+    }
+
+    container.innerHTML = "";
+
+    projects.forEach((item, index) => {
+
+      const card =
+        document.createElement("article");
+
+      card.className =
+        "glass project-card reveal";
+
+
+      const number =
+        document.createElement("div");
+
+      number.className =
+        "project-number";
+
+      number.textContent =
+        "PROJECT / " +
+        String(index + 1).padStart(2, "0");
+
+
+      const title =
+        document.createElement("h3");
+
+      title.textContent =
+        item.title || "Untitled Project";
+
+
+      const description =
+        document.createElement("p");
+
+      description.textContent =
+        item.description || "";
+
+
+      card.appendChild(number);
+      card.appendChild(title);
+      card.appendChild(description);
+
+
+      if (item.link) {
+
+        const link =
+          document.createElement("a");
+
+        link.className =
+          "project-link";
+
+        link.href =
+          item.link;
+
+        link.target =
+          "_blank";
+
+        link.rel =
+          "noopener noreferrer";
+
+        link.textContent =
+          "Explore Project →";
+
+        card.appendChild(link);
+
+      }
+
+
+      container.appendChild(card);
+
+    });
+
+
+    document
+      .querySelectorAll(".reveal")
+      .forEach((element) => {
+        element.classList.add("show");
+      });
+
+
+  } catch (error) {
+
+    console.log(
+      "Projects could not be loaded."
+    );
+
+  }
+
+}
+
+
+loadProjects();
+
+</script>
+
+</body>
+</html>
