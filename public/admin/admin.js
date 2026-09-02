@@ -1,214 +1,325 @@
+"use strict";
+
+let siteData = {
+  buttons: [],
+  social: {},
+  skills: []
+};
+
+
 // ==========================================
-// PROSENJIT ADMIN PANEL
+// HELPERS
 // ==========================================
 
-document.addEventListener("DOMContentLoaded", () => {
+const $ = (id) => document.getElementById(id);
 
-  const loginForm = document.getElementById("loginForm");
-  const loginBox = document.getElementById("loginBox");
-  const adminPanel = document.getElementById("adminPanel");
+function showMessage(id, text, success = true) {
 
-  // ========================================
-  // CHECK LOGIN
-  // ========================================
+  const el = $(id);
 
-  checkSession();
+  if (!el) return;
+
+  el.textContent = text;
+
+  el.className =
+    "message " + (success ? "success" : "error");
+
+  setTimeout(() => {
+    el.textContent = "";
+    el.className = "message";
+  }, 3500);
+}
 
 
-  async function checkSession() {
+async function api(url, options = {}) {
 
-    try {
+  const response = await fetch(url, {
+    credentials: "same-origin",
 
-      const res = await fetch("/api/admin/session", {
-        credentials: "same-origin"
-      });
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    },
 
-      const data = await res.json();
+    ...options
+  });
 
-      if (data.loggedIn) {
-        showAdmin();
-      } else {
-        showLogin();
-      }
+  let data = {};
 
-    } catch (error) {
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
 
-      console.error(error);
+  if (!response.ok) {
+
+    throw new Error(
+      data.error || "Something went wrong"
+    );
+
+  }
+
+  return data;
+}
+
+
+// ==========================================
+// SESSION CHECK
+// ==========================================
+
+async function checkSession() {
+
+  try {
+
+    const data =
+      await api("/api/admin/session");
+
+    if (data.loggedIn) {
+
+      showDashboard();
+
+    } else {
+
       showLogin();
 
     }
 
-  }
+  } catch (error) {
 
+    console.error(error);
 
-  // ========================================
-  // SHOW LOGIN
-  // ========================================
-
-  function showLogin() {
-
-    if (loginBox) {
-      loginBox.style.display = "block";
-    }
-
-    if (adminPanel) {
-      adminPanel.style.display = "none";
-    }
+    showLogin();
 
   }
+}
 
 
-  // ========================================
-  // SHOW ADMIN
-  // ========================================
+// ==========================================
+// LOGIN
+// ==========================================
 
-  function showAdmin() {
+const loginForm = $("loginForm");
 
-    if (loginBox) {
-      loginBox.style.display = "none";
-    }
+if (loginForm) {
 
-    if (adminPanel) {
-      adminPanel.style.display = "block";
-    }
+  loginForm.addEventListener(
+    "submit",
+    async function (event) {
 
-    loadAll();
-
-  }
-
-
-  // ========================================
-  // LOGIN
-  // ========================================
-
-  if (loginForm) {
-
-    loginForm.addEventListener("submit", async function (e) {
-
-      // VERY IMPORTANT
-      e.preventDefault();
-
-      const usernameInput =
-        document.getElementById("username");
-
-      const passwordInput =
-        document.getElementById("password");
+      event.preventDefault();
 
       const username =
-        usernameInput ? usernameInput.value.trim() : "";
+        $("username").value.trim();
 
       const password =
-        passwordInput ? passwordInput.value : "";
-
+        $("password").value;
 
       if (!username || !password) {
 
-        alert("Username এবং Password দিন।");
+        showMessage(
+          "loginMessage",
+          "ইউজারনেম ও পাসওয়ার্ড দিন।",
+          false
+        );
 
         return;
-
       }
+
+
+      const button =
+        loginForm.querySelector(
+          "button[type='submit']"
+        );
+
+      const oldText =
+        button.textContent;
+
+      button.disabled = true;
+
+      button.textContent =
+        "⏳ লগইন হচ্ছে...";
 
 
       try {
 
-        const response = await fetch(
+        await api(
           "/api/admin/login",
           {
             method: "POST",
 
-            headers: {
-              "Content-Type": "application/json"
-            },
-
-            credentials: "same-origin",
-
             body: JSON.stringify({
-              username: username,
-              password: password
+              username,
+              password
             })
           }
         );
 
 
-        const data =
-          await response.json();
+        showMessage(
+          "loginMessage",
+          "✅ Login সফল হয়েছে।",
+          true
+        );
 
 
-        if (!response.ok || !data.success) {
+        setTimeout(() => {
 
-          alert(
-            data.error ||
-            "Login failed"
-          );
+          showDashboard();
 
-          return;
-
-        }
-
-
-        // Login successful
-        showAdmin();
+        }, 400);
 
 
       } catch (error) {
 
-        console.error(error);
-
-        alert(
-          "Server-এর সাথে যোগাযোগ করা যাচ্ছে না।"
+        showMessage(
+          "loginMessage",
+          "❌ " + error.message,
+          false
         );
+
+      } finally {
+
+        button.disabled = false;
+
+        button.textContent =
+          oldText;
 
       }
 
-    });
+    }
+  );
 
-  }
-
-
-  // ========================================
-  // LOGOUT
-  // ========================================
-
-  const logoutBtn =
-    document.getElementById("logoutBtn");
+}
 
 
-  if (logoutBtn) {
+// ==========================================
+// SHOW / HIDE
+// ==========================================
 
-    logoutBtn.addEventListener(
-      "click",
-      async function () {
+function showDashboard() {
 
-        try {
+  $("loginSection")
+    ?.classList.add("hidden");
 
-          await fetch(
-            "/api/admin/logout",
-            {
-              method: "POST",
-              credentials: "same-origin"
-            }
-          );
+  $("dashboard")
+    ?.classList.remove("hidden");
 
-        } catch (error) {
+  loadAll();
 
-          console.error(error);
+}
 
-        }
+
+function showLogin() {
+
+  $("dashboard")
+    ?.classList.add("hidden");
+
+  $("loginSection")
+    ?.classList.remove("hidden");
+
+}
+
+
+// ==========================================
+// LOGOUT
+// ==========================================
+
+const logoutBtn =
+  $("logoutBtn");
+
+if (logoutBtn) {
+
+  logoutBtn.addEventListener(
+    "click",
+    async function () {
+
+      try {
+
+        await api(
+          "/api/admin/logout",
+          {
+            method: "POST"
+          }
+        );
 
         location.reload();
+
+      } catch (error) {
+
+        alert(error.message);
+
+      }
+
+    }
+  );
+
+}
+
+
+// ==========================================
+// NAVIGATION
+// ==========================================
+
+document
+  .querySelectorAll(
+    ".admin-nav button"
+  )
+  .forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        const target =
+          button.dataset.target;
+
+        document
+          .querySelectorAll(
+            ".panel"
+          )
+          .forEach(panel => {
+
+            if (
+              panel.id === target ||
+              panel.classList.contains(
+                "help-panel"
+              )
+            ) {
+
+              panel.style.display =
+                "block";
+
+            } else {
+
+              panel.style.display =
+                "none";
+
+            }
+
+          });
+
+        const targetElement =
+          $(target);
+
+        targetElement?.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
 
       }
     );
 
-  }
+  });
 
 
-  // ========================================
-  // LOAD EVERYTHING
-  // ========================================
+// ==========================================
+// LOAD ALL
+// ==========================================
 
-  async function loadAll() {
+async function loadAll() {
+
+  try {
 
     await loadSite();
 
@@ -218,565 +329,714 @@ document.addEventListener("DOMContentLoaded", () => {
 
     renderButtons();
 
+  } catch (error) {
+
+    console.error(error);
+
   }
 
+}
 
-  // ========================================
-  // SITE CONTENT
-  // ========================================
 
-  async function loadSite() {
+// ==========================================
+// SITE CONTENT
+// ==========================================
+
+async function loadSite() {
+
+  try {
+
+    siteData =
+      await api("/api/admin/content");
+
+
+    $("siteName").value =
+      siteData.name || "";
+
+    $("siteTagline").value =
+      siteData.tagline || "";
+
+    $("siteCollege").value =
+      siteData.college || "";
+
+    $("siteEducation").value =
+      siteData.education || "";
+
+    $("sitePhoto").value =
+      siteData.photo || "";
+
+    $("siteAbout").value =
+      siteData.about || "";
+
+
+    $("siteSkills").value =
+      Array.isArray(siteData.skills)
+        ? siteData.skills.join("\n")
+        : "";
+
+
+    $("facebook").value =
+      siteData.social?.facebook || "";
+
+    $("instagram").value =
+      siteData.social?.instagram || "";
+
+    $("whatsapp").value =
+      siteData.social?.whatsapp || "";
+
+    $("email").value =
+      siteData.social?.email || "";
+
+
+  } catch (error) {
+
+    showMessage(
+      "siteMessage",
+      "❌ তথ্য লোড হয়নি: " +
+      error.message,
+      false
+    );
+
+  }
+
+}
+
+
+// ==========================================
+// SAVE SITE
+// ==========================================
+
+$("siteForm")?.addEventListener(
+  "submit",
+  async function (event) {
+
+    event.preventDefault();
+
+
+    const skills =
+      $("siteSkills")
+        .value
+        .split("\n")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+
+    const updated = {
+
+      name:
+        $("siteName").value.trim(),
+
+      tagline:
+        $("siteTagline").value.trim(),
+
+      college:
+        $("siteCollege").value.trim(),
+
+      education:
+        $("siteEducation").value.trim(),
+
+      photo:
+        $("sitePhoto").value.trim(),
+
+      about:
+        $("siteAbout").value.trim(),
+
+      skills,
+
+      social: {
+
+        facebook:
+          $("facebook").value.trim(),
+
+        instagram:
+          $("instagram").value.trim(),
+
+        whatsapp:
+          $("whatsapp").value.trim(),
+
+        email:
+          $("email").value.trim()
+
+      }
+
+    };
+
 
     try {
 
-      const response =
-        await fetch(
+      const result =
+        await api(
           "/api/admin/content",
           {
-            credentials: "same-origin"
+            method: "PUT",
+            body: JSON.stringify(updated)
           }
         );
 
 
-      if (response.status === 401) {
-
-        showLogin();
-
-        return;
-
-      }
+      siteData =
+        result.data;
 
 
-      const data =
-        await response.json();
-
-
-      setValue("siteName", data.name);
-      setValue("tagline", data.tagline);
-      setValue("college", data.college);
-      setValue("education", data.education);
-      setValue("photo", data.photo);
-      setValue("about", data.about);
-
-
-      const skills =
-        document.getElementById("skills");
-
-      if (skills) {
-
-        skills.value =
-          Array.isArray(data.skills)
-            ? data.skills.join("\n")
-            : "";
-
-      }
-
-
-      setValue(
-        "facebook",
-        data.social?.facebook || ""
+      showMessage(
+        "siteMessage",
+        "✅ তথ্য সফলভাবে সংরক্ষণ হয়েছে।"
       );
-
-      setValue(
-        "instagram",
-        data.social?.instagram || ""
-      );
-
-      setValue(
-        "whatsapp",
-        data.social?.whatsapp || ""
-      );
-
-      setValue(
-        "email",
-        data.social?.email || ""
-      );
-
-
-      window.siteData = data;
 
 
     } catch (error) {
 
-      console.error(
-        "Site load error:",
-        error
+      showMessage(
+        "siteMessage",
+        "❌ " + error.message,
+        false
       );
 
     }
 
   }
+);
 
 
-  // ========================================
-  // SAVE SITE
-  // ========================================
+// ==========================================
+// BUTTON MANAGER
+// ==========================================
 
-  const siteForm =
-    document.getElementById("siteForm");
+function renderButtons() {
 
+  const container =
+    $("buttonsList");
 
-  if (siteForm) {
+  if (!container) return;
 
-    siteForm.addEventListener(
-      "submit",
-      async function (e) {
-
-        e.preventDefault();
+  container.innerHTML = "";
 
 
-        const oldData =
-          window.siteData || {};
+  const buttons =
+    Array.isArray(siteData.buttons)
+      ? siteData.buttons
+      : [];
 
 
-        const finalData = {
+  buttons
+    .sort(
+      (a, b) =>
+        (a.order || 0) -
+        (b.order || 0)
+    )
+    .forEach((button, index) => {
 
-          ...oldData,
+      const card =
+        document.createElement("div");
 
-          name:
-            getValue("siteName"),
-
-          tagline:
-            getValue("tagline"),
-
-          college:
-            getValue("college"),
-
-          education:
-            getValue("education"),
-
-          photo:
-            getValue("photo"),
-
-          about:
-            getValue("about"),
-
-          skills:
-            getValue("skills")
-              .split("\n")
-              .map(x => x.trim())
-              .filter(Boolean),
-
-          social: {
-
-            ...(oldData.social || {}),
-
-            facebook:
-              getValue("facebook"),
-
-            instagram:
-              getValue("instagram"),
-
-            whatsapp:
-              getValue("whatsapp"),
-
-            email:
-              getValue("email")
-
-          }
-
-        };
+      card.className =
+        "item-card";
 
 
-        try {
+      card.innerHTML = `
 
-          const response =
-            await fetch(
-              "/api/admin/content",
-              {
-                method: "PUT",
+        <div class="item-head">
 
-                headers: {
-                  "Content-Type":
-                    "application/json"
-                },
+          <strong>
+            বাটন ${index + 1}
+          </strong>
 
-                credentials:
-                  "same-origin",
+          <button
+            type="button"
+            class="danger small"
+            onclick="deleteButton(${index})"
+          >
+            🗑️
+          </button>
 
-                body:
-                  JSON.stringify(
-                    finalData
-                  )
-              }
-            );
+        </div>
 
 
-          const data =
-            await response.json();
+        <label>বাটনের নাম</label>
+
+        <input
+          id="btnLabel${index}"
+          value="${escapeHtml(button.label || "")}"
+          type="text"
+        >
 
 
-          if (!response.ok) {
+        <label>লিংক</label>
 
-            alert(
-              data.error ||
-              "তথ্য সংরক্ষণ করা যায়নি।"
-            );
-
-            return;
-
-          }
+        <input
+          id="btnUrl${index}"
+          value="${escapeHtml(button.url || "")}"
+          type="text"
+        >
 
 
-          window.siteData =
-            data.data;
+        <label class="check-row">
+
+          <input
+            id="btnVisible${index}"
+            type="checkbox"
+            ${button.visible !== false ? "checked" : ""}
+          >
+
+          ওয়েবসাইটে দেখাবে
+
+        </label>
 
 
-          alert(
-            "✅ সাইটের তথ্য সফলভাবে সংরক্ষণ হয়েছে।"
-          );
+        <button
+          type="button"
+          class="save-small"
+          onclick="saveButton(${index})"
+        >
+          💾 Save
+        </button>
+
+      `;
 
 
-        } catch (error) {
+      container.appendChild(card);
 
-          console.error(error);
+    });
 
-          alert(
-            "Server error!"
-          );
-
-        }
-
-      }
-    );
-
-  }
+}
 
 
-  // ========================================
-  // DIARY
-  // ========================================
+// ==========================================
+// SAVE BUTTON
+// ==========================================
 
-  async function loadDiary() {
+window.saveButton =
+  async function(index) {
 
-    const container =
-      document.getElementById(
-        "diaryList"
-      );
+    const buttons =
+      siteData.buttons || [];
 
 
-    if (!container) return;
+    const button =
+      buttons[index];
+
+
+    if (!button) return;
+
+
+    button.label =
+      $(`btnLabel${index}`).value.trim();
+
+    button.url =
+      $(`btnUrl${index}`).value.trim();
+
+    button.visible =
+      $(`btnVisible${index}`).checked;
+
+    button.order =
+      index + 1;
 
 
     try {
 
-      const response =
-        await fetch(
-          "/api/admin/diary",
+      const result =
+        await api(
+          "/api/admin/content",
           {
-            credentials:
-              "same-origin"
+            method: "PUT",
+
+            body: JSON.stringify({
+              buttons
+            })
           }
         );
 
 
-      const items =
-        await response.json();
+      siteData =
+        result.data;
 
 
-      container.innerHTML = "";
+      renderButtons();
 
 
-      items.forEach(item => {
-
-        const box =
-          document.createElement("div");
-
-        box.className =
-          "admin-item";
+      showMessage(
+        "buttonMessage",
+        "✅ বাটন আপডেট হয়েছে।"
+      );
 
 
-        box.innerHTML = `
+    } catch (error) {
 
-          <input
-            class="diary-title"
-            value="${escapeHTML(item.title)}"
-          >
+      showMessage(
+        "buttonMessage",
+        "❌ " + error.message,
+        false
+      );
 
-          <textarea
-            class="diary-content"
-          >${escapeHTML(item.content)}</textarea>
+    }
 
-          <input
-            class="diary-date"
-            value="${escapeHTML(item.date || "")}"
-          >
-
-          <label>
-            <input
-              type="checkbox"
-              class="diary-visible"
-              ${item.visible ? "checked" : ""}
-            >
-            Show
-          </label>
-
-          <button
-            type="button"
-            class="saveDiary"
-          >
-            💾 Save
-          </button>
-
-          <button
-            type="button"
-            class="deleteDiary"
-          >
-            🗑️ Delete
-          </button>
-
-        `;
+  };
 
 
-        box.querySelector(
-          ".saveDiary"
-        ).addEventListener(
-          "click",
-          async () => {
+// ==========================================
+// ADD BUTTON
+// ==========================================
 
-            await updateDiary(
-              item.id,
-              box
-            );
+$("addButtonBtn")
+  ?.addEventListener(
+    "click",
+    async function () {
 
-          }
-        );
+      if (!Array.isArray(siteData.buttons)) {
 
+        siteData.buttons = [];
 
-        box.querySelector(
-          ".deleteDiary"
-        ).addEventListener(
-          "click",
-          async () => {
-
-            await deleteDiary(
-              item.id
-            );
-
-          }
-        );
+      }
 
 
-        container.appendChild(box);
+      siteData.buttons.push({
+
+        id:
+          "button-" +
+          Date.now(),
+
+        label:
+          "নতুন বাটন",
+
+        url:
+          "/",
+
+        visible:
+          true,
+
+        order:
+          siteData.buttons.length + 1
 
       });
 
 
-    } catch (error) {
+      try {
 
-      console.error(error);
+        const result =
+          await api(
+            "/api/admin/content",
+            {
+              method: "PUT",
 
-    }
-
-  }
-
-
-  // ========================================
-  // ADD DIARY
-  // ========================================
-
-  const addDiaryBtn =
-    document.getElementById(
-      "addDiaryBtn"
-    );
-
-
-  if (addDiaryBtn) {
-
-    addDiaryBtn.addEventListener(
-      "click",
-      async () => {
-
-        const title =
-          prompt("অধ্যায়ের নাম:");
-
-        if (!title) return;
-
-
-        const content =
-          prompt("অধ্যায়ের বিস্তারিত লেখা:");
-
-        if (!content) return;
-
-
-        const date =
-          prompt(
-            "তারিখ:",
-            new Date().toLocaleDateString("bn-BD")
+              body:
+                JSON.stringify({
+                  buttons:
+                    siteData.buttons
+                })
+            }
           );
 
 
-        try {
-
-          const response =
-            await fetch(
-              "/api/admin/diary",
-              {
-                method: "POST",
-
-                headers: {
-                  "Content-Type":
-                    "application/json"
-                },
-
-                credentials:
-                  "same-origin",
-
-                body:
-                  JSON.stringify({
-                    title,
-                    content,
-                    date
-                  })
-              }
-            );
+        siteData =
+          result.data;
 
 
-          const data =
-            await response.json();
+        renderButtons();
 
 
-          if (!response.ok) {
-
-            alert(
-              data.error ||
-              "Diary যোগ করা যায়নি।"
-            );
-
-            return;
-
-          }
+        showMessage(
+          "buttonMessage",
+          "✅ নতুন বাটন যোগ হয়েছে।"
+        );
 
 
-          await loadDiary();
+      } catch (error) {
 
-          alert(
-            "✅ নতুন অধ্যায় যোগ হয়েছে।"
-          );
-
-
-        } catch (error) {
-
-          console.error(error);
-
-          alert("Server error!");
-
-        }
+        showMessage(
+          "buttonMessage",
+          "❌ " + error.message,
+          false
+        );
 
       }
+
+    }
+  );
+
+
+// ==========================================
+// DELETE BUTTON
+// ==========================================
+
+window.deleteButton =
+  async function(index) {
+
+    if (
+      !confirm(
+        "এই বাটনটি মুছে ফেলবেন?"
+      )
+    ) return;
+
+
+    siteData.buttons.splice(
+      index,
+      1
     );
-
-  }
-
-
-  // ========================================
-  // UPDATE DIARY
-  // ========================================
-
-  async function updateDiary(
-    id,
-    box
-  ) {
-
-    const title =
-      box.querySelector(
-        ".diary-title"
-      ).value.trim();
-
-
-    const content =
-      box.querySelector(
-        ".diary-content"
-      ).value.trim();
-
-
-    const date =
-      box.querySelector(
-        ".diary-date"
-      ).value.trim();
-
-
-    const visible =
-      box.querySelector(
-        ".diary-visible"
-      ).checked;
 
 
     try {
 
-      const response =
-        await fetch(
-          `/api/admin/diary/${id}`,
+      const result =
+        await api(
+          "/api/admin/content",
           {
             method: "PUT",
 
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            credentials:
-              "same-origin",
-
             body:
               JSON.stringify({
-                title,
-                content,
-                date,
-                visible
+                buttons:
+                  siteData.buttons
               })
           }
         );
 
 
-      if (!response.ok) {
-
-        alert(
-          "Diary update হয়নি।"
-        );
-
-        return;
-
-      }
+      siteData =
+        result.data;
 
 
-      alert(
-        "✅ Diary update হয়েছে।"
-      );
+      renderButtons();
 
 
     } catch (error) {
 
-      console.error(error);
-
-      alert("Server error!");
+      alert(error.message);
 
     }
+
+  };
+
+
+// ==========================================
+// DIARY
+// ==========================================
+
+async function loadDiary() {
+
+  try {
+
+    const diaries =
+      await api(
+        "/api/admin/diary"
+      );
+
+
+    renderDiary(diaries);
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+}
+
+
+function renderDiary(items) {
+
+  const container =
+    $("diaryList");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+
+  if (!items.length) {
+
+    container.innerHTML =
+      `<div class="empty">
+        এখনো কোনো ডায়েরি নেই।
+      </div>`;
+
+    return;
 
   }
 
 
-  // ========================================
-  // DELETE DIARY
-  // ========================================
+  items.forEach(item => {
 
-  async function deleteDiary(id) {
+    const card =
+      document.createElement("div");
 
-    if (
-      !confirm(
-        "এই Diary মুছে ফেলতে চান?"
-      )
-    ) return;
+    card.className =
+      "item-card";
 
+
+    card.innerHTML = `
+
+      <div class="item-head">
+
+        <strong>
+          ${escapeHtml(item.title)}
+        </strong>
+
+        <button
+          type="button"
+          class="danger small"
+          onclick="deleteDiary(${item.id})"
+        >
+          🗑️
+        </button>
+
+      </div>
+
+
+      <input
+        id="diaryTitle${item.id}"
+        value="${escapeHtml(item.title)}"
+        type="text"
+      >
+
+
+      <input
+        id="diaryDate${item.id}"
+        value="${escapeHtml(item.date || "")}"
+        type="text"
+        placeholder="তারিখ"
+      >
+
+
+      <textarea
+        id="diaryContent${item.id}"
+        rows="6"
+      >${escapeHtml(item.content)}</textarea>
+
+
+      <label class="check-row">
+
+        <input
+          id="diaryVisible${item.id}"
+          type="checkbox"
+          ${item.visible ? "checked" : ""}
+        >
+
+        ওয়েবসাইটে দেখাবে
+
+      </label>
+
+
+      <button
+        type="button"
+        class="save-small"
+        onclick="saveDiary(${item.id})"
+      >
+        💾 Save
+      </button>
+
+    `;
+
+
+    container.appendChild(card);
+
+  });
+
+}
+
+
+// ==========================================
+// ADD DIARY
+// ==========================================
+
+$("addDiaryBtn")
+  ?.addEventListener(
+    "click",
+    async function () {
+
+      const title =
+        prompt(
+          "অধ্যায়ের নাম লিখুন:"
+        );
+
+
+      if (!title) return;
+
+
+      const content =
+        prompt(
+          "অধ্যায়ের লেখা লিখুন:"
+        );
+
+
+      if (!content) return;
+
+
+      try {
+
+        await api(
+          "/api/admin/diary",
+          {
+            method: "POST",
+
+            body: JSON.stringify({
+
+              title,
+
+              content,
+
+              date:
+                new Date()
+                  .toLocaleDateString(
+                    "bn-BD"
+                  )
+
+            })
+          }
+        );
+
+
+        await loadDiary();
+
+
+        showMessage(
+          "diaryMessage",
+          "✅ নতুন অধ্যায় যোগ হয়েছে।"
+        );
+
+
+      } catch (error) {
+
+        showMessage(
+          "diaryMessage",
+          "❌ " + error.message,
+          false
+        );
+
+      }
+
+    }
+  );
+
+
+// ==========================================
+// SAVE DIARY
+// ==========================================
+
+window.saveDiary =
+  async function(id) {
 
     try {
 
-      await fetch(
+      await api(
         `/api/admin/diary/${id}`,
         {
-          method: "DELETE",
-          credentials:
-            "same-origin"
+          method: "PUT",
+
+          body: JSON.stringify({
+
+            title:
+              $(`diaryTitle${id}`).value.trim(),
+
+            date:
+              $(`diaryDate${id}`).value.trim(),
+
+            content:
+              $(`diaryContent${id}`).value.trim(),
+
+            visible:
+              $(`diaryVisible${id}`).checked
+
+          })
         }
       );
 
@@ -784,382 +1044,304 @@ document.addEventListener("DOMContentLoaded", () => {
       await loadDiary();
 
 
-    } catch (error) {
-
-      console.error(error);
-
-    }
-
-  }
-
-
-  // ========================================
-  // PROJECTS
-  // ========================================
-
-  async function loadProjects() {
-
-    const container =
-      document.getElementById(
-        "projectsList"
+      showMessage(
+        "diaryMessage",
+        "✅ ডায়েরি আপডেট হয়েছে।"
       );
 
 
-    if (!container) return;
-
-
-    try {
-
-      const response =
-        await fetch(
-          "/api/admin/projects",
-          {
-            credentials:
-              "same-origin"
-          }
-        );
-
-
-      const items =
-        await response.json();
-
-
-      container.innerHTML = "";
-
-
-      items.forEach(item => {
-
-        const box =
-          document.createElement("div");
-
-        box.className =
-          "admin-item";
-
-
-        box.innerHTML = `
-
-          <input
-            class="project-title"
-            placeholder="প্রজেক্টের নাম"
-            value="${escapeHTML(item.title)}"
-          >
-
-          <textarea
-            class="project-description"
-            placeholder="প্রজেক্টের বিবরণ"
-          >${escapeHTML(item.description || "")}</textarea>
-
-          <input
-            class="project-url"
-            placeholder="Link"
-            value="${escapeHTML(item.url || "")}"
-          >
-
-          <input
-            class="project-image"
-            placeholder="Image URL"
-            value="${escapeHTML(item.image || "")}"
-          >
-
-          <input
-            class="project-order"
-            type="number"
-            value="${item.sort_order || 0}"
-          >
-
-          <label>
-            <input
-              type="checkbox"
-              class="project-visible"
-              ${item.visible ? "checked" : ""}
-            >
-            Show
-          </label>
-
-          <button
-            type="button"
-            class="saveProject"
-          >
-            💾 Save
-          </button>
-
-          <button
-            type="button"
-            class="deleteProject"
-          >
-            🗑️ Delete
-          </button>
-
-        `;
-
-
-        box.querySelector(
-          ".saveProject"
-        ).addEventListener(
-          "click",
-          async () => {
-
-            await updateProject(
-              item.id,
-              box
-            );
-
-          }
-        );
-
-
-        box.querySelector(
-          ".deleteProject"
-        ).addEventListener(
-          "click",
-          async () => {
-
-            await deleteProject(
-              item.id
-            );
-
-          }
-        );
-
-
-        container.appendChild(box);
-
-      });
-
-
     } catch (error) {
 
-      console.error(error);
-
-    }
-
-  }
-
-
-  // ========================================
-  // ADD PROJECT
-  // ========================================
-
-  const addProjectBtn =
-    document.getElementById(
-      "addProjectBtn"
-    );
-
-
-  if (addProjectBtn) {
-
-    addProjectBtn.addEventListener(
-      "click",
-      async () => {
-
-        const title =
-          prompt("প্রজেক্টের নাম:");
-
-        if (!title) return;
-
-
-        const description =
-          prompt(
-            "প্রজেক্টের বিবরণ:"
-          ) || "";
-
-
-        const url =
-          prompt(
-            "প্রজেক্ট Link:"
-          ) || "";
-
-
-        const image =
-          prompt(
-            "Image URL:"
-          ) || "";
-
-
-        try {
-
-          const response =
-            await fetch(
-              "/api/admin/projects",
-              {
-                method: "POST",
-
-                headers: {
-                  "Content-Type":
-                    "application/json"
-                },
-
-                credentials:
-                  "same-origin",
-
-                body:
-                  JSON.stringify({
-                    title,
-                    description,
-                    url,
-                    image
-                  })
-              }
-            );
-
-
-          const data =
-            await response.json();
-
-
-          if (!response.ok) {
-
-            alert(
-              data.error ||
-              "Project যোগ করা যায়নি।"
-            );
-
-            return;
-
-          }
-
-
-          await loadProjects();
-
-
-          alert(
-            "🚀 নতুন Project যোগ হয়েছে।"
-          );
-
-
-        } catch (error) {
-
-          console.error(error);
-
-          alert("Server error!");
-
-        }
-
-      }
-    );
-
-  }
-
-
-  // ========================================
-  // UPDATE PROJECT
-  // ========================================
-
-  async function updateProject(
-    id,
-    box
-  ) {
-
-    const data = {
-
-      title:
-        box.querySelector(
-          ".project-title"
-        ).value.trim(),
-
-      description:
-        box.querySelector(
-          ".project-description"
-        ).value.trim(),
-
-      url:
-        box.querySelector(
-          ".project-url"
-        ).value.trim(),
-
-      image:
-        box.querySelector(
-          ".project-image"
-        ).value.trim(),
-
-      sort_order:
-        Number(
-          box.querySelector(
-            ".project-order"
-          ).value || 0
-        ),
-
-      visible:
-        box.querySelector(
-          ".project-visible"
-        ).checked
-
-    };
-
-
-    try {
-
-      const response =
-        await fetch(
-          `/api/admin/projects/${id}`,
-          {
-            method: "PUT",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            credentials:
-              "same-origin",
-
-            body:
-              JSON.stringify(data)
-          }
-        );
-
-
-      if (!response.ok) {
-
-        alert(
-          "Project update হয়নি।"
-        );
-
-        return;
-
-      }
-
-
-      alert(
-        "✅ Project update হয়েছে।"
+      showMessage(
+        "diaryMessage",
+        "❌ " + error.message,
+        false
       );
 
-
-      await loadProjects();
-
-
-    } catch (error) {
-
-      console.error(error);
-
-      alert("Server error!");
-
     }
 
-  }
+  };
 
 
-  // ========================================
-  // DELETE PROJECT
-  // ========================================
+// ==========================================
+// DELETE DIARY
+// ==========================================
 
-  async function deleteProject(id) {
+window.deleteDiary =
+  async function(id) {
 
     if (
       !confirm(
-        "এই Project মুছে ফেলতে চান?"
+        "এই অধ্যায়টি মুছে ফেলবেন?"
       )
     ) return;
 
 
     try {
 
-      await fetch(
+      await api(
+        `/api/admin/diary/${id}`,
+        {
+          method: "DELETE"
+        }
+      );
+
+
+      await loadDiary();
+
+    } catch (error) {
+
+      alert(error.message);
+
+    }
+
+  };
+
+
+// ==========================================
+// PROJECTS
+// ==========================================
+
+async function loadProjects() {
+
+  try {
+
+    const projects =
+      await api(
+        "/api/admin/projects"
+      );
+
+
+    renderProjects(projects);
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+}
+
+
+function renderProjects(items) {
+
+  const container =
+    $("projectList");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+
+  if (!items.length) {
+
+    container.innerHTML =
+      `<div class="empty">
+        এখনো কোনো প্রজেক্ট নেই।
+      </div>`;
+
+    return;
+
+  }
+
+
+  items.forEach(item => {
+
+    const card =
+      document.createElement("div");
+
+    card.className =
+      "item-card";
+
+
+    card.innerHTML = `
+
+      <div class="item-head">
+
+        <strong>
+          ${escapeHtml(item.title)}
+        </strong>
+
+        <button
+          type="button"
+          class="danger small"
+          onclick="deleteProject(${item.id})"
+        >
+          🗑️
+        </button>
+
+      </div>
+
+
+      <label>প্রজেক্টের নাম</label>
+
+      <input
+        id="projectTitle${item.id}"
+        value="${escapeHtml(item.title)}"
+      >
+
+
+      <label>বিবরণ</label>
+
+      <textarea
+        id="projectDescription${item.id}"
+        rows="5"
+      >${escapeHtml(item.description || "")}</textarea>
+
+
+      <label>লিংক</label>
+
+      <input
+        id="projectUrl${item.id}"
+        value="${escapeHtml(item.url || "")}"
+        placeholder="https://..."
+      >
+
+
+      <label>ছবির লিংক</label>
+
+      <input
+        id="projectImage${item.id}"
+        value="${escapeHtml(item.image || "")}"
+        placeholder="https://..."
+      >
+
+
+      <label class="check-row">
+
+        <input
+          id="projectVisible${item.id}"
+          type="checkbox"
+          ${item.visible ? "checked" : ""}
+        >
+
+        ওয়েবসাইটে দেখাবে
+
+      </label>
+
+
+      <button
+        type="button"
+        class="save-small"
+        onclick="saveProject(${item.id})"
+      >
+        💾 Save
+      </button>
+
+    `;
+
+
+    container.appendChild(card);
+
+  });
+
+}
+
+
+// ==========================================
+// ADD PROJECT
+// ==========================================
+
+$("addProjectBtn")
+  ?.addEventListener(
+    "click",
+    async function () {
+
+      const title =
+        prompt(
+          "প্রজেক্টের নাম লিখুন:"
+        );
+
+
+      if (!title) return;
+
+
+      const description =
+        prompt(
+          "প্রজেক্টের বিবরণ লিখুন:"
+        ) || "";
+
+
+      try {
+
+        await api(
+          "/api/admin/projects",
+          {
+            method: "POST",
+
+            body: JSON.stringify({
+
+              title,
+
+              description,
+
+              url: "",
+
+              image: ""
+
+            })
+          }
+        );
+
+
+        await loadProjects();
+
+
+        showMessage(
+          "projectMessage",
+          "✅ নতুন প্রজেক্ট যোগ হয়েছে।"
+        );
+
+
+      } catch (error) {
+
+        showMessage(
+          "projectMessage",
+          "❌ " + error.message,
+          false
+        );
+
+      }
+
+    }
+  );
+
+
+// ==========================================
+// SAVE PROJECT
+// ==========================================
+
+window.saveProject =
+  async function(id) {
+
+    try {
+
+      await api(
         `/api/admin/projects/${id}`,
         {
-          method: "DELETE",
-          credentials:
-            "same-origin"
+          method: "PUT",
+
+          body: JSON.stringify({
+
+            title:
+              $(`projectTitle${id}`).value.trim(),
+
+            description:
+              $(`projectDescription${id}`).value.trim(),
+
+            url:
+              $(`projectUrl${id}`).value.trim(),
+
+            image:
+              $(`projectImage${id}`).value.trim(),
+
+            visible:
+              $(`projectVisible${id}`).checked,
+
+            sort_order:
+              0
+
+          })
         }
       );
 
@@ -1167,351 +1349,78 @@ document.addEventListener("DOMContentLoaded", () => {
       await loadProjects();
 
 
-    } catch (error) {
-
-      console.error(error);
-
-    }
-
-  }
-
-
-  // ========================================
-  // BUTTON MANAGER
-  // ========================================
-
-  function renderButtons() {
-
-    const container =
-      document.getElementById(
-        "buttonsList"
+      showMessage(
+        "projectMessage",
+        "✅ প্রজেক্ট আপডেট হয়েছে।"
       );
 
 
-    if (!container) return;
+    } catch (error) {
+
+      showMessage(
+        "projectMessage",
+        "❌ " + error.message,
+        false
+      );
+
+    }
+
+  };
 
 
-    const data =
-      window.siteData || {};
+// ==========================================
+// DELETE PROJECT
+// ==========================================
 
+window.deleteProject =
+  async function(id) {
 
-    const buttons =
-      Array.isArray(data.buttons)
-        ? data.buttons
-        : [];
-
-
-    container.innerHTML = "";
-
-
-    buttons
-      .sort(
-        (a, b) =>
-          Number(a.order || 0) -
-          Number(b.order || 0)
+    if (
+      !confirm(
+        "এই প্রজেক্টটি মুছে ফেলবেন?"
       )
-      .forEach((button, index) => {
+    ) return;
 
-        const box =
-          document.createElement("div");
-
-        box.className =
-          "admin-item";
-
-
-        box.innerHTML = `
-
-          <input
-            class="button-label"
-            placeholder="Button name"
-            value="${escapeHTML(button.label || "")}"
-          >
-
-          <input
-            class="button-url"
-            placeholder="Button link"
-            value="${escapeHTML(button.url || "")}"
-          >
-
-          <input
-            class="button-order"
-            type="number"
-            value="${button.order || index + 1}"
-          >
-
-          <label>
-            <input
-              type="checkbox"
-              class="button-visible"
-              ${button.visible !== false ? "checked" : ""}
-            >
-            Show
-          </label>
-
-          <button
-            type="button"
-            class="saveButton"
-          >
-            💾 Save
-          </button>
-
-          <button
-            type="button"
-            class="deleteButton"
-          >
-            🗑️ Delete
-          </button>
-
-        `;
-
-
-        box.querySelector(
-          ".saveButton"
-        ).addEventListener(
-          "click",
-          async () => {
-
-            const current =
-              window.siteData.buttons ||
-              [];
-
-
-            current[index] = {
-
-              ...current[index],
-
-              label:
-                box.querySelector(
-                  ".button-label"
-                ).value.trim(),
-
-              url:
-                box.querySelector(
-                  ".button-url"
-                ).value.trim(),
-
-              order:
-                Number(
-                  box.querySelector(
-                    ".button-order"
-                  ).value || index + 1
-                ),
-
-              visible:
-                box.querySelector(
-                  ".button-visible"
-                ).checked
-
-            };
-
-
-            await saveButtons(current);
-
-          }
-        );
-
-
-        box.querySelector(
-          ".deleteButton"
-        ).addEventListener(
-          "click",
-          async () => {
-
-            const current =
-              window.siteData.buttons ||
-              [];
-
-
-            current.splice(index, 1);
-
-
-            await saveButtons(current);
-
-          }
-        );
-
-
-        container.appendChild(box);
-
-      });
-
-  }
-
-
-  // ========================================
-  // SAVE BUTTONS
-  // ========================================
-
-  async function saveButtons(buttons) {
 
     try {
 
-      const response =
-        await fetch(
-          "/api/admin/content",
-          {
-            method: "PUT",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            credentials:
-              "same-origin",
-
-            body:
-              JSON.stringify({
-                buttons
-              })
-          }
-        );
-
-
-      const data =
-        await response.json();
-
-
-      if (!response.ok) {
-
-        alert(
-          data.error ||
-          "Button save হয়নি।"
-        );
-
-        return;
-
-      }
-
-
-      window.siteData =
-        data.data;
-
-
-      renderButtons();
-
-
-      alert(
-        "✅ Button saved!"
+      await api(
+        `/api/admin/projects/${id}`,
+        {
+          method: "DELETE"
+        }
       );
 
 
+      await loadProjects();
+
     } catch (error) {
 
-      console.error(error);
-
-      alert("Server error!");
+      alert(error.message);
 
     }
 
-  }
+  };
 
 
-  // ========================================
-  // ADD NEW BUTTON
-  // ========================================
+// ==========================================
+// ESCAPE HTML
+// ==========================================
 
-  const addButtonBtn =
-    document.getElementById(
-      "addButtonBtn"
-    );
+function escapeHtml(value) {
 
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
-  if (addButtonBtn) {
-
-    addButtonBtn.addEventListener(
-      "click",
-      async () => {
-
-        const label =
-          prompt(
-            "নতুন Button-এর নাম:"
-          );
+}
 
 
-        if (!label) return;
+// ==========================================
+// START
+// ==========================================
 
-
-        const url =
-          prompt(
-            "Button কোথায় যাবে? Link:"
-          );
-
-
-        if (!url) return;
-
-
-        const current =
-          window.siteData.buttons ||
-          [];
-
-
-        current.push({
-
-          id:
-            "button-" +
-            Date.now(),
-
-          label,
-
-          url,
-
-          visible: true,
-
-          order:
-            current.length + 1
-
-        });
-
-
-        await saveButtons(
-          current
-        );
-
-      }
-    );
-
-  }
-
-
-  // ========================================
-  // HELPERS
-  // ========================================
-
-  function getValue(id) {
-
-    const el =
-      document.getElementById(id);
-
-    return el
-      ? el.value.trim()
-      : "";
-
-  }
-
-
-  function setValue(id, value) {
-
-    const el =
-      document.getElementById(id);
-
-    if (el) {
-      el.value =
-        value || "";
-    }
-
-  }
-
-
-  function escapeHTML(value) {
-
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-
-  }
-
-});
+checkSession();
