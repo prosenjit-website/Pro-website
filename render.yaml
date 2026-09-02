@@ -1,18 +1,24 @@
 services:
   - type: web
-    name: prosenjit-premium
+    name: prosenjit-ultra-pro-max
     runtime: node
     plan: free
+
     buildCommand: npm install
     startCommand: npm start
+
     envVars:
       - key: NODE_ENV
         value: production
+
       - key: DATABASE_URL
         sync: false
+
       - key: ADMIN_USERNAME
         sync: false
+
       - key: ADMIN_PASSWORD
         sync: false
+
       - key: SESSION_SECRET
         sync: false
