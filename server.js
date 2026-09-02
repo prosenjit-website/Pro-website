@@ -26,19 +26,24 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "prosenjit-secret-change-this",
+    secret:
+      process.env.SESSION_SECRET ||
+      "prosenjit-change-this-secret",
+
     resave: false,
+
     saveUninitialized: false,
+
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60 * 24
+      maxAge: 24 * 60 * 60 * 1000
     }
   })
 );
 
 // =====================================================
-// DATABASE INITIALIZATION
+// DATABASE SETUP
 // =====================================================
 
 async function initDatabase() {
@@ -66,13 +71,17 @@ async function initDatabase() {
     );
 
     if (result.rows.length === 0) {
-      const defaultData = {
+      const data = {
         name: "Prosenjit Ray",
-        college: "Dinajpur Government College",
-        education: "Honours 1st Year",
+
+        college:
+          "Dinajpur Government College",
+
+        education:
+          "Honours 1st Year",
 
         about:
-          "I am Prosenjit Ray, an Honours 1st Year student at Dinajpur Government College. Welcome to my personal space on the web.",
+          "I am Prosenjit Ray, an Honours 1st Year student at Dinajpur Government College. I believe every chapter of life deserves to be remembered.",
 
         skills: [
           "Creative Thinking",
@@ -91,33 +100,49 @@ async function initDatabase() {
       };
 
       await pool.query(
-        `
-        INSERT INTO site_content (id, data)
-        VALUES (1, $1)
-        `,
-        [JSON.stringify(defaultData)]
+        "INSERT INTO site_content (id, data) VALUES (1, $1)",
+        [JSON.stringify(data)]
       );
     }
 
-    console.log("Database ready.");
+    console.log("Database initialized successfully.");
+
   } catch (error) {
-    console.error("Database error:", error.message);
+    console.error(
+      "Database initialization error:",
+      error.message
+    );
   }
 }
 
 // =====================================================
-// IMPORTANT
-// =====================================================
-// We DO NOT use index.html for "/".
-// This prevents the Admin Panel index.html problem.
+// HELPER
 // =====================================================
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 // =====================================================
-// PUBLIC WEBSITE
+// STATIC FILES
 // =====================================================
 
-app.get("/", (req, res) => {
+app.use(
+  express.static(__dirname, {
+    index: false
+  })
+);
+
+// =====================================================
+// PUBLIC HOME
+// =====================================================
+
+app.get("/", async (req, res) => {
   res.send(`
 <!DOCTYPE html>
 <html lang="en">
@@ -127,538 +152,658 @@ app.get("/", (req, res) => {
 <meta charset="UTF-8">
 
 <meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0"
+name="viewport"
+content="width=device-width, initial-scale=1.0"
 >
 
 <title>Prosenjit Ray</title>
 
 <meta
-  name="description"
-  content="Official personal website of Prosenjit Ray"
+name="description"
+content="Personal website of Prosenjit Ray"
 />
 
 <style>
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
 }
 
-html {
-  scroll-behavior: smooth;
+html{
+scroll-behavior:smooth;
 }
 
-body {
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+body{
 
-  background:
-    radial-gradient(
-      circle at 20% 10%,
-      rgba(90, 110, 255, .15),
-      transparent 35%
-    ),
-    radial-gradient(
-      circle at 80% 30%,
-      rgba(0, 220, 255, .08),
-      transparent 35%
-    ),
-    #05070b;
+font-family:
+Inter,
+system-ui,
+-apple-system,
+BlinkMacSystemFont,
+"Segoe UI",
+sans-serif;
 
-  color: #fff;
+background:
+radial-gradient(
+circle at 15% 10%,
+rgba(93,111,255,.18),
+transparent 35%
+),
 
-  min-height: 100vh;
+radial-gradient(
+circle at 85% 30%,
+rgba(0,210,255,.10),
+transparent 35%
+),
+
+#05070b;
+
+color:#fff;
+
+min-height:100vh;
+
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+a{
+text-decoration:none;
+color:inherit;
 }
 
-.container {
-  width: min(1120px, 92%);
-  margin: auto;
-}
+.container{
 
+width:min(1120px,92%);
+margin:auto;
 
-/* NAVIGATION */
-
-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-
-  z-index: 1000;
-
-  background: rgba(5, 7, 11, .72);
-
-  backdrop-filter: blur(18px);
-
-  border-bottom:
-    1px solid rgba(255,255,255,.08);
-}
-
-.nav-inner {
-  height: 72px;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo {
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -.5px;
-}
-
-.logo span {
-  opacity: .45;
-}
-
-.nav-links {
-  display: flex;
-  gap: 28px;
-}
-
-.nav-links a {
-  font-size: 14px;
-  opacity: .72;
-  transition: .25s;
-}
-
-.nav-links a:hover {
-  opacity: 1;
 }
 
 
-/* MOBILE MENU */
+/* NAV */
 
-.menu {
-  display: none;
+nav{
 
-  width: 42px;
-  height: 42px;
+position:fixed;
 
-  border: 1px solid rgba(255,255,255,.12);
+top:0;
+left:0;
+right:0;
 
-  background: rgba(255,255,255,.06);
+z-index:1000;
 
-  border-radius: 12px;
+background:
+rgba(5,7,11,.72);
 
-  color: white;
+backdrop-filter:blur(18px);
 
-  font-size: 22px;
+border-bottom:
+1px solid rgba(255,255,255,.08);
 
-  cursor: pointer;
 }
 
-.mobile-menu {
-  display: none;
+.nav-inner{
 
-  padding: 15px 0 20px;
+height:72px;
+
+display:flex;
+
+align-items:center;
+
+justify-content:space-between;
+
 }
 
-.mobile-menu a {
-  display: block;
+.logo{
 
-  padding: 13px 0;
+font-size:21px;
 
-  border-bottom:
-    1px solid rgba(255,255,255,.07);
+font-weight:800;
 
-  opacity: .8;
+letter-spacing:-.5px;
+
+}
+
+.logo span{
+opacity:.35;
+}
+
+.nav-links{
+
+display:flex;
+
+gap:28px;
+
+}
+
+.nav-links a{
+
+font-size:14px;
+
+opacity:.65;
+
+transition:.25s;
+
+}
+
+.nav-links a:hover{
+opacity:1;
+}
+
+.menu{
+
+display:none;
+
+width:43px;
+
+height:43px;
+
+border-radius:13px;
+
+border:
+1px solid rgba(255,255,255,.12);
+
+background:
+rgba(255,255,255,.06);
+
+color:#fff;
+
+font-size:23px;
+
+cursor:pointer;
+
+}
+
+.mobile-menu{
+
+display:none;
+
+padding:10px 0 20px;
+
+}
+
+.mobile-menu a{
+
+display:block;
+
+padding:14px 0;
+
+border-bottom:
+1px solid rgba(255,255,255,.07);
+
+opacity:.75;
+
 }
 
 
 /* HERO */
 
-.hero {
-  min-height: 100vh;
+.hero{
 
-  display: flex;
-  align-items: center;
+min-height:100vh;
 
-  padding-top: 72px;
+display:flex;
+
+align-items:center;
+
+padding-top:72px;
+
 }
 
-.hero-grid {
-  display: grid;
+.hero-grid{
 
-  grid-template-columns:
-    1.15fr .85fr;
+display:grid;
 
-  gap: 70px;
+grid-template-columns:
+1.15fr .85fr;
 
-  align-items: center;
+gap:70px;
+
+align-items:center;
+
 }
 
-.badge {
-  display: inline-flex;
+.badge{
 
-  padding: 8px 13px;
+display:inline-block;
 
-  border:
-    1px solid rgba(255,255,255,.1);
+padding:8px 13px;
 
-  background:
-    rgba(255,255,255,.05);
+border-radius:50px;
 
-  border-radius: 100px;
+border:
+1px solid rgba(255,255,255,.1);
 
-  font-size: 12px;
+background:
+rgba(255,255,255,.05);
 
-  margin-bottom: 22px;
+font-size:11px;
 
-  opacity: .8;
+letter-spacing:2px;
+
+opacity:.7;
+
+margin-bottom:22px;
+
 }
 
-h1 {
-  font-size: clamp(48px, 8vw, 88px);
+h1{
 
-  line-height: .94;
+font-size:
+clamp(50px,8vw,88px);
 
-  letter-spacing: -5px;
+line-height:.94;
 
-  margin-bottom: 25px;
+letter-spacing:-5px;
+
+margin-bottom:25px;
+
 }
 
-.gradient {
-  background:
-    linear-gradient(
-      110deg,
-      #ffffff,
-      #a8b4ff,
-      #7cecff
-    );
+.gradient{
 
-  -webkit-background-clip: text;
-  background-clip: text;
+background:
+linear-gradient(
+110deg,
+#fff,
+#aab5ff,
+#78eaff
+);
 
-  color: transparent;
+-webkit-background-clip:text;
+
+background-clip:text;
+
+color:transparent;
+
 }
 
-.hero p {
-  max-width: 570px;
+.hero-description{
 
-  color: rgba(255,255,255,.58);
+max-width:580px;
 
-  font-size: 17px;
+font-size:17px;
 
-  line-height: 1.8;
+line-height:1.8;
 
-  margin-bottom: 30px;
+color:
+rgba(255,255,255,.55);
+
+margin-bottom:30px;
+
 }
 
-.buttons {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+.buttons{
+
+display:flex;
+
+gap:12px;
+
+flex-wrap:wrap;
+
 }
 
-.btn {
-  padding: 14px 21px;
+.btn{
 
-  border-radius: 13px;
+padding:14px 21px;
 
-  border:
-    1px solid rgba(255,255,255,.12);
+border-radius:13px;
 
-  background:
-    rgba(255,255,255,.07);
+border:
+1px solid rgba(255,255,255,.12);
 
-  transition: .25s;
+background:
+rgba(255,255,255,.06);
 
-  font-size: 14px;
+font-size:14px;
+
+transition:.25s;
+
 }
 
-.btn:hover {
-  transform: translateY(-3px);
+.btn:hover{
 
-  background:
-    rgba(255,255,255,.12);
+transform:translateY(-3px);
+
+background:
+rgba(255,255,255,.12);
+
 }
 
-.btn-primary {
-  background: white;
-  color: black;
-  font-weight: 700;
+.btn-primary{
+
+background:#fff;
+
+color:#000;
+
+font-weight:700;
+
 }
 
 
 /* HERO CARD */
 
-.hero-card {
-  position: relative;
+.hero-card{
 
-  min-height: 430px;
+min-height:430px;
 
-  border:
-    1px solid rgba(255,255,255,.1);
+border-radius:32px;
 
-  border-radius: 32px;
+border:
+1px solid rgba(255,255,255,.1);
 
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255,255,255,.09),
-      rgba(255,255,255,.025)
-    );
+background:
+linear-gradient(
+145deg,
+rgba(255,255,255,.09),
+rgba(255,255,255,.025)
+);
 
-  box-shadow:
-    0 40px 100px rgba(0,0,0,.4);
+display:flex;
 
-  overflow: hidden;
+align-items:center;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+justify-content:center;
+
+position:relative;
+
+overflow:hidden;
+
+box-shadow:
+0 40px 100px rgba(0,0,0,.4);
+
 }
 
-.hero-card::before {
-  content: "";
+.hero-card:before{
 
-  position: absolute;
+content:"";
 
-  width: 220px;
-  height: 220px;
+position:absolute;
 
-  border-radius: 50%;
+width:220px;
 
-  background:
-    rgba(120, 140, 255, .18);
+height:220px;
 
-  filter: blur(50px);
+border-radius:50%;
+
+background:
+rgba(120,140,255,.18);
+
+filter:blur(55px);
+
 }
 
-.avatar {
-  position: relative;
+.avatar{
 
-  width: 190px;
-  height: 190px;
+position:relative;
 
-  border-radius: 50%;
+width:190px;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+height:190px;
 
-  font-size: 70px;
+border-radius:50%;
 
-  font-weight: 900;
+display:flex;
 
-  background:
-    linear-gradient(
-      145deg,
-      #1b2235,
-      #0b0e17
-    );
+align-items:center;
 
-  border:
-    1px solid rgba(255,255,255,.14);
+justify-content:center;
 
-  box-shadow:
-    0 25px 80px rgba(0,0,0,.55);
+font-size:65px;
+
+font-weight:900;
+
+background:
+linear-gradient(
+145deg,
+#1c2438,
+#090c14
+);
+
+border:
+1px solid rgba(255,255,255,.14);
+
+box-shadow:
+0 30px 80px rgba(0,0,0,.55);
+
 }
 
 
-/* SECTIONS */
+/* SECTION */
 
-section {
-  padding: 110px 0;
+section{
+padding:110px 0;
 }
 
-.section-label {
-  text-transform: uppercase;
+.section-label{
 
-  letter-spacing: 3px;
+font-size:11px;
 
-  font-size: 11px;
+letter-spacing:3px;
 
-  opacity: .4;
+text-transform:uppercase;
 
-  margin-bottom: 15px;
+opacity:.4;
+
+margin-bottom:14px;
+
 }
 
-.section-title {
-  font-size: clamp(34px, 5vw, 55px);
+.section-title{
 
-  letter-spacing: -2px;
+font-size:
+clamp(35px,5vw,55px);
 
-  margin-bottom: 40px;
+letter-spacing:-2px;
+
+margin-bottom:40px;
+
 }
 
 
 /* CARDS */
 
-.cards {
-  display: grid;
+.cards{
 
-  grid-template-columns:
-    repeat(3, 1fr);
+display:grid;
 
-  gap: 18px;
+grid-template-columns:
+repeat(3,1fr);
+
+gap:18px;
+
 }
 
-.card {
-  padding: 28px;
+.card{
 
-  border:
-    1px solid rgba(255,255,255,.09);
+padding:28px;
 
-  border-radius: 22px;
+border-radius:22px;
 
-  background:
-    rgba(255,255,255,.035);
+border:
+1px solid rgba(255,255,255,.09);
 
-  transition: .3s;
+background:
+rgba(255,255,255,.035);
+
+transition:.3s;
+
 }
 
-.card:hover {
-  transform: translateY(-6px);
+.card:hover{
 
-  background:
-    rgba(255,255,255,.055);
+transform:translateY(-6px);
+
+background:
+rgba(255,255,255,.055);
+
 }
 
-.card h3 {
-  margin-bottom: 12px;
+.card h3{
 
-  font-size: 19px;
+font-size:19px;
+
+margin-bottom:12px;
+
 }
 
-.card p {
-  color: rgba(255,255,255,.55);
+.card p{
 
-  line-height: 1.7;
+font-size:14px;
 
-  font-size: 14px;
+line-height:1.75;
+
+color:
+rgba(255,255,255,.55);
+
 }
 
 
 /* DIARY */
 
-.diary-list {
-  display: grid;
-  gap: 15px;
+.diary-list{
+
+display:grid;
+
+gap:15px;
+
 }
 
-.diary-item {
-  padding: 25px;
+.diary-item{
 
-  border-left:
-    2px solid rgba(255,255,255,.2);
+padding:25px;
 
-  background:
-    rgba(255,255,255,.035);
+border-left:
+2px solid rgba(255,255,255,.25);
 
-  border-radius: 0 18px 18px 0;
+border-radius:
+0 18px 18px 0;
+
+background:
+rgba(255,255,255,.035);
+
 }
 
-.diary-date {
-  font-size: 11px;
+.diary-date{
 
-  text-transform: uppercase;
+font-size:11px;
 
-  letter-spacing: 2px;
+letter-spacing:2px;
 
-  opacity: .4;
+text-transform:uppercase;
 
-  margin-bottom: 8px;
+opacity:.4;
+
+margin-bottom:8px;
+
 }
 
-.diary-item h3 {
-  margin-bottom: 8px;
+.diary-item h3{
+
+margin-bottom:8px;
+
 }
 
-.diary-item p {
-  color: rgba(255,255,255,.58);
+.diary-item p{
 
-  line-height: 1.7;
+line-height:1.75;
+
+color:
+rgba(255,255,255,.55);
+
 }
 
 
 /* FOOTER */
 
-footer {
-  padding: 45px 0;
+footer{
 
-  border-top:
-    1px solid rgba(255,255,255,.07);
+padding:45px 0;
 
-  color: rgba(255,255,255,.4);
+border-top:
+1px solid rgba(255,255,255,.07);
 
-  font-size: 13px;
+text-align:center;
 
-  text-align: center;
+font-size:13px;
+
+color:
+rgba(255,255,255,.35);
+
 }
 
 
-/* RESPONSIVE */
+/* MOBILE */
 
-@media(max-width: 800px) {
+@media(max-width:800px){
 
-  .nav-links {
-    display: none;
-  }
+.nav-links{
+display:none;
+}
 
-  .menu {
-    display: block;
-  }
+.menu{
+display:block;
+}
 
-  .mobile-menu.open {
-    display: block;
-  }
+.mobile-menu.open{
+display:block;
+}
 
-  .hero {
-    min-height: auto;
+.hero{
 
-    padding-top: 140px;
+padding-top:140px;
 
-    padding-bottom: 80px;
-  }
+padding-bottom:70px;
 
-  .hero-grid {
-    grid-template-columns: 1fr;
+}
 
-    gap: 45px;
-  }
+.hero-grid{
 
-  h1 {
-    letter-spacing: -3px;
-  }
+grid-template-columns:1fr;
 
-  .hero-card {
-    min-height: 330px;
-  }
+gap:45px;
 
-  .avatar {
-    width: 150px;
-    height: 150px;
+}
 
-    font-size: 55px;
-  }
+h1{
 
-  .cards {
-    grid-template-columns: 1fr;
-  }
+letter-spacing:-3px;
 
-  section {
-    padding: 80px 0;
-  }
+}
+
+.hero-card{
+
+min-height:330px;
+
+}
+
+.avatar{
+
+width:150px;
+
+height:150px;
+
+font-size:52px;
+
+}
+
+.cards{
+
+grid-template-columns:1fr;
+
+}
+
+section{
+
+padding:80px 0;
+
+}
+
 }
 
 </style>
 
 </head>
+
 
 <body>
 
@@ -669,40 +814,51 @@ footer {
 
 <div class="nav-inner">
 
-<a class="logo" href="/">
+<a href="/" class="logo">
 Prosenjit<span>.</span>
 </a>
 
 <div class="nav-links">
 
 <a href="/">Home</a>
+
 <a href="/about.html">About</a>
+
 <a href="/education.html">Education</a>
+
 <a href="/diary.html">Diary</a>
+
 <a href="/projects.html">Projects</a>
+
 <a href="/contact.html">Contact</a>
 
 </div>
 
 <button
-  class="menu"
-  onclick="toggleMenu()"
+class="menu"
+onclick="toggleMenu()"
 >
 ⋮
 </button>
 
 </div>
 
+
 <div
-  id="mobileMenu"
-  class="mobile-menu"
+id="mobileMenu"
+class="mobile-menu"
 >
 
 <a href="/">Home</a>
+
 <a href="/about.html">About</a>
+
 <a href="/education.html">Education</a>
+
 <a href="/diary.html">Diary</a>
+
 <a href="/projects.html">Projects</a>
+
 <a href="/contact.html">Contact</a>
 
 </div>
@@ -710,9 +866,6 @@ Prosenjit<span>.</span>
 </div>
 
 </nav>
-
-
-<main>
 
 
 <section class="hero">
@@ -729,30 +882,41 @@ PERSONAL SPACE · 2026
 </div>
 
 <h1>
+
 Hello, I'm
+
 <br>
-<span class="gradient" id="heroName">
+
+<span
+class="gradient"
+id="name"
+>
 Prosenjit Ray
 </span>
+
 </h1>
 
-<p id="heroAbout">
+<p
+class="hero-description"
+id="about"
+>
 A student, dreamer and someone who believes
-that every chapter of life deserves to be remembered.
+every chapter of life deserves to be remembered.
 </p>
+
 
 <div class="buttons">
 
 <a
-  class="btn btn-primary"
-  href="/about.html"
+href="/about.html"
+class="btn btn-primary"
 >
 Explore Me
 </a>
 
 <a
-  class="btn"
-  href="/contact.html"
+href="/contact.html"
+class="btn"
 >
 Contact
 </a>
@@ -765,8 +929,8 @@ Contact
 <div class="hero-card">
 
 <div
-  class="avatar"
-  id="avatar"
+class="avatar"
+id="avatar"
 >
 PR
 </div>
@@ -781,7 +945,6 @@ PR
 </section>
 
 
-
 <section>
 
 <div class="container">
@@ -794,6 +957,7 @@ WHO I AM
 A little about me.
 </h2>
 
+
 <div class="cards">
 
 
@@ -803,7 +967,7 @@ A little about me.
 About
 </h3>
 
-<p id="aboutText">
+<p id="aboutCard">
 Loading...
 </p>
 
@@ -816,7 +980,7 @@ Loading...
 Education
 </h3>
 
-<p id="educationText">
+<p id="education">
 Dinajpur Government College · Honours 1st Year
 </p>
 
@@ -829,7 +993,7 @@ Dinajpur Government College · Honours 1st Year
 Skills
 </h3>
 
-<p id="skillsText">
+<p id="skills">
 Creative Thinking · Web Design · Communication
 </p>
 
@@ -841,7 +1005,6 @@ Creative Thinking · Web Design · Communication
 </div>
 
 </section>
-
 
 
 <section>
@@ -857,8 +1020,8 @@ My Diary.
 </h2>
 
 <div
-  id="diaryList"
-  class="diary-list"
+id="diary"
+class="diary-list"
 >
 
 <div class="diary-item">
@@ -872,8 +1035,8 @@ Every chapter matters.
 </h3>
 
 <p>
-This is where my thoughts, memories
-and life chapters will live.
+My thoughts, memories and life chapters
+will live here.
 </p>
 
 </div>
@@ -885,9 +1048,6 @@ and life chapters will live.
 </section>
 
 
-</main>
-
-
 <footer>
 
 © 2026 Prosenjit Ray · All rights reserved.
@@ -897,141 +1057,155 @@ and life chapters will live.
 
 <script>
 
-function toggleMenu() {
+function toggleMenu(){
 
-  const menu =
-    document.getElementById("mobileMenu");
+const menu =
+document.getElementById("mobileMenu");
 
-  menu.classList.toggle("open");
-
-}
-
-
-async function loadSite() {
-
-  try {
-
-    const response =
-      await fetch("/api/site");
-
-    const data =
-      await response.json();
-
-    if (data.name) {
-
-      document.getElementById("heroName")
-        .textContent = data.name;
-
-      document.title = data.name;
-
-      const initials =
-        data.name
-          .split(" ")
-          .map(x => x[0])
-          .join("")
-          .slice(0,2)
-          .toUpperCase();
-
-      document.getElementById("avatar")
-        .textContent = initials;
-
-    }
-
-    if (data.about) {
-
-      document.getElementById("heroAbout")
-        .textContent = data.about;
-
-      document.getElementById("aboutText")
-        .textContent = data.about;
-
-    }
-
-    if (data.education || data.college) {
-
-      document.getElementById("educationText")
-        .textContent =
-          (data.college || "") +
-          " · " +
-          (data.education || "");
-
-    }
-
-    if (Array.isArray(data.skills)) {
-
-      document.getElementById("skillsText")
-        .textContent =
-          data.skills.join(" · ");
-
-    }
-
-  } catch (error) {
-
-    console.log(error);
-
-  }
+menu.classList.toggle("open");
 
 }
 
 
-async function loadDiary() {
+function safeText(value){
 
-  try {
-
-    const response =
-      await fetch("/api/diary");
-
-    const diary =
-      await response.json();
-
-    const container =
-      document.getElementById("diaryList");
-
-    if (!diary.length) return;
-
-    container.innerHTML =
-      diary.map(item => `
-
-        <div class="diary-item">
-
-          <div class="diary-date">
-            ${escapeHtml(item.date || "")}
-          </div>
-
-          <h3>
-            ${escapeHtml(item.title)}
-          </h3>
-
-          <p>
-            ${escapeHtml(item.content)}
-          </p>
-
-        </div>
-
-      `).join("");
-
-  } catch (error) {
-
-    console.log(error);
-
-  }
+return String(value || "")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
 
 }
 
 
-function escapeHtml(text) {
+async function loadSite(){
 
-  return String(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+try{
+
+const response =
+await fetch("/api/site");
+
+const data =
+await response.json();
+
+
+if(data.name){
+
+document.getElementById("name")
+.textContent = data.name;
+
+const initials =
+data.name
+.split(" ")
+.map(function(x){
+return x.charAt(0);
+})
+.join("")
+.substring(0,2)
+.toUpperCase();
+
+document.getElementById("avatar")
+.textContent = initials;
+
+document.title =
+data.name;
+
+}
+
+
+if(data.about){
+
+document.getElementById("about")
+.textContent =
+data.about;
+
+document.getElementById("aboutCard")
+.textContent =
+data.about;
+
+}
+
+
+if(data.college || data.education){
+
+document.getElementById("education")
+.textContent =
+(data.college || "") +
+" · " +
+(data.education || "");
+
+}
+
+
+if(Array.isArray(data.skills)){
+
+document.getElementById("skills")
+.textContent =
+data.skills.join(" · ");
+
+}
+
+}catch(error){
+
+console.log(error);
+
+}
+
+}
+
+
+async function loadDiary(){
+
+try{
+
+const response =
+await fetch("/api/diary");
+
+const items =
+await response.json();
+
+if(!items.length){
+return;
+}
+
+const container =
+document.getElementById("diary");
+
+container.innerHTML =
+items.map(function(item){
+
+return (
+'<div class="diary-item">' +
+
+'<div class="diary-date">' +
+safeText(item.date || "") +
+'</div>' +
+
+'<h3>' +
+safeText(item.title) +
+'</h3>' +
+
+'<p>' +
+safeText(item.content) +
+'</p>' +
+
+'</div>'
+);
+
+}).join("");
+
+}catch(error){
+
+console.log(error);
+
+}
 
 }
 
 
 loadSite();
+
 loadDiary();
 
 </script>
@@ -1042,7 +1216,6 @@ loadDiary();
 </html>
   `);
 });
-
 
 // =====================================================
 // PUBLIC API
@@ -1057,7 +1230,9 @@ app.get("/api/site", async (req, res) => {
     );
 
     res.json(
-      result.rows[0]?.data || {}
+      result.rows[0]
+        ? result.rows[0].data
+        : {}
     );
 
   } catch (error) {
@@ -1065,7 +1240,7 @@ app.get("/api/site", async (req, res) => {
     console.error(error);
 
     res.status(500).json({
-      error: "Unable to load site"
+      error: "Failed to load site"
     });
 
   }
@@ -1091,16 +1266,15 @@ app.get("/api/diary", async (req, res) => {
     console.error(error);
 
     res.status(500).json({
-      error: "Unable to load diary"
+      error: "Failed to load diary"
     });
 
   }
 
 });
 
-
 // =====================================================
-// ADMIN AUTH
+// ADMIN AUTH MIDDLEWARE
 // =====================================================
 
 function requireAdmin(req, res, next) {
@@ -1117,28 +1291,28 @@ function requireAdmin(req, res, next) {
 
 }
 
-
 // =====================================================
-// ADMIN LOGIN
+// ADMIN LOGIN API
 // =====================================================
 
 app.post("/api/admin/login", async (req, res) => {
 
-  const {
-    username,
-    password
-  } = req.body;
+  const username =
+    req.body.username || "";
 
-  const adminUsername =
+  const password =
+    req.body.password || "";
+
+  const correctUsername =
     process.env.ADMIN_USERNAME || "admin";
 
-  const adminPassword =
+  const correctPassword =
     process.env.ADMIN_PASSWORD || "admin123";
 
 
   if (
-    username !== adminUsername ||
-    password !== adminPassword
+    username !== correctUsername ||
+    password !== correctPassword
   ) {
 
     return res.status(401).json({
@@ -1151,12 +1325,28 @@ app.post("/api/admin/login", async (req, res) => {
 
   req.session.admin = true;
 
+
   res.json({
     success: true
   });
 
 });
 
+// =====================================================
+// ADMIN LOGOUT
+// =====================================================
+
+app.post("/api/admin/logout", (req, res) => {
+
+  req.session.destroy(function() {
+
+    res.json({
+      success: true
+    });
+
+  });
+
+});
 
 // =====================================================
 // ADMIN PAGE
@@ -1166,7 +1356,7 @@ app.get("/admin", (req, res) => {
 
   if (!req.session.admin) {
 
-    return res.send(`
+    res.send(`
 <!DOCTYPE html>
 
 <html>
@@ -1184,122 +1374,119 @@ content="width=device-width, initial-scale=1.0"
 
 <style>
 
-* {
-  box-sizing: border-box;
+*{
+box-sizing:border-box;
 }
 
-body {
+body{
 
-  margin: 0;
+margin:0;
 
-  min-height: 100vh;
+min-height:100vh;
 
-  display: flex;
+display:flex;
 
-  align-items: center;
+align-items:center;
 
-  justify-content: center;
+justify-content:center;
 
-  background:
-    radial-gradient(
-      circle at top,
-      #182033,
-      #05070b 65%
-    );
+font-family:Arial,sans-serif;
 
-  color: white;
+color:#fff;
 
-  font-family:
-    Arial,
-    sans-serif;
-
-}
-
-.login {
-
-  width: 90%;
-
-  max-width: 400px;
-
-  padding: 35px 28px;
-
-  border-radius: 25px;
-
-  background:
-    rgba(255,255,255,.06);
-
-  border:
-    1px solid rgba(255,255,255,.12);
-
-  backdrop-filter:
-    blur(20px);
-
-  box-shadow:
-    0 30px 80px rgba(0,0,0,.5);
+background:
+radial-gradient(
+circle at top,
+#1b263d,
+#05070b 65%
+);
 
 }
 
-.login h1 {
+.login{
 
-  margin: 0 0 8px;
+width:90%;
 
-}
+max-width:400px;
 
-.login p {
+padding:35px 28px;
 
-  opacity: .5;
+border-radius:25px;
 
-  margin-bottom: 28px;
+background:
+rgba(255,255,255,.06);
 
-}
+border:
+1px solid rgba(255,255,255,.12);
 
-input {
+backdrop-filter:blur(20px);
 
-  width: 100%;
-
-  padding: 15px;
-
-  margin-bottom: 15px;
-
-  border-radius: 12px;
-
-  border:
-    1px solid rgba(255,255,255,.12);
-
-  background:
-    rgba(0,0,0,.25);
-
-  color: white;
-
-  outline: none;
+box-shadow:
+0 30px 80px rgba(0,0,0,.5);
 
 }
 
-button {
+.login h1{
 
-  width: 100%;
-
-  padding: 15px;
-
-  border: none;
-
-  border-radius: 12px;
-
-  background: white;
-
-  color: black;
-
-  font-weight: bold;
-
-  cursor: pointer;
+margin:0 0 8px;
 
 }
 
-#error {
+.login p{
 
-  color: #ff7777;
+opacity:.5;
 
-  margin-top: 15px;
+margin-bottom:28px;
+
+}
+
+input{
+
+width:100%;
+
+padding:15px;
+
+margin-bottom:15px;
+
+border-radius:12px;
+
+border:
+1px solid rgba(255,255,255,.12);
+
+background:
+rgba(0,0,0,.3);
+
+color:#fff;
+
+outline:none;
+
+}
+
+button{
+
+width:100%;
+
+padding:15px;
+
+border:none;
+
+border-radius:12px;
+
+background:#fff;
+
+color:#000;
+
+font-weight:bold;
+
+cursor:pointer;
+
+}
+
+#error{
+
+color:#ff7777;
+
+margin-top:15px;
 
 }
 
@@ -1308,6 +1495,7 @@ button {
 </head>
 
 <body>
+
 
 <div class="login">
 
@@ -1318,6 +1506,7 @@ Prosenjit Ray
 <p>
 Private Admin Panel
 </p>
+
 
 <form onsubmit="login(event)">
 
@@ -1340,6 +1529,7 @@ Login
 
 </form>
 
+
 <div id="error"></div>
 
 </div>
@@ -1347,50 +1537,60 @@ Login
 
 <script>
 
-async function login(e) {
+async function login(event){
 
-  e.preventDefault();
+event.preventDefault();
 
-  const username =
-    document.getElementById("username").value;
+const username =
+document.getElementById("username").value;
 
-  const password =
-    document.getElementById("password").value;
-
-
-  const response =
-    await fetch("/api/admin/login", {
-
-      method: "POST",
-
-      headers: {
-        "Content-Type":
-          "application/json"
-      },
-
-      body: JSON.stringify({
-        username,
-        password
-      })
-
-    });
+const password =
+document.getElementById("password").value;
 
 
-  const data =
-    await response.json();
+try{
+
+const response =
+await fetch("/api/admin/login",{
+
+method:"POST",
+
+headers:{
+"Content-Type":
+"application/json"
+},
+
+body:JSON.stringify({
+username:username,
+password:password
+})
+
+});
 
 
-  if (data.success) {
+const data =
+await response.json();
 
-    location.href = "/admin";
 
-  } else {
+if(data.success){
 
-    document.getElementById("error")
-      .textContent =
-      data.error || "Login failed";
+location.href="/admin";
 
-  }
+}else{
+
+document.getElementById("error")
+.textContent =
+data.error || "Login failed";
+
+}
+
+}catch(error){
+
+document.getElementById("error")
+.textContent =
+"Server error";
+
+}
 
 }
 
@@ -1401,12 +1601,9 @@ async function login(e) {
 </html>
     `);
 
+    return;
   }
 
-
-  // ===================================================
-  // LOGGED IN ADMIN DASHBOARD
-  // ===================================================
 
   res.send(`
 <!DOCTYPE html>
@@ -1422,194 +1619,207 @@ name="viewport"
 content="width=device-width, initial-scale=1.0"
 >
 
-<title>Admin Panel</title>
+<title>Prosenjit Admin Panel</title>
 
 <style>
 
-* {
-  box-sizing: border-box;
+*{
+box-sizing:border-box;
 }
 
-body {
+body{
 
-  margin: 0;
+margin:0;
 
-  background: #06080d;
+background:#06080d;
 
-  color: white;
+color:#fff;
 
-  font-family:
-    Arial,
-    sans-serif;
-
-}
-
-.container {
-
-  width: 92%;
-
-  max-width: 1000px;
-
-  margin: auto;
-
-  padding: 35px 0 80px;
+font-family:
+Arial,
+sans-serif;
 
 }
 
-.header {
+.container{
 
-  display: flex;
+width:92%;
 
-  align-items: center;
+max-width:1000px;
 
-  justify-content: space-between;
+margin:auto;
 
-  gap: 15px;
-
-  margin-bottom: 30px;
+padding:30px 0 80px;
 
 }
 
-.header h1 {
+.header{
 
-  margin: 0;
+display:flex;
 
-}
+justify-content:space-between;
 
-.header p {
+align-items:center;
 
-  opacity: .45;
+gap:15px;
 
-}
-
-.card {
-
-  background:
-    rgba(255,255,255,.045);
-
-  border:
-    1px solid rgba(255,255,255,.1);
-
-  border-radius: 20px;
-
-  padding: 25px;
-
-  margin-bottom: 18px;
+margin-bottom:25px;
 
 }
 
-label {
+.header h1{
 
-  display: block;
+margin:0;
 
-  margin-bottom: 8px;
+}
 
-  opacity: .65;
+.header p{
 
-  font-size: 13px;
+opacity:.45;
+
+}
+
+.card{
+
+padding:25px;
+
+margin-bottom:18px;
+
+border-radius:20px;
+
+background:
+rgba(255,255,255,.045);
+
+border:
+1px solid rgba(255,255,255,.1);
+
+}
+
+label{
+
+display:block;
+
+font-size:13px;
+
+opacity:.6;
+
+margin-bottom:8px;
 
 }
 
 input,
-textarea {
+textarea{
 
-  width: 100%;
+width:100%;
 
-  padding: 14px;
+padding:14px;
 
-  border-radius: 12px;
+margin-bottom:18px;
 
-  border:
-    1px solid rgba(255,255,255,.1);
+border-radius:12px;
 
-  background:
-    rgba(0,0,0,.3);
+border:
+1px solid rgba(255,255,255,.1);
 
-  color: white;
+background:
+rgba(0,0,0,.3);
 
-  outline: none;
+color:#fff;
 
-  margin-bottom: 18px;
-
-}
-
-textarea {
-
-  min-height: 130px;
-
-  resize: vertical;
+outline:none;
 
 }
 
-button {
+textarea{
 
-  padding: 13px 18px;
+min-height:130px;
 
-  border: none;
-
-  border-radius: 11px;
-
-  cursor: pointer;
-
-  font-weight: bold;
-
-  margin: 4px;
+resize:vertical;
 
 }
 
-.primary {
+button{
 
-  background: white;
+padding:13px 18px;
 
-  color: black;
+border:none;
 
-}
+border-radius:11px;
 
-.secondary {
+cursor:pointer;
 
-  background:
-    rgba(255,255,255,.08);
+font-weight:bold;
 
-  color: white;
-
-  border:
-    1px solid rgba(255,255,255,.1);
+margin:4px;
 
 }
 
-.danger {
+.primary{
 
-  background:
-    #8d2525;
+background:#fff;
 
-  color: white;
-
-}
-
-.diary {
-
-  border-top:
-    1px solid rgba(255,255,255,.1);
-
-  padding-top: 18px;
-
-  margin-top: 18px;
+color:#000;
 
 }
 
-.small {
+.secondary{
 
-  opacity: .45;
+background:
+rgba(255,255,255,.08);
 
-  font-size: 12px;
+color:#fff;
+
+border:
+1px solid rgba(255,255,255,.1);
 
 }
 
-#message {
+.danger{
 
-  margin-top: 15px;
+background:#8d2929;
 
-  color: #8cffae;
+color:#fff;
+
+}
+
+.diary{
+
+margin-top:18px;
+
+padding-top:18px;
+
+border-top:
+1px solid rgba(255,255,255,.1);
+
+}
+
+.small{
+
+font-size:12px;
+
+opacity:.4;
+
+margin:7px 0;
+
+}
+
+#message{
+
+margin-top:15px;
+
+color:#80ffad;
+
+}
+
+@media(max-width:600px){
+
+.header{
+
+align-items:flex-start;
+
+flex-direction:column;
+
+}
 
 }
 
@@ -1638,6 +1848,7 @@ Prosenjit Ray Website
 
 </div>
 
+
 <div>
 
 <button
@@ -1665,43 +1876,33 @@ Logout
 Site Content
 </h2>
 
-<br>
-
 
 <label>
 Name
 </label>
 
-<input
-id="name"
->
+<input id="name">
 
 
 <label>
 College
 </label>
 
-<input
-id="college"
->
+<input id="college">
 
 
 <label>
 Education
 </label>
 
-<input
-id="education"
->
+<input id="education">
 
 
 <label>
 About
 </label>
 
-<textarea
-id="about"
-></textarea>
+<textarea id="about"></textarea>
 
 
 <label>
@@ -1710,44 +1911,36 @@ Skills
 
 <input
 id="skills"
-placeholder="Example: Web Design, Coding, Communication"
+placeholder="Web Design, Coding, Communication"
 >
 
 
 <label>
-Facebook Link
+Facebook
 </label>
 
-<input
-id="facebook"
->
+<input id="facebook">
 
 
 <label>
-Instagram Link
+Instagram
 </label>
 
-<input
-id="instagram"
->
+<input id="instagram">
 
 
 <label>
-GitHub Link
+GitHub
 </label>
 
-<input
-id="github"
->
+<input id="github">
 
 
 <label>
 Email
 </label>
 
-<input
-id="email"
->
+<input id="email">
 
 
 <button
@@ -1763,14 +1956,11 @@ Save Changes
 </div>
 
 
-
 <div class="card">
 
 <h2>
 Diary
 </h2>
-
-<br>
 
 
 <label>
@@ -1779,7 +1969,7 @@ Title
 
 <input
 id="diaryTitle"
-placeholder="My first chapter"
+placeholder="My Life Chapter"
 >
 
 
@@ -1799,7 +1989,7 @@ Content
 
 <textarea
 id="diaryContent"
-placeholder="Write your life chapter..."
+placeholder="Write your diary..."
 ></textarea>
 
 
@@ -1822,287 +2012,376 @@ Add Diary
 <script>
 
 
-async function loadContent() {
+function escapeHtml(value){
 
-  const response =
-    await fetch("/api/admin/content");
+return String(value || "")
 
-  const data =
-    await response.json();
+.replace(/&/g,"&amp;")
 
+.replace(/</g,"&lt;")
 
-  document.getElementById("name").value =
-    data.name || "";
+.replace(/>/g,"&gt;")
 
-  document.getElementById("college").value =
-    data.college || "";
+.replace(/"/g,"&quot;")
 
-  document.getElementById("education").value =
-    data.education || "";
-
-  document.getElementById("about").value =
-    data.about || "";
-
-
-  document.getElementById("skills").value =
-    Array.isArray(data.skills)
-      ? data.skills.join(", ")
-      : "";
-
-
-  document.getElementById("facebook").value =
-    data.social?.facebook || "";
-
-  document.getElementById("instagram").value =
-    data.social?.instagram || "";
-
-  document.getElementById("github").value =
-    data.social?.github || "";
-
-  document.getElementById("email").value =
-    data.social?.email || "";
+.replace(/'/g,"&#039;");
 
 }
 
 
-async function saveContent() {
+async function loadContent(){
 
-  const data = {
+try{
 
-    name:
-      document.getElementById("name").value,
+const response =
+await fetch("/api/admin/content");
 
-    college:
-      document.getElementById("college").value,
+if(response.status===401){
 
-    education:
-      document.getElementById("education").value,
+location.href="/admin";
 
-    about:
-      document.getElementById("about").value,
+return;
 
-    skills:
-      document.getElementById("skills").value
-        .split(",")
-        .map(x => x.trim())
-        .filter(Boolean),
+}
 
-    social: {
-
-      facebook:
-        document.getElementById("facebook").value,
-
-      instagram:
-        document.getElementById("instagram").value,
-
-      github:
-        document.getElementById("github").value,
-
-      email:
-        document.getElementById("email").value
-
-    }
-
-  };
+const data =
+await response.json();
 
 
-  const response =
-    await fetch("/api/admin/content", {
+document.getElementById("name").value =
+data.name || "";
 
-      method: "PUT",
+document.getElementById("college").value =
+data.college || "";
 
-      headers: {
-        "Content-Type":
-          "application/json"
-      },
+document.getElementById("education").value =
+data.education || "";
 
-      body: JSON.stringify(data)
-
-    });
+document.getElementById("about").value =
+data.about || "";
 
 
-  const result =
-    await response.json();
+document.getElementById("skills").value =
+Array.isArray(data.skills)
+? data.skills.join(", ")
+: "";
 
 
-  if (result.success) {
+document.getElementById("facebook").value =
+data.social && data.social.facebook
+? data.social.facebook
+: "";
 
-    document.getElementById("message")
-      .textContent =
-      "✓ Saved successfully";
 
-  } else {
+document.getElementById("instagram").value =
+data.social && data.social.instagram
+? data.social.instagram
+: "";
 
-    document.getElementById("message")
-      .textContent =
-      result.error || "Save failed";
 
-  }
+document.getElementById("github").value =
+data.social && data.social.github
+? data.social.github
+: "";
+
+
+document.getElementById("email").value =
+data.social && data.social.email
+? data.social.email
+: "";
+
+
+}catch(error){
+
+console.log(error);
+
+}
 
 }
 
 
-async function loadDiary() {
+async function saveContent(){
 
-  const response =
-    await fetch("/api/admin/diary");
+const data={
 
-  const diary =
-    await response.json();
+name:
+document.getElementById("name").value,
+
+college:
+document.getElementById("college").value,
+
+education:
+document.getElementById("education").value,
+
+about:
+document.getElementById("about").value,
+
+skills:
+document.getElementById("skills").value
+.split(",")
+.map(function(x){
+return x.trim();
+})
+.filter(Boolean),
+
+social:{
+
+facebook:
+document.getElementById("facebook").value,
+
+instagram:
+document.getElementById("instagram").value,
+
+github:
+document.getElementById("github").value,
+
+email:
+document.getElementById("email").value
+
+}
+
+};
 
 
-  const container =
-    document.getElementById("diaryList");
+try{
+
+const response =
+await fetch(
+"/api/admin/content",
+{
+
+method:"PUT",
+
+headers:{
+"Content-Type":
+"application/json"
+},
+
+body:JSON.stringify(data)
+
+});
 
 
-  container.innerHTML =
-    diary.map(item => `
+const result =
+await response.json();
 
-      <div class="diary">
 
-        <h3>
-          ${escapeHtml(item.title)}
-        </h3>
+if(result.success){
 
-        <div class="small">
-          ${escapeHtml(item.date || "")}
-        </div>
+document.getElementById("message")
+.textContent =
+"✓ Saved successfully";
 
-        <p>
-          ${escapeHtml(item.content)}
-        </p>
+}else{
 
-        <button
-          class="danger"
-          onclick="deleteDiary(${item.id})"
-        >
-          Delete
-        </button>
+document.getElementById("message")
+.textContent =
+result.error || "Save failed";
 
-      </div>
+}
 
-    `).join("");
+}catch(error){
+
+document.getElementById("message")
+.textContent =
+"Server error";
+
+}
 
 }
 
 
-async function addDiary() {
+async function loadDiary(){
 
-  const title =
-    document.getElementById("diaryTitle").value;
+try{
 
-  const date =
-    document.getElementById("diaryDate").value;
+const response =
+await fetch("/api/admin/diary");
 
-  const content =
-    document.getElementById("diaryContent").value;
+if(response.status===401){
 
+location.href="/admin";
 
-  if (!title || !content) {
+return;
 
-    alert("Title and content required.");
+}
 
-    return;
-
-  }
+const items =
+await response.json();
 
 
-  const response =
-    await fetch("/api/admin/diary", {
-
-      method: "POST",
-
-      headers: {
-        "Content-Type":
-          "application/json"
-      },
-
-      body: JSON.stringify({
-
-        title,
-        date,
-        content,
-        visible: true
-
-      })
-
-    });
+const container =
+document.getElementById("diaryList");
 
 
-  const result =
-    await response.json();
+if(!items.length){
 
+container.innerHTML =
+"<p style='opacity:.4'>No diary yet.</p>";
 
-  if (result.success) {
-
-    document.getElementById("diaryTitle")
-      .value = "";
-
-    document.getElementById("diaryDate")
-      .value = "";
-
-    document.getElementById("diaryContent")
-      .value = "";
-
-    loadDiary();
-
-  }
+return;
 
 }
 
 
-async function deleteDiary(id) {
+container.innerHTML =
+items.map(function(item){
 
-  if (!confirm("Delete this diary?")) {
-    return;
-  }
+return (
+
+'<div class="diary">' +
+
+'<h3>' +
+escapeHtml(item.title) +
+'</h3>' +
+
+'<div class="small">' +
+escapeHtml(item.date || "") +
+'</div>' +
+
+'<p>' +
+escapeHtml(item.content) +
+'</p>' +
+
+'<button class="danger" onclick="deleteDiary(' +
+item.id +
+')">' +
+'Delete' +
+'</button>' +
+
+'</div>'
+
+);
+
+}).join("");
 
 
-  await fetch(
-    "/api/admin/diary/" + id,
-    {
-      method: "DELETE"
-    }
-  );
+}catch(error){
 
+console.log(error);
 
-  loadDiary();
+}
 
 }
 
 
-async function logout() {
+async function addDiary(){
 
-  await fetch(
-    "/api/admin/logout",
-    {
-      method: "POST"
-    }
-  );
+const title =
+document.getElementById("diaryTitle").value;
 
-  location.href = "/admin";
+const date =
+document.getElementById("diaryDate").value;
+
+const content =
+document.getElementById("diaryContent").value;
+
+
+if(!title || !content){
+
+alert("Title and content are required.");
+
+return;
 
 }
 
 
-function escapeHtml(text) {
+const response =
+await fetch(
+"/api/admin/diary",
+{
 
-  return String(text)
+method:"POST",
 
-    .replace(/&/g, "&amp;")
+headers:{
+"Content-Type":
+"application/json"
+},
 
-    .replace(/</g, "&lt;")
+body:JSON.stringify({
 
-    .replace(/>/g, "&gt;")
+title:title,
 
-    .replace(/"/g, "&quot;")
+date:date,
 
-    .replace(/'/g, "&#039;");
+content:content,
+
+visible:true
+
+})
+
+});
+
+
+const result =
+await response.json();
+
+
+if(result.success){
+
+document.getElementById("diaryTitle")
+.value="";
+
+document.getElementById("diaryDate")
+.value="";
+
+document.getElementById("diaryContent")
+.value="";
+
+loadDiary();
+
+}else{
+
+alert(
+result.error ||
+"Could not add diary"
+);
+
+}
+
+}
+
+
+async function deleteDiary(id){
+
+if(!confirm(
+"Are you sure you want to delete this diary?"
+)){
+
+return;
+
+}
+
+
+await fetch(
+"/api/admin/diary/" + id,
+{
+method:"DELETE"
+}
+);
+
+
+loadDiary();
+
+}
+
+
+async function logout(){
+
+await fetch(
+"/api/admin/logout",
+{
+method:"POST"
+}
+);
+
+location.href="/admin";
 
 }
 
 
 loadContent();
+
 loadDiary();
 
 </script>
@@ -2115,9 +2394,8 @@ loadDiary();
 
 });
 
-
 // =====================================================
-// ADMIN CONTENT API
+// ADMIN CONTENT
 // =====================================================
 
 app.get(
@@ -2127,13 +2405,14 @@ app.get(
 
     try {
 
-      const result =
-        await pool.query(
-          "SELECT data FROM site_content WHERE id = 1"
-        );
+      const result = await pool.query(
+        "SELECT data FROM site_content WHERE id = 1"
+      );
 
       res.json(
-        result.rows[0]?.data || {}
+        result.rows[0]
+          ? result.rows[0].data
+          : {}
       );
 
     } catch (error) {
@@ -2141,7 +2420,7 @@ app.get(
       console.error(error);
 
       res.status(500).json({
-        error: "Unable to load content"
+        error: "Failed to load content"
       });
 
     }
@@ -2149,9 +2428,8 @@ app.get(
   }
 );
 
-
 // =====================================================
-// UPDATE SITE CONTENT
+// UPDATE CONTENT
 // =====================================================
 
 app.put(
@@ -2179,14 +2457,13 @@ app.put(
       console.error(error);
 
       res.status(500).json({
-        error: "Unable to save content"
+        error: "Failed to save content"
       });
 
     }
 
   }
 );
-
 
 // =====================================================
 // ADMIN DIARY
@@ -2199,12 +2476,11 @@ app.get(
 
     try {
 
-      const result =
-        await pool.query(`
-          SELECT *
-          FROM diary
-          ORDER BY created_at DESC
-        `);
+      const result = await pool.query(`
+        SELECT *
+        FROM diary
+        ORDER BY created_at DESC
+      `);
 
       res.json(result.rows);
 
@@ -2213,14 +2489,13 @@ app.get(
       console.error(error);
 
       res.status(500).json({
-        error: "Unable to load diary"
+        error: "Failed to load diary"
       });
 
     }
 
   }
 );
-
 
 // =====================================================
 // ADD DIARY
@@ -2233,12 +2508,26 @@ app.post(
 
     try {
 
-      const {
-        title,
-        content,
-        date,
-        visible
-      } = req.body;
+      const title =
+        req.body.title || "";
+
+      const content =
+        req.body.content || "";
+
+      const date =
+        req.body.date || "";
+
+      const visible =
+        req.body.visible !== false;
+
+
+      if (!title || !content) {
+
+        return res.status(400).json({
+          error: "Title and content are required"
+        });
+
+      }
 
 
       const result =
@@ -2252,8 +2541,8 @@ app.post(
           [
             title,
             content,
-            date || "",
-            visible !== false
+            date,
+            visible
           ]
         );
 
@@ -2268,14 +2557,13 @@ app.post(
       console.error(error);
 
       res.status(500).json({
-        error: "Unable to add diary"
+        error: "Failed to add diary"
       });
 
     }
 
   }
 );
-
 
 // =====================================================
 // DELETE DIARY
@@ -2302,7 +2590,7 @@ app.delete(
       console.error(error);
 
       res.status(500).json({
-        error: "Unable to delete diary"
+        error: "Failed to delete diary"
       });
 
     }
@@ -2310,9 +2598,8 @@ app.delete(
   }
 );
 
-
 // =====================================================
-// HEALTH CHECK
+// HEALTH
 // =====================================================
 
 app.get("/health", (req, res) => {
@@ -2324,22 +2611,22 @@ app.get("/health", (req, res) => {
 
 });
 
-
 // =====================================================
-// START SERVER
+// START
 // =====================================================
 
-async function start() {
+async function startServer(){
 
   await initDatabase();
 
   app.listen(
     PORT,
     "0.0.0.0",
-    () => {
+    function(){
 
       console.log(
-        "Prosenjit site running on port " + PORT
+        "Prosenjit site running on port " +
+        PORT
       );
 
     }
@@ -2347,4 +2634,4 @@ async function start() {
 
 }
 
-start();
+startServer();
