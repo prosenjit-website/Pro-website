@@ -6,22 +6,24 @@ const { Pool } = require("pg");
 const app = express();
 
 const PORT = process.env.PORT || 10000;
-
 const DATABASE_URL = process.env.DATABASE_URL;
+
+
+// =====================================================
+// DATABASE
+// =====================================================
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: DATABASE_URL
-    ? { rejectUnauthorized: false }
-    : false
+  ssl: DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
 
 // =====================================================
-// BASIC MIDDLEWARE
+// MIDDLEWARE
 // =====================================================
 
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 
@@ -45,14 +47,17 @@ app.use(
       secure:
         process.env.NODE_ENV === "production",
 
-      maxAge: 1000 * 60 * 60 * 24
+      sameSite: "lax",
+
+      maxAge:
+        1000 * 60 * 60 * 24 * 7
     }
   })
 );
 
 
 // =====================================================
-// STATIC PUBLIC WEBSITE
+// PUBLIC DIRECTORY
 // =====================================================
 
 const PUBLIC_DIR = path.join(
@@ -66,7 +71,7 @@ app.use(
 
 
 // =====================================================
-// DEFAULT SITE DATA
+// DEFAULT WEBSITE DATA
 // =====================================================
 
 const DEFAULT_SITE = {
@@ -95,13 +100,19 @@ const DEFAULT_SITE = {
   ],
 
   social: {
+
     facebook: "",
+
     instagram: "",
+
     github: "",
+
     email: ""
+
   },
 
   buttons: [
+
     {
       id: "primary",
       label: "Explore My Story",
@@ -117,7 +128,27 @@ const DEFAULT_SITE = {
       visible: true,
       order: 2
     }
-  ]
+
+  ],
+
+  sections: {
+
+    hero: true,
+
+    about: true,
+
+    education: true,
+
+    skills: true,
+
+    diary: true,
+
+    projects: true,
+
+    contact: true
+
+  }
+
 };
 
 
@@ -130,10 +161,11 @@ async function initializeDatabase() {
   if (!DATABASE_URL) {
 
     console.log(
-      "DATABASE_URL is not configured."
+      "⚠ DATABASE_URL is not configured."
     );
 
     return;
+
   }
 
   try {
@@ -153,6 +185,7 @@ async function initializeDatabase() {
         content TEXT NOT NULL,
         date TEXT DEFAULT '',
         visible BOOLEAN DEFAULT TRUE,
+        sort_order INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -172,13 +205,20 @@ async function initializeDatabase() {
     `);
 
 
-    const site =
+    // Existing database হলে sort_order column add করবে
+    await pool.query(`
+      ALTER TABLE diary
+      ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0
+    `);
+
+
+    const existing =
       await pool.query(
         "SELECT id FROM site_content WHERE id = 1"
       );
 
 
-    if (site.rows.length === 0) {
+    if (existing.rows.length === 0) {
 
       await pool.query(
         `
@@ -196,7 +236,7 @@ async function initializeDatabase() {
 
 
     console.log(
-      "Database initialized successfully."
+      "✓ Database initialized successfully."
     );
 
   } catch (error) {
@@ -207,11 +247,12 @@ async function initializeDatabase() {
     );
 
   }
+
 }
 
 
 // =====================================================
-// AUTH MIDDLEWARE
+// AUTH
 // =====================================================
 
 function requireAdmin(
@@ -220,23 +261,81 @@ function requireAdmin(
   next
 ) {
 
-  if (req.session &&
-      req.session.admin === true) {
+  if (
+    req.session &&
+    req.session.admin === true
+  ) {
 
     return next();
 
   }
 
   return res.status(401).json({
+
     success: false,
+
     error: "Unauthorized"
+
   });
 
 }
 
 
 // =====================================================
-// SITE API
+// GET CURRENT SITE DATA HELPER
+// =====================================================
+
+async function getSiteData() {
+
+  if (!DATABASE_URL) {
+
+    return DEFAULT_SITE;
+
+  }
+
+  const result =
+    await pool.query(
+      "SELECT data FROM site_content WHERE id = 1"
+    );
+
+
+  return (
+    result.rows[0]?.data ||
+    DEFAULT_SITE
+  );
+
+}
+
+
+// =====================================================
+// SAVE SITE DATA HELPER
+// =====================================================
+
+async function saveSiteData(data) {
+
+  await pool.query(
+    `
+    INSERT INTO site_content
+    (id, data)
+
+    VALUES
+    (1, $1)
+
+    ON CONFLICT (id)
+
+    DO UPDATE SET
+      data = EXCLUDED.data
+    `,
+    [
+      JSON.stringify(data)
+    ]
+  );
+
+}
+
+
+// =====================================================
+// PUBLIC SITE API
 // =====================================================
 
 app.get(
@@ -245,34 +344,22 @@ app.get(
 
     try {
 
-      const result =
-        await pool.query(
-          "SELECT data FROM site_content WHERE id = 1"
-        );
+      const data =
+        await getSiteData();
 
-
-      if (
-        result.rows.length === 0
-      ) {
-
-        return res.json(
-          DEFAULT_SITE
-        );
-
-      }
-
-
-      res.json(
-        result.rows[0].data
-      );
+      res.json(data);
 
     } catch (error) {
 
       console.error(error);
 
       res.status(500).json({
+
+        success: false,
+
         error:
           "Unable to load site data"
+
       });
 
     }
@@ -282,7 +369,7 @@ app.get(
 
 
 // =====================================================
-// DIARY PUBLIC API
+// PUBLIC DIARY
 // =====================================================
 
 app.get(
@@ -297,52 +384,12 @@ app.get(
             id,
             title,
             content,
-            date
+            date,
+            sort_order
           FROM diary
+
           WHERE visible = TRUE
-          ORDER BY created_at DESC
-        `);
 
-
-      res.json(
-        result.rows
-      );
-
-    } catch (error) {
-
-      console.error(error);
-
-      res.status(500).json({
-        error:
-          "Unable to load diary"
-      });
-
-    }
-
-  }
-);
-
-
-// =====================================================
-// PROJECT PUBLIC API
-// =====================================================
-
-app.get(
-  "/api/projects",
-  async (req, res) => {
-
-    try {
-
-      const result =
-        await pool.query(`
-          SELECT
-            id,
-            title,
-            description,
-            url,
-            image
-          FROM projects
-          WHERE visible = TRUE
           ORDER BY
             sort_order ASC,
             created_at DESC
@@ -358,8 +405,64 @@ app.get(
       console.error(error);
 
       res.status(500).json({
+
+        success: false,
+
+        error:
+          "Unable to load diary"
+
+      });
+
+    }
+
+  }
+);
+
+
+// =====================================================
+// PUBLIC PROJECTS
+// =====================================================
+
+app.get(
+  "/api/projects",
+  async (req, res) => {
+
+    try {
+
+      const result =
+        await pool.query(`
+          SELECT
+            id,
+            title,
+            description,
+            url,
+            image,
+            sort_order
+          FROM projects
+
+          WHERE visible = TRUE
+
+          ORDER BY
+            sort_order ASC,
+            created_at DESC
+        `);
+
+
+      res.json(
+        result.rows
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+
+        success: false,
+
         error:
           "Unable to load projects"
+
       });
 
     }
@@ -376,29 +479,30 @@ app.post(
   "/api/admin/login",
   (req, res) => {
 
-    const username =
+    const adminUsername =
       process.env.ADMIN_USERNAME ||
       "admin";
 
-    const password =
+    const adminPassword =
       process.env.ADMIN_PASSWORD ||
       "admin123";
 
 
-    const submittedUsername =
+    const username =
       String(
         req.body.username || ""
-      );
+      ).trim();
 
-    const submittedPassword =
+
+    const password =
       String(
         req.body.password || ""
       );
 
 
     if (
-      submittedUsername !== username ||
-      submittedPassword !== password
+      username !== adminUsername ||
+      password !== adminPassword
     ) {
 
       return res.status(401).json({
@@ -417,7 +521,31 @@ app.post(
 
 
     res.json({
-      success: true
+
+      success: true,
+
+      message:
+        "Login successful"
+
+    });
+
+  }
+);
+
+
+// =====================================================
+// ADMIN SESSION
+// =====================================================
+
+app.get(
+  "/api/admin/session",
+  (req, res) => {
+
+    res.json({
+
+      loggedIn:
+        req.session?.admin === true
+
     });
 
   }
@@ -434,10 +562,12 @@ app.post(
   (req, res) => {
 
     req.session.destroy(
-      function () {
+      () => {
 
         res.json({
+
           success: true
+
         });
 
       }
@@ -448,27 +578,7 @@ app.post(
 
 
 // =====================================================
-// ADMIN SESSION CHECK
-// =====================================================
-
-app.get(
-  "/api/admin/session",
-  (req, res) => {
-
-    res.json({
-
-      loggedIn:
-        req.session &&
-        req.session.admin === true
-
-    });
-
-  }
-);
-
-
-// =====================================================
-// ADMIN GET SITE CONTENT
+// ADMIN GET ALL SITE CONTENT
 // =====================================================
 
 app.get(
@@ -478,24 +588,22 @@ app.get(
 
     try {
 
-      const result =
-        await pool.query(
-          "SELECT data FROM site_content WHERE id = 1"
-        );
+      const data =
+        await getSiteData();
 
-
-      res.json(
-        result.rows[0]?.data ||
-        DEFAULT_SITE
-      );
+      res.json(data);
 
     } catch (error) {
 
       console.error(error);
 
       res.status(500).json({
+
+        success: false,
+
         error:
           "Unable to load content"
+
       });
 
     }
@@ -505,7 +613,7 @@ app.get(
 
 
 // =====================================================
-// ADMIN UPDATE SITE CONTENT
+// ADMIN UPDATE ALL SITE CONTENT
 // =====================================================
 
 app.put(
@@ -515,15 +623,8 @@ app.put(
 
     try {
 
-      const result =
-        await pool.query(
-          "SELECT data FROM site_content WHERE id = 1"
-        );
-
-
       const oldData =
-        result.rows[0]?.data ||
-        DEFAULT_SITE;
+        await getSiteData();
 
 
       const incoming =
@@ -550,43 +651,43 @@ app.put(
         },
 
 
+        sections: {
+
+          ...DEFAULT_SITE.sections,
+
+          ...(oldData.sections || {}),
+
+          ...(incoming.sections || {})
+
+        },
+
+
         skills:
-          Array.isArray(
-            incoming.skills
-          )
+          Array.isArray(incoming.skills)
             ? incoming.skills
             : oldData.skills,
 
 
         buttons:
-          Array.isArray(
-            incoming.buttons
-          )
+          Array.isArray(incoming.buttons)
             ? incoming.buttons
             : oldData.buttons
 
       };
 
 
-      await pool.query(
-        `
-        UPDATE site_content
-        SET data = $1
-        WHERE id = 1
-        `,
-        [
-          JSON.stringify(
-            finalData
-          )
-        ]
+      await saveSiteData(
+        finalData
       );
 
 
       res.json({
-        success: true,
-        data: finalData
-      });
 
+        success: true,
+
+        data: finalData
+
+      });
 
     } catch (error) {
 
@@ -597,7 +698,7 @@ app.put(
         success: false,
 
         error:
-          "Unable to save site content"
+          "Unable to save content"
 
       });
 
@@ -608,8 +709,726 @@ app.put(
 
 
 // =====================================================
-// ADMIN DIARY LIST
+// BUTTONS
+// ADD / EDIT / DELETE / SHOW-HIDE / REORDER
 // =====================================================
+
+
+// GET BUTTONS
+
+app.get(
+  "/api/admin/buttons",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await getSiteData();
+
+
+      const buttons =
+        Array.isArray(data.buttons)
+          ? data.buttons
+          : [];
+
+
+      res.json(
+        buttons.sort(
+          (a, b) =>
+            Number(a.order || 0) -
+            Number(b.order || 0)
+        )
+      );
+
+    } catch (error) {
+
+      res.status(500).json({
+
+        error:
+          "Unable to load buttons"
+
+      });
+
+    }
+
+  }
+);
+
+
+// ADD BUTTON
+
+app.post(
+  "/api/admin/buttons",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await getSiteData();
+
+
+      const buttons =
+        Array.isArray(data.buttons)
+          ? data.buttons
+          : [];
+
+
+      const label =
+        String(
+          req.body.label || ""
+        ).trim();
+
+
+      const url =
+        String(
+          req.body.url || ""
+        ).trim();
+
+
+      if (!label) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          error:
+            "Button label is required"
+
+        });
+
+      }
+
+
+      const newButton = {
+
+        id:
+          "button-" +
+          Date.now(),
+
+        label,
+
+        url,
+
+        visible:
+          req.body.visible !== false,
+
+        order:
+          buttons.length + 1
+
+      };
+
+
+      buttons.push(
+        newButton
+      );
+
+
+      data.buttons =
+        buttons;
+
+
+      await saveSiteData(
+        data
+      );
+
+
+      res.json({
+
+        success: true,
+
+        button:
+          newButton,
+
+        data
+
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+
+        success: false,
+
+        error:
+          "Unable to add button"
+
+      });
+
+    }
+
+  }
+);
+
+
+// EDIT BUTTON
+
+app.put(
+  "/api/admin/buttons/:id",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await getSiteData();
+
+
+      const buttons =
+        data.buttons || [];
+
+
+      const index =
+        buttons.findIndex(
+          button =>
+            String(button.id) ===
+            String(req.params.id)
+        );
+
+
+      if (index === -1) {
+
+        return res.status(404).json({
+
+          success: false,
+
+          error:
+            "Button not found"
+
+        });
+
+      }
+
+
+      buttons[index] = {
+
+        ...buttons[index],
+
+        ...req.body,
+
+        id:
+          buttons[index].id
+
+      };
+
+
+      data.buttons =
+        buttons;
+
+
+      await saveSiteData(
+        data
+      );
+
+
+      res.json({
+
+        success: true,
+
+        button:
+          buttons[index],
+
+        data
+
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+
+        success: false,
+
+        error:
+          "Unable to update button"
+
+      });
+
+    }
+
+  }
+);
+
+
+// DELETE BUTTON
+
+app.delete(
+  "/api/admin/buttons/:id",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await getSiteData();
+
+
+      data.buttons =
+        (data.buttons || [])
+          .filter(
+            button =>
+              String(button.id) !==
+              String(req.params.id)
+          );
+
+
+      data.buttons =
+        data.buttons.map(
+          (button, index) => ({
+
+            ...button,
+
+            order:
+              index + 1
+
+          })
+        );
+
+
+      await saveSiteData(
+        data
+      );
+
+
+      res.json({
+
+        success: true,
+
+        data
+
+      });
+
+    } catch (error) {
+
+      res.status(500).json({
+
+        success: false,
+
+        error:
+          "Unable to delete button"
+
+      });
+
+    }
+
+  }
+);
+
+
+// REORDER BUTTONS
+
+app.put(
+  "/api/admin/buttons-order",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await getSiteData();
+
+
+      const ids =
+        Array.isArray(req.body.ids)
+          ? req.body.ids
+          : [];
+
+
+      data.buttons =
+        (data.buttons || [])
+          .sort(
+            (a, b) =>
+              ids.indexOf(a.id) -
+              ids.indexOf(b.id)
+          )
+          .map(
+            (button, index) => ({
+
+              ...button,
+
+              order:
+                index + 1
+
+            })
+          );
+
+
+      await saveSiteData(
+        data
+      );
+
+
+      res.json({
+
+        success: true,
+
+        data
+
+      });
+
+    } catch (error) {
+
+      res.status(500).json({
+
+        success: false,
+
+        error:
+          "Unable to reorder buttons"
+
+      });
+
+    }
+
+  }
+);
+
+
+// =====================================================
+// SKILLS
+// =====================================================
+
+
+// ADD SKILL
+
+app.post(
+  "/api/admin/skills",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await getSiteData();
+
+
+      const skill =
+        String(
+          req.body.skill || ""
+        ).trim();
+
+
+      if (!skill) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          error:
+            "Skill is required"
+
+        });
+
+      }
+
+
+      if (
+        !Array.isArray(data.skills)
+      ) {
+
+        data.skills = [];
+
+      }
+
+
+      data.skills.push(
+        skill
+      );
+
+
+      await saveSiteData(
+        data
+      );
+
+
+      res.json({
+
+        success: true,
+
+        data
+
+      });
+
+    } catch (error) {
+
+      res.status(500).json({
+
+        success: false,
+
+        error:
+          "Unable to add skill"
+
+      });
+
+    }
+
+  }
+);
+
+
+// EDIT SKILL
+
+app.put(
+  "/api/admin/skills/:index",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await getSiteData();
+
+
+      const index =
+        Number(
+          req.params.index
+        );
+
+
+      const skill =
+        String(
+          req.body.skill || ""
+        ).trim();
+
+
+      if (
+        !Array.isArray(data.skills) ||
+        !data.skills[index]
+      ) {
+
+        return res.status(404).json({
+
+          success: false,
+
+          error:
+            "Skill not found"
+
+        });
+
+      }
+
+
+      if (!skill) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          error:
+            "Skill is required"
+
+        });
+
+      }
+
+
+      data.skills[index] =
+        skill;
+
+
+      await saveSiteData(
+        data
+      );
+
+
+      res.json({
+
+        success: true,
+
+        data
+
+      });
+
+    } catch (error) {
+
+      res.status(500).json({
+
+        success: false,
+
+        error:
+          "Unable to update skill"
+
+      });
+
+    }
+
+  }
+);
+
+
+// DELETE SKILL
+
+app.delete(
+  "/api/admin/skills/:index",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await getSiteData();
+
+
+      const index =
+        Number(
+          req.params.index
+        );
+
+
+      if (
+        !Array.isArray(data.skills)
+      ) {
+
+        return res.status(404).json({
+
+          success: false,
+
+          error:
+            "Skills not found"
+
+        });
+
+      }
+
+
+      data.skills.splice(
+        index,
+        1
+      );
+
+
+      await saveSiteData(
+        data
+      );
+
+
+      res.json({
+
+        success: true,
+
+        data
+
+      });
+
+    } catch (error) {
+
+      res.status(500).json({
+
+        success: false,
+
+        error:
+          "Unable to delete skill"
+
+      });
+
+    }
+
+  }
+);
+
+
+// =====================================================
+// SECTION SHOW / HIDE
+// =====================================================
+
+app.put(
+  "/api/admin/sections/:section",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await getSiteData();
+
+
+      const section =
+        String(
+          req.params.section
+        );
+
+
+      const allowed = [
+
+        "hero",
+        "about",
+        "education",
+        "skills",
+        "diary",
+        "projects",
+        "contact"
+
+      ];
+
+
+      if (
+        !allowed.includes(section)
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          error:
+            "Invalid section"
+
+        });
+
+      }
+
+
+      if (!data.sections) {
+
+        data.sections = {};
+
+      }
+
+
+      data.sections[section] =
+        req.body.visible !== false;
+
+
+      await saveSiteData(
+        data
+      );
+
+
+      res.json({
+
+        success: true,
+
+        data
+
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+
+        success: false,
+
+        error:
+          "Unable to update section"
+
+      });
+
+    }
+
+  }
+);
+
+
+// =====================================================
+// DIARY ADMIN
+// =====================================================
+
+
+// LIST
 
 app.get(
   "/api/admin/diary",
@@ -622,7 +1441,9 @@ app.get(
         await pool.query(`
           SELECT *
           FROM diary
+
           ORDER BY
+            sort_order ASC,
             created_at DESC
         `);
 
@@ -633,9 +1454,13 @@ app.get(
 
     } catch (error) {
 
+      console.error(error);
+
       res.status(500).json({
+
         error:
           "Unable to load diary"
+
       });
 
     }
@@ -644,9 +1469,7 @@ app.get(
 );
 
 
-// =====================================================
-// ADMIN ADD DIARY
-// =====================================================
+// ADD
 
 app.post(
   "/api/admin/diary",
@@ -660,15 +1483,23 @@ app.post(
           req.body.title || ""
         ).trim();
 
+
       const content =
         String(
           req.body.content || ""
         ).trim();
 
+
       const date =
         String(
           req.body.date || ""
         ).trim();
+
+
+      const sortOrder =
+        Number(
+          req.body.sort_order || 0
+        );
 
 
       if (
@@ -692,15 +1523,25 @@ app.post(
         await pool.query(
           `
           INSERT INTO diary
-          (title, content, date, visible)
+          (
+            title,
+            content,
+            date,
+            visible,
+            sort_order
+          )
+
           VALUES
-          ($1, $2, $3, TRUE)
+          ($1,$2,$3,$4,$5)
+
           RETURNING *
           `,
           [
             title,
             content,
-            date
+            date,
+            req.body.visible !== false,
+            sortOrder
           ]
         );
 
@@ -713,7 +1554,6 @@ app.post(
           result.rows[0]
 
       });
-
 
     } catch (error) {
 
@@ -734,9 +1574,7 @@ app.post(
 );
 
 
-// =====================================================
-// ADMIN UPDATE DIARY
-// =====================================================
+// EDIT
 
 app.put(
   "/api/admin/diary/:id",
@@ -756,18 +1594,27 @@ app.put(
           req.body.title || ""
         ).trim();
 
+
       const content =
         String(
           req.body.content || ""
         ).trim();
+
 
       const date =
         String(
           req.body.date || ""
         ).trim();
 
+
       const visible =
         req.body.visible !== false;
+
+
+      const sortOrder =
+        Number(
+          req.body.sort_order || 0
+        );
 
 
       await pool.query(
@@ -778,33 +1625,39 @@ app.put(
           title = $1,
           content = $2,
           date = $3,
-          visible = $4
+          visible = $4,
+          sort_order = $5
 
-        WHERE id = $5
+        WHERE id = $6
         `,
         [
           title,
           content,
           date,
           visible,
+          sortOrder,
           id
         ]
       );
 
 
       res.json({
-        success: true
-      });
 
+        success: true
+
+      });
 
     } catch (error) {
 
       console.error(error);
 
       res.status(500).json({
+
         success: false,
+
         error:
           "Unable to update diary"
+
       });
 
     }
@@ -813,9 +1666,7 @@ app.put(
 );
 
 
-// =====================================================
-// ADMIN DELETE DIARY
-// =====================================================
+// DELETE
 
 app.delete(
   "/api/admin/diary/:id",
@@ -835,16 +1686,20 @@ app.delete(
 
 
       res.json({
-        success: true
-      });
 
+        success: true
+
+      });
 
     } catch (error) {
 
       res.status(500).json({
+
         success: false,
+
         error:
           "Unable to delete diary"
+
       });
 
     }
@@ -854,8 +1709,74 @@ app.delete(
 
 
 // =====================================================
-// ADMIN PROJECT LIST
+// DIARY REORDER
 // =====================================================
+
+app.put(
+  "/api/admin/diary-order",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const ids =
+        Array.isArray(req.body.ids)
+          ? req.body.ids
+          : [];
+
+
+      for (
+        let i = 0;
+        i < ids.length;
+        i++
+      ) {
+
+        await pool.query(
+          `
+          UPDATE diary
+          SET sort_order = $1
+          WHERE id = $2
+          `,
+          [
+            i + 1,
+            Number(ids[i])
+          ]
+        );
+
+      }
+
+
+      res.json({
+
+        success: true
+
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+
+        success: false,
+
+        error:
+          "Unable to reorder diary"
+
+      });
+
+    }
+
+  }
+);
+
+
+// =====================================================
+// PROJECTS ADMIN
+// =====================================================
+
+
+// LIST
 
 app.get(
   "/api/admin/projects",
@@ -868,6 +1789,7 @@ app.get(
         await pool.query(`
           SELECT *
           FROM projects
+
           ORDER BY
             sort_order ASC,
             created_at DESC
@@ -878,12 +1800,15 @@ app.get(
         result.rows
       );
 
-
     } catch (error) {
 
+      console.error(error);
+
       res.status(500).json({
+
         error:
           "Unable to load projects"
+
       });
 
     }
@@ -892,9 +1817,7 @@ app.get(
 );
 
 
-// =====================================================
-// ADMIN ADD PROJECT
-// =====================================================
+// ADD
 
 app.post(
   "/api/admin/projects",
@@ -908,20 +1831,29 @@ app.post(
           req.body.title || ""
         ).trim();
 
+
       const description =
         String(
           req.body.description || ""
         ).trim();
+
 
       const url =
         String(
           req.body.url || ""
         ).trim();
 
+
       const image =
         String(
           req.body.image || ""
         ).trim();
+
+
+      const sortOrder =
+        Number(
+          req.body.sort_order || 0
+        );
 
 
       if (!title) {
@@ -952,7 +1884,7 @@ app.post(
           )
 
           VALUES
-          ($1,$2,$3,$4,TRUE,0)
+          ($1,$2,$3,$4,$5,$6)
 
           RETURNING *
           `,
@@ -960,7 +1892,9 @@ app.post(
             title,
             description,
             url,
-            image
+            image,
+            req.body.visible !== false,
+            sortOrder
           ]
         );
 
@@ -973,7 +1907,6 @@ app.post(
           result.rows[0]
 
       });
-
 
     } catch (error) {
 
@@ -994,9 +1927,7 @@ app.post(
 );
 
 
-// =====================================================
-// ADMIN UPDATE PROJECT
-// =====================================================
+// EDIT
 
 app.put(
   "/api/admin/projects/:id",
@@ -1004,6 +1935,12 @@ app.put(
   async (req, res) => {
 
     try {
+
+      const id =
+        Number(
+          req.params.id
+        );
+
 
       await pool.query(
         `
@@ -1020,6 +1957,7 @@ app.put(
         WHERE id = $7
         `,
         [
+
           String(
             req.body.title || ""
           ).trim(),
@@ -1042,17 +1980,17 @@ app.put(
             req.body.sort_order || 0
           ),
 
-          Number(
-            req.params.id
-          )
+          id
+
         ]
       );
 
 
       res.json({
-        success: true
-      });
 
+        success: true
+
+      });
 
     } catch (error) {
 
@@ -1073,9 +2011,7 @@ app.put(
 );
 
 
-// =====================================================
-// ADMIN DELETE PROJECT
-// =====================================================
+// DELETE
 
 app.delete(
   "/api/admin/projects/:id",
@@ -1095,9 +2031,10 @@ app.delete(
 
 
       res.json({
-        success: true
-      });
 
+        success: true
+
+      });
 
     } catch (error) {
 
@@ -1117,11 +2054,71 @@ app.delete(
 
 
 // =====================================================
-// PAGE ROUTES
+// PROJECT REORDER
 // =====================================================
 
-// Root automatically loads:
-// public/index.html
+app.put(
+  "/api/admin/projects-order",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const ids =
+        Array.isArray(req.body.ids)
+          ? req.body.ids
+          : [];
+
+
+      for (
+        let i = 0;
+        i < ids.length;
+        i++
+      ) {
+
+        await pool.query(
+          `
+          UPDATE projects
+          SET sort_order = $1
+          WHERE id = $2
+          `,
+          [
+            i + 1,
+            Number(ids[i])
+          ]
+        );
+
+      }
+
+
+      res.json({
+
+        success: true
+
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+
+        success: false,
+
+        error:
+          "Unable to reorder projects"
+
+      });
+
+    }
+
+  }
+);
+
+
+// =====================================================
+// PAGE ROUTES
+// =====================================================
 
 app.get(
   "/about",
@@ -1250,57 +2247,66 @@ app.use(
   (req, res) => {
 
     res.status(404).send(`
-      <!DOCTYPE html>
+<!DOCTYPE html>
+<html>
 
-      <html>
+<head>
 
-      <head>
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
 
-      <meta
-      name="viewport"
-      content="width=device-width,initial-scale=1"
-      >
+<title>404 · Prosenjit Ray</title>
 
-      <title>404 · Prosenjit Ray</title>
+<style>
 
-      <style>
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#05070b;
+  color:#fff;
+  font-family:Arial,sans-serif;
+  text-align:center;
+}
 
-      body{
-        margin:0;
-        min-height:100vh;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        background:#05070b;
-        color:white;
-        font-family:Arial;
-        text-align:center;
-      }
+.box{
+  padding:40px;
+}
 
-      a{
-        color:white;
-      }
+h1{
+  font-size:80px;
+  margin:0 0 10px;
+}
 
-      </style>
+a{
+  color:#d6b46a;
+  text-decoration:none;
+}
 
-      </head>
+</style>
 
-      <body>
+</head>
 
-      <div>
+<body>
 
-      <h1>404</h1>
+<div class="box">
 
-      <p>Page not found.</p>
+<h1>404</h1>
 
-      <a href="/">← Back Home</a>
+<p>Page not found.</p>
 
-      </div>
+<a href="/">← Back Home</a>
 
-      </body>
+</div>
 
-      </html>
-    `);
+</body>
+
+</html>
+`);
 
   }
 );
@@ -1321,7 +2327,7 @@ async function startServer() {
     () => {
 
       console.log(
-        `Prosenjit Ultra Pro Max running on port ${PORT}`
+        `✓ Prosenjit Ultra Pro Max running on port ${PORT}`
       );
 
     }
