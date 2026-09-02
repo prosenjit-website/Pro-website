@@ -1,346 +1,277 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
 
-  <meta charset="UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+<title>প্রকল্প — প্রসেনজিৎ রায়</title>
 
-  <title>Projects — Prosenjit Ray</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <meta
-    name="description"
-    content="Projects and creative work by Prosenjit Ray."
-  >
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="style.css">
+
+<style>
+
+.projects-page{
+padding:150px 0 100px;
+}
+
+.label{
+color:#c9a86a;
+font-size:12px;
+letter-spacing:3px;
+}
+
+h1{
+font-family:"Noto Serif Bengali",serif;
+font-size:clamp(45px,8vw,90px);
+line-height:1.1;
+margin:20px 0;
+}
+
+.intro{
+max-width:650px;
+color:#8f98a7;
+line-height:2;
+}
+
+.project-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:18px;
+margin-top:70px;
+}
+
+.project{
+min-height:350px;
+padding:32px;
+border:1px solid rgba(255,255,255,.09);
+border-radius:24px;
+background:
+radial-gradient(circle at 80% 20%,rgba(201,168,106,.08),transparent 30%),
+#10151d;
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+transition:.3s;
+}
+
+.project:hover{
+transform:translateY(-8px);
+border-color:rgba(201,168,106,.4);
+}
+
+.tag{
+color:#c9a86a;
+font-size:10px;
+letter-spacing:2px;
+}
+
+.project h2{
+font-family:"Noto Serif Bengali",serif;
+font-size:32px;
+margin:15px 0;
+}
+
+.project p{
+color:#8f98a7;
+line-height:1.8;
+font-size:13px;
+}
+
+.project a{
+color:#e0c58d;
+font-size:12px;
+}
+
+@media(max-width:700px){
+.project-grid{
+grid-template-columns:1fr;
+}
+}
+
+</style>
 
 </head>
 
-
 <body>
 
-<header class="navbar">
+<header class="navbar" id="navbar">
 
-  <div class="nav-inner">
+<a href="index.html" class="brand">
+প্রসেনজিৎ<span>.</span>
+</a>
 
-    <a href="/" class="logo">
-      Prosenjit<span>.</span>
-    </a>
+<nav class="nav-links">
+<a href="index.html">হোম</a>
+<a href="about.html">আমার সম্পর্কে</a>
+<a href="education.html">শিক্ষাজীবন</a>
+<a href="diary.html">ডায়েরি</a>
+<a href="projects.html" class="active">প্রকল্প</a>
+<a href="contact.html" class="nav-contact">যোগাযোগ</a>
+</nav>
 
-    <nav class="nav-links">
-
-      <a href="/">Home</a>
-      <a href="/about.html">About</a>
-      <a href="/education.html">Education</a>
-      <a href="/diary.html">Diary</a>
-      <a href="/projects.html">Projects</a>
-      <a href="/contact.html">Contact</a>
-
-    </nav>
-
-
-    <button
-      class="menu-btn"
-      type="button"
-      aria-label="Open menu"
-      aria-expanded="false"
-    >
-      ☰
-    </button>
-
-  </div>
-
-
-  <div class="mobile-menu">
-
-    <a href="/">Home</a>
-    <a href="/about.html">About</a>
-    <a href="/education.html">Education</a>
-    <a href="/diary.html">Diary</a>
-    <a href="/projects.html">Projects</a>
-    <a href="/contact.html">Contact</a>
-
-  </div>
+<button class="menu-button" id="menuButton">⋮</button>
 
 </header>
 
+<div class="mobile-menu" id="mobileMenu">
+<a href="index.html">হোম</a>
+<a href="about.html">আমার সম্পর্কে</a>
+<a href="education.html">শিক্ষাজীবন</a>
+<a href="diary.html">ডায়েরি</a>
+<a href="projects.html">প্রকল্প</a>
+<a href="contact.html">যোগাযোগ</a>
+</div>
 
 <main>
 
-  <section class="page-hero">
+<section class="projects-page">
 
-    <div class="container reveal">
+<div class="container">
 
-      <div class="eyebrow">
-        Selected Work
-      </div>
+<div class="label">০৬ — প্রকল্প</div>
 
-      <h1>
-        Ideas into<br>
-        <span>projects.</span>
-      </h1>
+<h1>
+ভাবনা থেকে<br>
+<span style="color:#c9a86a">বাস্তবতা।</span>
+</h1>
 
-      <p>
-        A growing collection of experiments, digital projects and
-        things I build while learning.
-      </p>
+<p class="intro">
+যেসব ধারণা একদিন বাস্তব প্রকল্পে পরিণত হবে,
+সেগুলোর জন্য এই জায়গা।
+</p>
 
-    </div>
+<div class="project-grid" id="projectGrid">
 
-  </section>
+<div class="project">
 
+<div>
 
-  <section>
+<div class="tag">ব্যক্তিগত প্রকল্প</div>
 
-    <div class="container">
+<h2>আমার ডিজিটাল ডায়েরি</h2>
 
-      <div
-        id="projectsContainer"
-        class="project-grid"
-      >
+<p>
+জীবনের অভিজ্ঞতা, চিন্তা এবং গুরুত্বপূর্ণ
+অধ্যায়গুলো ডিজিটালভাবে সংরক্ষণ করার একটি ধারণা।
+</p>
 
-        <!-- Default Project -->
+</div>
 
-        <article class="glass project-card reveal">
+<a href="diary.html">ডায়েরি দেখুন →</a>
 
-          <div class="project-number">
-            PROJECT / 01
-          </div>
+</div>
 
-          <h3>
-            Personal Website
-          </h3>
+<div class="project">
 
-          <p>
-            A premium personal website designed to showcase my
-            education, journey, skills and projects.
-          </p>
+<div>
 
-          <a
-            href="/"
-            class="project-link"
-          >
-            Explore Project →
-          </a>
+<div class="tag">শীঘ্রই আসছে</div>
 
-        </article>
+<h2>ভবিষ্যৎ প্রকল্প</h2>
 
+<p>
+নতুন কিছু নিয়ে ভাবছি। সময়ের সাথে
+এখানে আরও প্রকল্প যুক্ত হবে।
+</p>
 
-        <article class="glass project-card reveal">
+</div>
 
-          <div class="project-number">
-            PROJECT / 02
-          </div>
+<a href="contact.html">যোগাযোগ করুন →</a>
 
-          <h3>
-            Future Project
-          </h3>
+</div>
 
-          <p>
-            More creative projects will be added here as I continue
-            learning and building.
-          </p>
+</div>
 
-          <a
-            href="#"
-            class="project-link"
-          >
-            Coming Soon →
-          </a>
+</div>
 
-        </article>
-
-      </div>
-
-
-      <div style="height:30px;"></div>
-
-
-      <div class="glass cta reveal">
-
-        <h2>
-          Build something<br>
-          meaningful.
-        </h2>
-
-        <p>
-          The best projects begin as simple ideas.
-        </p>
-
-        <a
-          href="/contact.html"
-          class="btn btn-primary"
-        >
-          Let's Connect →
-        </a>
-
-      </div>
-
-    </div>
-
-  </section>
+</section>
 
 </main>
 
-
 <footer>
-
-  <div class="container footer-inner">
-
-    <div class="footer-text">
-      © <span data-year></span> Prosenjit Ray.
-      Built with ambition.
-    </div>
-
-    <div class="socials">
-
-      <a
-        href="#"
-        data-social="facebook"
-      >f</a>
-
-      <a
-        href="#"
-        data-social="instagram"
-      >◎</a>
-
-      <a
-        href="#"
-        data-social="github"
-      >◇</a>
-
-    </div>
-
-  </div>
-
+<div class="container footer-inner">
+<p>© <span id="year"></span> প্রসেনজিৎ রায়</p>
+<p>ভাবনা • সৃষ্টি • ভবিষ্যৎ</p>
+</div>
 </footer>
 
-
-<script src="/app.js"></script>
-
+<script src="app.js"></script>
 
 <script>
 
-async function loadProjects() {
+async function loadProjects(){
 
-  const container =
-    document.getElementById(
-      "projectsContainer"
-    );
+try{
 
-  if (!container) return;
+const res=await fetch("/api/projects");
 
-  try {
+if(!res.ok)return;
 
-    const response =
-      await fetch("/api/projects");
+const data=await res.json();
 
-    if (!response.ok) {
-      throw new Error("Projects API error");
-    }
+if(!Array.isArray(data)||!data.length)return;
 
-    const projects =
-      await response.json();
+const grid=document.getElementById("projectGrid");
 
-    if (
-      !Array.isArray(projects) ||
-      projects.length === 0
-    ) {
-      return;
-    }
+grid.innerHTML="";
 
-    container.innerHTML = "";
+data.forEach(item=>{
 
-    projects.forEach((item, index) => {
+const div=document.createElement("div");
 
-      const card =
-        document.createElement("article");
+div.className="project";
 
-      card.className =
-        "glass project-card reveal";
+div.innerHTML=`
 
+<div>
 
-      const number =
-        document.createElement("div");
+<div class="tag">
+${escapeHtml(item.category || "প্রকল্প")}
+</div>
 
-      number.className =
-        "project-number";
+<h2>
+${escapeHtml(item.title)}
+</h2>
 
-      number.textContent =
-        "PROJECT / " +
-        String(index + 1).padStart(2, "0");
+<p>
+${escapeHtml(item.description || "")}
+</p>
 
+</div>
 
-      const title =
-        document.createElement("h3");
+<a href="${escapeAttribute(item.link || "#")}" target="_blank">
+প্রকল্প দেখুন →
+</a>
 
-      title.textContent =
-        item.title || "Untitled Project";
+`;
 
+grid.appendChild(div);
 
-      const description =
-        document.createElement("p");
+});
 
-      description.textContent =
-        item.description || "";
-
-
-      card.appendChild(number);
-      card.appendChild(title);
-      card.appendChild(description);
-
-
-      if (item.link) {
-
-        const link =
-          document.createElement("a");
-
-        link.className =
-          "project-link";
-
-        link.href =
-          item.link;
-
-        link.target =
-          "_blank";
-
-        link.rel =
-          "noopener noreferrer";
-
-        link.textContent =
-          "Explore Project →";
-
-        card.appendChild(link);
-
-      }
-
-
-      container.appendChild(card);
-
-    });
-
-
-    document
-      .querySelectorAll(".reveal")
-      .forEach((element) => {
-        element.classList.add("show");
-      });
-
-
-  } catch (error) {
-
-    console.log(
-      "Projects could not be loaded."
-    );
-
-  }
+}catch(e){}
 
 }
 
+function escapeHtml(text){
+
+const div=document.createElement("div");
+div.textContent=text ?? "";
+return div.innerHTML;
+
+}
+
+function escapeAttribute(text){
+
+return String(text || "#").replace(/"/g,"&quot;");
+
+}
 
 loadProjects();
 
