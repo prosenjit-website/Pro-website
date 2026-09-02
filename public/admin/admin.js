@@ -1,1402 +1,1517 @@
-"use strict";
+// ==========================================
+// PROSENJIT ADMIN PANEL
+// ==========================================
 
-let siteData = null;
-let diaryData = [];
-let projectData = [];
+document.addEventListener("DOMContentLoaded", () => {
 
-const $ = (id) => document.getElementById(id);
+  const loginForm = document.getElementById("loginForm");
+  const loginBox = document.getElementById("loginBox");
+  const adminPanel = document.getElementById("adminPanel");
 
+  // ========================================
+  // CHECK LOGIN
+  // ========================================
 
-/* =====================================================
-   API HELPER
-===================================================== */
-
-async function api(url, options = {}) {
-
-  const response = await fetch(url, {
-    credentials: "same-origin",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {})
-    }
-  });
-
-  let data = {};
-
-  try {
-    data = await response.json();
-  } catch (e) {}
-
-  if (!response.ok) {
-
-    if (response.status === 401) {
-      showLogin();
-    }
-
-    throw new Error(
-      data.error || "Something went wrong"
-    );
-  }
-
-  return data;
-}
+  checkSession();
 
 
-/* =====================================================
-   TOAST
-===================================================== */
-
-function toast(message) {
-
-  const box = $("toast");
-
-  box.textContent = message;
-
-  box.classList.add("show");
-
-  setTimeout(() => {
-    box.classList.remove("show");
-  }, 2500);
-}
-
-
-/* =====================================================
-   LOGIN / SESSION
-===================================================== */
-
-async function checkSession() {
-
-  try {
-
-    const data =
-      await api("/api/admin/session");
-
-    if (data.loggedIn) {
-
-      showAdmin();
-
-      await loadEverything();
-
-    } else {
-
-      showLogin();
-
-    }
-
-  } catch (error) {
-
-    showLogin();
-
-  }
-
-}
-
-
-function showLogin() {
-
-  $("loginSection").classList.remove("hidden");
-
-  $("adminSection").classList.add("hidden");
-
-}
-
-
-function showAdmin() {
-
-  $("loginSection").classList.add("hidden");
-
-  $("adminSection").classList.remove("hidden");
-
-}
-
-
-/* =====================================================
-   LOGIN
-===================================================== */
-
-$("loginForm").addEventListener(
-  "submit",
-  async function(e) {
-
-    e.preventDefault();
-
-    const username =
-      $("username").value.trim();
-
-    const password =
-      $("password").value;
-
-    const message =
-      $("loginMessage");
-
-    message.textContent = "লগইন হচ্ছে...";
-    message.classList.remove("error");
+  async function checkSession() {
 
     try {
 
-      await api(
-        "/api/admin/login",
-        {
-          method: "POST",
+      const res = await fetch("/api/admin/session", {
+        credentials: "same-origin"
+      });
 
-          body: JSON.stringify({
-            username,
-            password
-          })
-        }
-      );
+      const data = await res.json();
 
-      message.textContent = "";
-
-      showAdmin();
-
-      await loadEverything();
-
-      toast("লগইন সফল হয়েছে ✓");
+      if (data.loggedIn) {
+        showAdmin();
+      } else {
+        showLogin();
+      }
 
     } catch (error) {
 
-      message.textContent =
-        error.message || "লগইন ব্যর্থ";
-
-      message.classList.add("error");
+      console.error(error);
+      showLogin();
 
     }
 
   }
-);
 
 
-/* =====================================================
-   LOGOUT
-===================================================== */
+  // ========================================
+  // SHOW LOGIN
+  // ========================================
 
-$("logoutBtn").addEventListener(
-  "click",
-  async function() {
+  function showLogin() {
+
+    if (loginBox) {
+      loginBox.style.display = "block";
+    }
+
+    if (adminPanel) {
+      adminPanel.style.display = "none";
+    }
+
+  }
+
+
+  // ========================================
+  // SHOW ADMIN
+  // ========================================
+
+  function showAdmin() {
+
+    if (loginBox) {
+      loginBox.style.display = "none";
+    }
+
+    if (adminPanel) {
+      adminPanel.style.display = "block";
+    }
+
+    loadAll();
+
+  }
+
+
+  // ========================================
+  // LOGIN
+  // ========================================
+
+  if (loginForm) {
+
+    loginForm.addEventListener("submit", async function (e) {
+
+      // VERY IMPORTANT
+      e.preventDefault();
+
+      const usernameInput =
+        document.getElementById("username");
+
+      const passwordInput =
+        document.getElementById("password");
+
+      const username =
+        usernameInput ? usernameInput.value.trim() : "";
+
+      const password =
+        passwordInput ? passwordInput.value : "";
+
+
+      if (!username || !password) {
+
+        alert("Username এবং Password দিন।");
+
+        return;
+
+      }
+
+
+      try {
+
+        const response = await fetch(
+          "/api/admin/login",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            credentials: "same-origin",
+
+            body: JSON.stringify({
+              username: username,
+              password: password
+            })
+          }
+        );
+
+
+        const data =
+          await response.json();
+
+
+        if (!response.ok || !data.success) {
+
+          alert(
+            data.error ||
+            "Login failed"
+          );
+
+          return;
+
+        }
+
+
+        // Login successful
+        showAdmin();
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        alert(
+          "Server-এর সাথে যোগাযোগ করা যাচ্ছে না।"
+        );
+
+      }
+
+    });
+
+  }
+
+
+  // ========================================
+  // LOGOUT
+  // ========================================
+
+  const logoutBtn =
+    document.getElementById("logoutBtn");
+
+
+  if (logoutBtn) {
+
+    logoutBtn.addEventListener(
+      "click",
+      async function () {
+
+        try {
+
+          await fetch(
+            "/api/admin/logout",
+            {
+              method: "POST",
+              credentials: "same-origin"
+            }
+          );
+
+        } catch (error) {
+
+          console.error(error);
+
+        }
+
+        location.reload();
+
+      }
+    );
+
+  }
+
+
+  // ========================================
+  // LOAD EVERYTHING
+  // ========================================
+
+  async function loadAll() {
+
+    await loadSite();
+
+    await loadDiary();
+
+    await loadProjects();
+
+    renderButtons();
+
+  }
+
+
+  // ========================================
+  // SITE CONTENT
+  // ========================================
+
+  async function loadSite() {
 
     try {
 
-      await api(
-        "/api/admin/logout",
+      const response =
+        await fetch(
+          "/api/admin/content",
+          {
+            credentials: "same-origin"
+          }
+        );
+
+
+      if (response.status === 401) {
+
+        showLogin();
+
+        return;
+
+      }
+
+
+      const data =
+        await response.json();
+
+
+      setValue("siteName", data.name);
+      setValue("tagline", data.tagline);
+      setValue("college", data.college);
+      setValue("education", data.education);
+      setValue("photo", data.photo);
+      setValue("about", data.about);
+
+
+      const skills =
+        document.getElementById("skills");
+
+      if (skills) {
+
+        skills.value =
+          Array.isArray(data.skills)
+            ? data.skills.join("\n")
+            : "";
+
+      }
+
+
+      setValue(
+        "facebook",
+        data.social?.facebook || ""
+      );
+
+      setValue(
+        "instagram",
+        data.social?.instagram || ""
+      );
+
+      setValue(
+        "whatsapp",
+        data.social?.whatsapp || ""
+      );
+
+      setValue(
+        "email",
+        data.social?.email || ""
+      );
+
+
+      window.siteData = data;
+
+
+    } catch (error) {
+
+      console.error(
+        "Site load error:",
+        error
+      );
+
+    }
+
+  }
+
+
+  // ========================================
+  // SAVE SITE
+  // ========================================
+
+  const siteForm =
+    document.getElementById("siteForm");
+
+
+  if (siteForm) {
+
+    siteForm.addEventListener(
+      "submit",
+      async function (e) {
+
+        e.preventDefault();
+
+
+        const oldData =
+          window.siteData || {};
+
+
+        const finalData = {
+
+          ...oldData,
+
+          name:
+            getValue("siteName"),
+
+          tagline:
+            getValue("tagline"),
+
+          college:
+            getValue("college"),
+
+          education:
+            getValue("education"),
+
+          photo:
+            getValue("photo"),
+
+          about:
+            getValue("about"),
+
+          skills:
+            getValue("skills")
+              .split("\n")
+              .map(x => x.trim())
+              .filter(Boolean),
+
+          social: {
+
+            ...(oldData.social || {}),
+
+            facebook:
+              getValue("facebook"),
+
+            instagram:
+              getValue("instagram"),
+
+            whatsapp:
+              getValue("whatsapp"),
+
+            email:
+              getValue("email")
+
+          }
+
+        };
+
+
+        try {
+
+          const response =
+            await fetch(
+              "/api/admin/content",
+              {
+                method: "PUT",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                credentials:
+                  "same-origin",
+
+                body:
+                  JSON.stringify(
+                    finalData
+                  )
+              }
+            );
+
+
+          const data =
+            await response.json();
+
+
+          if (!response.ok) {
+
+            alert(
+              data.error ||
+              "তথ্য সংরক্ষণ করা যায়নি।"
+            );
+
+            return;
+
+          }
+
+
+          window.siteData =
+            data.data;
+
+
+          alert(
+            "✅ সাইটের তথ্য সফলভাবে সংরক্ষণ হয়েছে।"
+          );
+
+
+        } catch (error) {
+
+          console.error(error);
+
+          alert(
+            "Server error!"
+          );
+
+        }
+
+      }
+    );
+
+  }
+
+
+  // ========================================
+  // DIARY
+  // ========================================
+
+  async function loadDiary() {
+
+    const container =
+      document.getElementById(
+        "diaryList"
+      );
+
+
+    if (!container) return;
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/admin/diary",
+          {
+            credentials:
+              "same-origin"
+          }
+        );
+
+
+      const items =
+        await response.json();
+
+
+      container.innerHTML = "";
+
+
+      items.forEach(item => {
+
+        const box =
+          document.createElement("div");
+
+        box.className =
+          "admin-item";
+
+
+        box.innerHTML = `
+
+          <input
+            class="diary-title"
+            value="${escapeHTML(item.title)}"
+          >
+
+          <textarea
+            class="diary-content"
+          >${escapeHTML(item.content)}</textarea>
+
+          <input
+            class="diary-date"
+            value="${escapeHTML(item.date || "")}"
+          >
+
+          <label>
+            <input
+              type="checkbox"
+              class="diary-visible"
+              ${item.visible ? "checked" : ""}
+            >
+            Show
+          </label>
+
+          <button
+            type="button"
+            class="saveDiary"
+          >
+            💾 Save
+          </button>
+
+          <button
+            type="button"
+            class="deleteDiary"
+          >
+            🗑️ Delete
+          </button>
+
+        `;
+
+
+        box.querySelector(
+          ".saveDiary"
+        ).addEventListener(
+          "click",
+          async () => {
+
+            await updateDiary(
+              item.id,
+              box
+            );
+
+          }
+        );
+
+
+        box.querySelector(
+          ".deleteDiary"
+        ).addEventListener(
+          "click",
+          async () => {
+
+            await deleteDiary(
+              item.id
+            );
+
+          }
+        );
+
+
+        container.appendChild(box);
+
+      });
+
+
+    } catch (error) {
+
+      console.error(error);
+
+    }
+
+  }
+
+
+  // ========================================
+  // ADD DIARY
+  // ========================================
+
+  const addDiaryBtn =
+    document.getElementById(
+      "addDiaryBtn"
+    );
+
+
+  if (addDiaryBtn) {
+
+    addDiaryBtn.addEventListener(
+      "click",
+      async () => {
+
+        const title =
+          prompt("অধ্যায়ের নাম:");
+
+        if (!title) return;
+
+
+        const content =
+          prompt("অধ্যায়ের বিস্তারিত লেখা:");
+
+        if (!content) return;
+
+
+        const date =
+          prompt(
+            "তারিখ:",
+            new Date().toLocaleDateString("bn-BD")
+          );
+
+
+        try {
+
+          const response =
+            await fetch(
+              "/api/admin/diary",
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                credentials:
+                  "same-origin",
+
+                body:
+                  JSON.stringify({
+                    title,
+                    content,
+                    date
+                  })
+              }
+            );
+
+
+          const data =
+            await response.json();
+
+
+          if (!response.ok) {
+
+            alert(
+              data.error ||
+              "Diary যোগ করা যায়নি।"
+            );
+
+            return;
+
+          }
+
+
+          await loadDiary();
+
+          alert(
+            "✅ নতুন অধ্যায় যোগ হয়েছে।"
+          );
+
+
+        } catch (error) {
+
+          console.error(error);
+
+          alert("Server error!");
+
+        }
+
+      }
+    );
+
+  }
+
+
+  // ========================================
+  // UPDATE DIARY
+  // ========================================
+
+  async function updateDiary(
+    id,
+    box
+  ) {
+
+    const title =
+      box.querySelector(
+        ".diary-title"
+      ).value.trim();
+
+
+    const content =
+      box.querySelector(
+        ".diary-content"
+      ).value.trim();
+
+
+    const date =
+      box.querySelector(
+        ".diary-date"
+      ).value.trim();
+
+
+    const visible =
+      box.querySelector(
+        ".diary-visible"
+      ).checked;
+
+
+    try {
+
+      const response =
+        await fetch(
+          `/api/admin/diary/${id}`,
+          {
+            method: "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            credentials:
+              "same-origin",
+
+            body:
+              JSON.stringify({
+                title,
+                content,
+                date,
+                visible
+              })
+          }
+        );
+
+
+      if (!response.ok) {
+
+        alert(
+          "Diary update হয়নি।"
+        );
+
+        return;
+
+      }
+
+
+      alert(
+        "✅ Diary update হয়েছে।"
+      );
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert("Server error!");
+
+    }
+
+  }
+
+
+  // ========================================
+  // DELETE DIARY
+  // ========================================
+
+  async function deleteDiary(id) {
+
+    if (
+      !confirm(
+        "এই Diary মুছে ফেলতে চান?"
+      )
+    ) return;
+
+
+    try {
+
+      await fetch(
+        `/api/admin/diary/${id}`,
         {
-          method: "POST"
+          method: "DELETE",
+          credentials:
+            "same-origin"
         }
       );
 
-    } catch (error) {}
 
-    showLogin();
-
-    toast("লগআউট হয়েছে");
-
-  }
-);
+      await loadDiary();
 
 
-/* =====================================================
-   LOAD EVERYTHING
-===================================================== */
+    } catch (error) {
 
-async function loadEverything() {
+      console.error(error);
 
-  try {
-
-    siteData =
-      await api("/api/admin/content");
-
-    fillSiteForm();
-
-  } catch (error) {
-
-    toast(error.message);
+    }
 
   }
 
 
-  try {
+  // ========================================
+  // PROJECTS
+  // ========================================
 
-    diaryData =
-      await api("/api/admin/diary");
+  async function loadProjects() {
 
-    renderDiary();
+    const container =
+      document.getElementById(
+        "projectsList"
+      );
 
-  } catch (error) {
 
-    console.error(error);
+    if (!container) return;
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/admin/projects",
+          {
+            credentials:
+              "same-origin"
+          }
+        );
+
+
+      const items =
+        await response.json();
+
+
+      container.innerHTML = "";
+
+
+      items.forEach(item => {
+
+        const box =
+          document.createElement("div");
+
+        box.className =
+          "admin-item";
+
+
+        box.innerHTML = `
+
+          <input
+            class="project-title"
+            placeholder="প্রজেক্টের নাম"
+            value="${escapeHTML(item.title)}"
+          >
+
+          <textarea
+            class="project-description"
+            placeholder="প্রজেক্টের বিবরণ"
+          >${escapeHTML(item.description || "")}</textarea>
+
+          <input
+            class="project-url"
+            placeholder="Link"
+            value="${escapeHTML(item.url || "")}"
+          >
+
+          <input
+            class="project-image"
+            placeholder="Image URL"
+            value="${escapeHTML(item.image || "")}"
+          >
+
+          <input
+            class="project-order"
+            type="number"
+            value="${item.sort_order || 0}"
+          >
+
+          <label>
+            <input
+              type="checkbox"
+              class="project-visible"
+              ${item.visible ? "checked" : ""}
+            >
+            Show
+          </label>
+
+          <button
+            type="button"
+            class="saveProject"
+          >
+            💾 Save
+          </button>
+
+          <button
+            type="button"
+            class="deleteProject"
+          >
+            🗑️ Delete
+          </button>
+
+        `;
+
+
+        box.querySelector(
+          ".saveProject"
+        ).addEventListener(
+          "click",
+          async () => {
+
+            await updateProject(
+              item.id,
+              box
+            );
+
+          }
+        );
+
+
+        box.querySelector(
+          ".deleteProject"
+        ).addEventListener(
+          "click",
+          async () => {
+
+            await deleteProject(
+              item.id
+            );
+
+          }
+        );
+
+
+        container.appendChild(box);
+
+      });
+
+
+    } catch (error) {
+
+      console.error(error);
+
+    }
 
   }
 
 
-  try {
+  // ========================================
+  // ADD PROJECT
+  // ========================================
 
-    projectData =
-      await api("/api/admin/projects");
-
-    renderProjects();
-
-  } catch (error) {
-
-    console.error(error);
-
-  }
-
-}
+  const addProjectBtn =
+    document.getElementById(
+      "addProjectBtn"
+    );
 
 
-/* =====================================================
-   SITE FORM
-===================================================== */
+  if (addProjectBtn) {
 
-function fillSiteForm() {
+    addProjectBtn.addEventListener(
+      "click",
+      async () => {
 
-  if (!siteData) return;
+        const title =
+          prompt("প্রজেক্টের নাম:");
 
-  $("siteName").value =
-    siteData.name || "";
-
-  $("siteTagline").value =
-    siteData.tagline || "";
-
-  $("siteCollege").value =
-    siteData.college || "";
-
-  $("siteEducation").value =
-    siteData.education || "";
-
-  $("sitePhoto").value =
-    siteData.photo || "";
-
-  $("siteAbout").value =
-    siteData.about || "";
-
-  $("siteSkills").value =
-    Array.isArray(siteData.skills)
-      ? siteData.skills.join("\n")
-      : "";
+        if (!title) return;
 
 
-  const social =
-    siteData.social || {};
-
-  $("facebook").value =
-    social.facebook || "";
-
-  $("instagram").value =
-    social.instagram || "";
-
-  $("whatsapp").value =
-    social.whatsapp || "";
-
-  $("email").value =
-    social.email || "";
+        const description =
+          prompt(
+            "প্রজেক্টের বিবরণ:"
+          ) || "";
 
 
-  renderButtons();
-
-}
-
-
-/* =====================================================
-   SAVE SITE
-===================================================== */
-
-$("siteForm").addEventListener(
-  "submit",
-  async function(e) {
-
-    e.preventDefault();
-
-    const skills =
-      $("siteSkills")
-        .value
-        .split("\n")
-        .map(x => x.trim())
-        .filter(Boolean);
+        const url =
+          prompt(
+            "প্রজেক্ট Link:"
+          ) || "";
 
 
-    const newData = {
+        const image =
+          prompt(
+            "Image URL:"
+          ) || "";
 
-      name:
-        $("siteName").value.trim(),
 
-      tagline:
-        $("siteTagline").value.trim(),
+        try {
 
-      college:
-        $("siteCollege").value.trim(),
+          const response =
+            await fetch(
+              "/api/admin/projects",
+              {
+                method: "POST",
 
-      education:
-        $("siteEducation").value.trim(),
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
 
-      photo:
-        $("sitePhoto").value.trim(),
+                credentials:
+                  "same-origin",
 
-      about:
-        $("siteAbout").value.trim(),
+                body:
+                  JSON.stringify({
+                    title,
+                    description,
+                    url,
+                    image
+                  })
+              }
+            );
 
-      skills,
 
-      social: {
+          const data =
+            await response.json();
 
-        facebook:
-          $("facebook").value.trim(),
 
-        instagram:
-          $("instagram").value.trim(),
+          if (!response.ok) {
 
-        whatsapp:
-          $("whatsapp").value.trim(),
+            alert(
+              data.error ||
+              "Project যোগ করা যায়নি।"
+            );
 
-        email:
-          $("email").value.trim()
+            return;
+
+          }
+
+
+          await loadProjects();
+
+
+          alert(
+            "🚀 নতুন Project যোগ হয়েছে।"
+          );
+
+
+        } catch (error) {
+
+          console.error(error);
+
+          alert("Server error!");
+
+        }
 
       }
+    );
+
+  }
+
+
+  // ========================================
+  // UPDATE PROJECT
+  // ========================================
+
+  async function updateProject(
+    id,
+    box
+  ) {
+
+    const data = {
+
+      title:
+        box.querySelector(
+          ".project-title"
+        ).value.trim(),
+
+      description:
+        box.querySelector(
+          ".project-description"
+        ).value.trim(),
+
+      url:
+        box.querySelector(
+          ".project-url"
+        ).value.trim(),
+
+      image:
+        box.querySelector(
+          ".project-image"
+        ).value.trim(),
+
+      sort_order:
+        Number(
+          box.querySelector(
+            ".project-order"
+          ).value || 0
+        ),
+
+      visible:
+        box.querySelector(
+          ".project-visible"
+        ).checked
 
     };
 
 
     try {
 
-      const result =
-        await api(
-          "/api/admin/content",
+      const response =
+        await fetch(
+          `/api/admin/projects/${id}`,
           {
             method: "PUT",
-            body: JSON.stringify(newData)
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            credentials:
+              "same-origin",
+
+            body:
+              JSON.stringify(data)
           }
         );
 
-      siteData =
-        result.data;
 
-      fillSiteForm();
+      if (!response.ok) {
 
-      toast("সাইটের তথ্য সংরক্ষণ হয়েছে ✓");
+        alert(
+          "Project update হয়নি।"
+        );
+
+        return;
+
+      }
+
+
+      alert(
+        "✅ Project update হয়েছে।"
+      );
+
+
+      await loadProjects();
+
 
     } catch (error) {
 
-      toast(error.message);
+      console.error(error);
+
+      alert("Server error!");
 
     }
 
   }
-);
 
 
-/* =====================================================
-   BUTTON MANAGER
-===================================================== */
+  // ========================================
+  // DELETE PROJECT
+  // ========================================
 
-function renderButtons() {
+  async function deleteProject(id) {
 
-  const container =
-    $("buttonsList");
-
-  container.innerHTML = "";
-
-  if (!siteData) return;
-
-  if (!Array.isArray(siteData.buttons)) {
-    siteData.buttons = [];
-  }
+    if (
+      !confirm(
+        "এই Project মুছে ফেলতে চান?"
+      )
+    ) return;
 
 
-  const buttons =
-    [...siteData.buttons]
-      .sort(
-        (a,b) =>
-          Number(a.order || 0) -
-          Number(b.order || 0)
-      );
+    try {
 
-
-  if (buttons.length === 0) {
-
-    container.innerHTML = `
-      <div class="item-card">
-        কোনো বাটন নেই।
-      </div>
-    `;
-
-    return;
-  }
-
-
-  buttons.forEach(
-    (button,index) => {
-
-      const card =
-        document.createElement("div");
-
-      card.className = "item-card";
-
-      card.innerHTML = `
-
-        <div class="item-head">
-
-          <h3>
-            🔘 বাটন ${index + 1}
-          </h3>
-
-          <div class="item-actions">
-
-            <button
-              class="edit-btn"
-              onclick="saveButton('${escapeAttr(button.id)}')"
-            >
-              💾 Save
-            </button>
-
-            <button
-              class="secondary-btn"
-              onclick="moveButton('${escapeAttr(button.id)}',-1)"
-            >
-              ↑
-            </button>
-
-            <button
-              class="secondary-btn"
-              onclick="moveButton('${escapeAttr(button.id)}',1)"
-            >
-              ↓
-            </button>
-
-            <button
-              class="danger-btn"
-              onclick="deleteButton('${escapeAttr(button.id)}')"
-            >
-              🗑️
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <label>
-          Button Label
-          <input
-            id="btn-label-${escapeAttr(button.id)}"
-            value="${escapeAttr(button.label || "")}"
-          >
-        </label>
-
-
-        <label>
-          Button Link
-          <input
-            id="btn-url-${escapeAttr(button.id)}"
-            value="${escapeAttr(button.url || "")}"
-            placeholder="/about.html"
-          >
-        </label>
-
-
-        <label class="hidden-label">
-
-          <input
-            id="btn-visible-${escapeAttr(button.id)}"
-            type="checkbox"
-            ${button.visible !== false ? "checked" : ""}
-          >
-
-          ওয়েবসাইটে দেখাবেন
-
-        </label>
-
-      `;
-
-      container.appendChild(card);
-
-    }
-  );
-
-}
-
-
-/* =====================================================
-   SAVE BUTTON
-===================================================== */
-
-window.saveButton =
-  async function(id) {
-
-    const button =
-      siteData.buttons.find(
-        x => String(x.id) === String(id)
-      );
-
-    if (!button) return;
-
-
-    button.label =
-      $(`btn-label-${id}`).value.trim();
-
-    button.url =
-      $(`btn-url-${id}`).value.trim();
-
-    button.visible =
-      $(`btn-visible-${id}`).checked;
-
-
-    await saveButtons();
-
-  };
-
-
-async function saveButtons() {
-
-  siteData.buttons =
-    siteData.buttons.map(
-      (button,index) => ({
-        ...button,
-        order:index + 1
-      })
-    );
-
-
-  try {
-
-    const result =
-      await api(
-        "/api/admin/content",
+      await fetch(
+        `/api/admin/projects/${id}`,
         {
-          method:"PUT",
-
-          body:JSON.stringify({
-            buttons:
-              siteData.buttons
-          })
+          method: "DELETE",
+          credentials:
+            "same-origin"
         }
       );
 
-    siteData =
-      result.data;
 
-    renderButtons();
+      await loadProjects();
 
-    toast("বাটন আপডেট হয়েছে ✓");
 
-  } catch(error) {
+    } catch (error) {
 
-    toast(error.message);
+      console.error(error);
+
+    }
 
   }
 
-}
 
+  // ========================================
+  // BUTTON MANAGER
+  // ========================================
 
-/* =====================================================
-   ADD BUTTON
-===================================================== */
+  function renderButtons() {
 
-$("addButtonBtn").addEventListener(
-  "click",
-  async function() {
-
-    const label =
-      prompt(
-        "নতুন বাটনের নাম লিখুন:"
-      );
-
-    if (!label) return;
-
-
-    const url =
-      prompt(
-        "বাটনের Link লিখুন:",
-        "/"
+    const container =
+      document.getElementById(
+        "buttonsList"
       );
 
 
-    const id =
-      "button_" +
-      Date.now();
+    if (!container) return;
 
 
-    siteData.buttons =
-      Array.isArray(siteData.buttons)
-        ? siteData.buttons
+    const data =
+      window.siteData || {};
+
+
+    const buttons =
+      Array.isArray(data.buttons)
+        ? data.buttons
         : [];
 
 
-    siteData.buttons.push({
-
-      id,
-
-      label,
-
-      url: url || "/",
-
-      visible:true,
-
-      order:
-        siteData.buttons.length + 1
-
-    });
+    container.innerHTML = "";
 
 
-    await saveButtons();
-
-  }
-);
-
-
-/* =====================================================
-   DELETE BUTTON
-===================================================== */
-
-window.deleteButton =
-  async function(id) {
-
-    if (
-      !confirm(
-        "এই বাটনটি মুছে ফেলবেন?"
+    buttons
+      .sort(
+        (a, b) =>
+          Number(a.order || 0) -
+          Number(b.order || 0)
       )
-    ) return;
+      .forEach((button, index) => {
+
+        const box =
+          document.createElement("div");
+
+        box.className =
+          "admin-item";
 
 
-    siteData.buttons =
-      siteData.buttons.filter(
-        x => String(x.id) !== String(id)
-      );
+        box.innerHTML = `
+
+          <input
+            class="button-label"
+            placeholder="Button name"
+            value="${escapeHTML(button.label || "")}"
+          >
+
+          <input
+            class="button-url"
+            placeholder="Button link"
+            value="${escapeHTML(button.url || "")}"
+          >
+
+          <input
+            class="button-order"
+            type="number"
+            value="${button.order || index + 1}"
+          >
+
+          <label>
+            <input
+              type="checkbox"
+              class="button-visible"
+              ${button.visible !== false ? "checked" : ""}
+            >
+            Show
+          </label>
+
+          <button
+            type="button"
+            class="saveButton"
+          >
+            💾 Save
+          </button>
+
+          <button
+            type="button"
+            class="deleteButton"
+          >
+            🗑️ Delete
+          </button>
+
+        `;
 
 
-    await saveButtons();
+        box.querySelector(
+          ".saveButton"
+        ).addEventListener(
+          "click",
+          async () => {
 
-  };
+            const current =
+              window.siteData.buttons ||
+              [];
 
 
-/* =====================================================
-   MOVE BUTTON
-===================================================== */
+            current[index] = {
 
-window.moveButton =
-  async function(id,direction) {
+              ...current[index],
 
-    const arr =
-      [...siteData.buttons]
-        .sort(
-          (a,b) =>
-            Number(a.order || 0) -
-            Number(b.order || 0)
+              label:
+                box.querySelector(
+                  ".button-label"
+                ).value.trim(),
+
+              url:
+                box.querySelector(
+                  ".button-url"
+                ).value.trim(),
+
+              order:
+                Number(
+                  box.querySelector(
+                    ".button-order"
+                  ).value || index + 1
+                ),
+
+              visible:
+                box.querySelector(
+                  ".button-visible"
+                ).checked
+
+            };
+
+
+            await saveButtons(current);
+
+          }
         );
 
 
-    const index =
-      arr.findIndex(
-        x => String(x.id) === String(id)
+        box.querySelector(
+          ".deleteButton"
+        ).addEventListener(
+          "click",
+          async () => {
+
+            const current =
+              window.siteData.buttons ||
+              [];
+
+
+            current.splice(index, 1);
+
+
+            await saveButtons(current);
+
+          }
+        );
+
+
+        container.appendChild(box);
+
+      });
+
+  }
+
+
+  // ========================================
+  // SAVE BUTTONS
+  // ========================================
+
+  async function saveButtons(buttons) {
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/admin/content",
+          {
+            method: "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            credentials:
+              "same-origin",
+
+            body:
+              JSON.stringify({
+                buttons
+              })
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if (!response.ok) {
+
+        alert(
+          data.error ||
+          "Button save হয়নি।"
+        );
+
+        return;
+
+      }
+
+
+      window.siteData =
+        data.data;
+
+
+      renderButtons();
+
+
+      alert(
+        "✅ Button saved!"
       );
 
 
-    const newIndex =
-      index + direction;
+    } catch (error) {
+
+      console.error(error);
+
+      alert("Server error!");
+
+    }
+
+  }
 
 
-    if (
-      index < 0 ||
-      newIndex < 0 ||
-      newIndex >= arr.length
-    ) return;
+  // ========================================
+  // ADD NEW BUTTON
+  // ========================================
 
-
-    [
-      arr[index],
-      arr[newIndex]
-    ] =
-    [
-      arr[newIndex],
-      arr[index]
-    ];
-
-
-    arr.forEach(
-      (x,i) => x.order = i + 1
+  const addButtonBtn =
+    document.getElementById(
+      "addButtonBtn"
     );
 
 
-    siteData.buttons = arr;
+  if (addButtonBtn) {
 
-    await saveButtons();
+    addButtonBtn.addEventListener(
+      "click",
+      async () => {
 
-  };
-
-
-/* =====================================================
-   DIARY
-===================================================== */
-
-async function loadDiary() {
-
-  diaryData =
-    await api("/api/admin/diary");
-
-  renderDiary();
-
-}
+        const label =
+          prompt(
+            "নতুন Button-এর নাম:"
+          );
 
 
-$("addDiaryBtn").addEventListener(
-  "click",
-  async function() {
-
-    const title =
-      $("newDiaryTitle").value.trim();
-
-    const content =
-      $("newDiaryContent").value.trim();
-
-    const date =
-      $("newDiaryDate").value.trim();
+        if (!label) return;
 
 
-    if (!title || !content) {
-
-      toast(
-        "অধ্যায়ের নাম ও লেখা দিন"
-      );
-
-      return;
-
-    }
+        const url =
+          prompt(
+            "Button কোথায় যাবে? Link:"
+          );
 
 
-    try {
-
-      await api(
-        "/api/admin/diary",
-        {
-          method:"POST",
-
-          body:JSON.stringify({
-            title,
-            content,
-            date
-          })
-        }
-      );
+        if (!url) return;
 
 
-      $("newDiaryTitle").value = "";
-      $("newDiaryContent").value = "";
-      $("newDiaryDate").value = "";
+        const current =
+          window.siteData.buttons ||
+          [];
 
 
-      await loadDiary();
+        current.push({
 
-      toast("নতুন অধ্যায় যোগ হয়েছে ✓");
+          id:
+            "button-" +
+            Date.now(),
 
-    } catch(error) {
+          label,
 
-      toast(error.message);
+          url,
 
-    }
+          visible: true,
+
+          order:
+            current.length + 1
+
+        });
+
+
+        await saveButtons(
+          current
+        );
+
+      }
+    );
 
   }
-);
 
 
-/* =====================================================
-   RENDER DIARY
-===================================================== */
+  // ========================================
+  // HELPERS
+  // ========================================
 
-function renderDiary() {
+  function getValue(id) {
 
-  const container =
-    $("diaryList");
+    const el =
+      document.getElementById(id);
 
-  container.innerHTML = "";
+    return el
+      ? el.value.trim()
+      : "";
 
-
-  if (!diaryData.length) {
-
-    container.innerHTML = `
-      <div class="item-card">
-        এখনো কোনো ডায়েরি নেই।
-      </div>
-    `;
-
-    return;
   }
 
 
-  diaryData.forEach(
-    diary => {
+  function setValue(id, value) {
 
-      const card =
-        document.createElement("div");
+    const el =
+      document.getElementById(id);
 
-      card.className = "item-card";
-
-
-      card.innerHTML = `
-
-        <div class="item-head">
-
-          <h3>
-            📖 ${escapeHtml(diary.title)}
-          </h3>
-
-          <div class="item-actions">
-
-            <button
-              class="edit-btn"
-              onclick="updateDiary(${diary.id})"
-            >
-              💾 Save
-            </button>
-
-            <button
-              class="danger-btn"
-              onclick="deleteDiary(${diary.id})"
-            >
-              🗑️ Delete
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <label>
-          অধ্যায়ের নাম
-
-          <input
-            id="diary-title-${diary.id}"
-            value="${escapeAttr(diary.title)}"
-          >
-
-        </label>
-
-
-        <label>
-          বিস্তারিত
-
-          <textarea
-            id="diary-content-${diary.id}"
-            rows="6"
-          >${escapeHtml(diary.content)}</textarea>
-
-        </label>
-
-
-        <label>
-          তারিখ
-
-          <input
-            id="diary-date-${diary.id}"
-            value="${escapeAttr(diary.date || "")}"
-          >
-
-        </label>
-
-
-        <label class="hidden-label">
-
-          <input
-            id="diary-visible-${diary.id}"
-            type="checkbox"
-            ${diary.visible !== false ? "checked" : ""}
-          >
-
-          ওয়েবসাইটে দেখাবেন
-
-        </label>
-
-      `;
-
-
-      container.appendChild(card);
-
-    }
-  );
-
-}
-
-
-/* =====================================================
-   UPDATE DIARY
-===================================================== */
-
-window.updateDiary =
-  async function(id) {
-
-    try {
-
-      await api(
-        `/api/admin/diary/${id}`,
-        {
-          method:"PUT",
-
-          body:JSON.stringify({
-
-            title:
-              $(`diary-title-${id}`).value.trim(),
-
-            content:
-              $(`diary-content-${id}`).value.trim(),
-
-            date:
-              $(`diary-date-${id}`).value.trim(),
-
-            visible:
-              $(`diary-visible-${id}`).checked
-
-          })
-        }
-      );
-
-
-      await loadDiary();
-
-      toast("ডায়েরি আপডেট হয়েছে ✓");
-
-    } catch(error) {
-
-      toast(error.message);
-
-    }
-
-  };
-
-
-/* =====================================================
-   DELETE DIARY
-===================================================== */
-
-window.deleteDiary =
-  async function(id) {
-
-    if (
-      !confirm(
-        "এই ডায়েরি মুছে ফেলবেন?"
-      )
-    ) return;
-
-
-    try {
-
-      await api(
-        `/api/admin/diary/${id}`,
-        {
-          method:"DELETE"
-        }
-      );
-
-
-      await loadDiary();
-
-      toast("ডায়েরি মুছে ফেলা হয়েছে");
-
-    } catch(error) {
-
-      toast(error.message);
-
-    }
-
-  };
-
-
-/* =====================================================
-   PROJECT
-===================================================== */
-
-async function loadProjects() {
-
-  projectData =
-    await api("/api/admin/projects");
-
-  renderProjects();
-
-}
-
-
-$("addProjectBtn").addEventListener(
-  "click",
-  async function() {
-
-    const title =
-      $("newProjectTitle").value.trim();
-
-    const description =
-      $("newProjectDescription").value.trim();
-
-    const url =
-      $("newProjectUrl").value.trim();
-
-    const image =
-      $("newProjectImage").value.trim();
-
-
-    if (!title) {
-
-      toast("প্রজেক্টের নাম দিন");
-
-      return;
-
-    }
-
-
-    try {
-
-      await api(
-        "/api/admin/projects",
-        {
-          method:"POST",
-
-          body:JSON.stringify({
-
-            title,
-
-            description,
-
-            url,
-
-            image
-
-          })
-        }
-      );
-
-
-      $("newProjectTitle").value = "";
-      $("newProjectType").value = "";
-      $("newProjectDescription").value = "";
-      $("newProjectUrl").value = "";
-      $("newProjectImage").value = "";
-
-
-      await loadProjects();
-
-      toast("নতুন প্রজেক্ট যোগ হয়েছে ✓");
-
-    } catch(error) {
-
-      toast(error.message);
-
+    if (el) {
+      el.value =
+        value || "";
     }
 
   }
-);
 
 
-/* =====================================================
-   RENDER PROJECTS
-===================================================== */
+  function escapeHTML(value) {
 
-function renderProjects() {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
 
-  const container =
-    $("projectList");
-
-  container.innerHTML = "";
-
-
-  if (!projectData.length) {
-
-    container.innerHTML = `
-      <div class="item-card">
-        এখনো কোনো প্রজেক্ট নেই।
-      </div>
-    `;
-
-    return;
   }
 
-
-  projectData.forEach(
-    project => {
-
-      const card =
-        document.createElement("div");
-
-      card.className = "item-card";
-
-
-      card.innerHTML = `
-
-        <div class="item-head">
-
-          <h3>
-            🚀 ${escapeHtml(project.title)}
-          </h3>
-
-          <div class="item-actions">
-
-            <button
-              class="edit-btn"
-              onclick="updateProject(${project.id})"
-            >
-              💾 Save
-            </button>
-
-            <button
-              class="danger-btn"
-              onclick="deleteProject(${project.id})"
-            >
-              🗑️ Delete
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <label>
-          প্রজেক্টের নাম
-
-          <input
-            id="project-title-${project.id}"
-            value="${escapeAttr(project.title)}"
-          >
-
-        </label>
-
-
-        <label>
-          ধরন
-
-          <input
-            id="project-type-${project.id}"
-            value="${escapeAttr(project.type || "")}"
-          >
-
-        </label>
-
-
-        <label>
-          বিবরণ
-
-          <textarea
-            id="project-description-${project.id}"
-            rows="5"
-          >${escapeHtml(project.description || "")}</textarea>
-
-        </label>
-
-
-        <label>
-          প্রজেক্ট লিংক
-
-          <input
-            id="project-url-${project.id}"
-            value="${escapeAttr(project.url || "")}"
-            placeholder="https://..."
-          >
-
-        </label>
-
-
-        <label>
-          ছবির লিংক
-
-          <input
-            id="project-image-${project.id}"
-            value="${escapeAttr(project.image || "")}"
-            placeholder="https://..."
-          >
-
-        </label>
-
-
-        <label>
-          Sort Order
-
-          <input
-            id="project-order-${project.id}"
-            type="number"
-            value="${Number(project.sort_order || 0)}"
-          >
-
-        </label>
-
-
-        <label class="hidden-label">
-
-          <input
-            id="project-visible-${project.id}"
-            type="checkbox"
-            ${project.visible !== false ? "checked" : ""}
-          >
-
-          ওয়েবসাইটে দেখাবেন
-
-        </label>
-
-      `;
-
-
-      container.appendChild(card);
-
-    }
-  );
-
-}
-
-
-/* =====================================================
-   UPDATE PROJECT
-===================================================== */
-
-window.updateProject =
-  async function(id) {
-
-    try {
-
-      await api(
-        `/api/admin/projects/${id}`,
-        {
-          method:"PUT",
-
-          body:JSON.stringify({
-
-            title:
-              $(`project-title-${id}`).value.trim(),
-
-            description:
-              $(`project-description-${id}`).value.trim(),
-
-            url:
-              $(`project-url-${id}`).value.trim(),
-
-            image:
-              $(`project-image-${id}`).value.trim(),
-
-            visible:
-              $(`project-visible-${id}`).checked,
-
-            sort_order:
-              Number(
-                $(`project-order-${id}`).value || 0
-              )
-
-          })
-        }
-      );
-
-
-      await loadProjects();
-
-      toast("প্রজেক্ট আপডেট হয়েছে ✓");
-
-    } catch(error) {
-
-      toast(error.message);
-
-    }
-
-  };
-
-
-/* =====================================================
-   DELETE PROJECT
-===================================================== */
-
-window.deleteProject =
-  async function(id) {
-
-    if (
-      !confirm(
-        "এই প্রজেক্ট মুছে ফেলবেন?"
-      )
-    ) return;
-
-
-    try {
-
-      await api(
-        `/api/admin/projects/${id}`,
-        {
-          method:"DELETE"
-        }
-      );
-
-
-      await loadProjects();
-
-      toast("প্রজেক্ট মুছে ফেলা হয়েছে");
-
-    } catch(error) {
-
-      toast(error.message);
-
-    }
-
-  };
-
-
-/* =====================================================
-   NAVIGATION
-===================================================== */
-
-document
-  .querySelectorAll(".nav-btn")
-  .forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        function() {
-
-          document
-            .querySelectorAll(".nav-btn")
-            .forEach(
-              x =>
-                x.classList.remove("active")
-            );
-
-
-          this.classList.add("active");
-
-
-          document
-            .querySelectorAll(".panel")
-            .forEach(
-              panel =>
-                panel.classList.add("hidden")
-            );
-
-
-          const target =
-            this.dataset.target;
-
-          $(target)
-            .classList.remove("hidden");
-
-        }
-      );
-
-    }
-  );
-
-
-/* =====================================================
-   SECURITY HELPERS
-===================================================== */
-
-function escapeHtml(value) {
-
-  return String(value ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-
-}
-
-
-function escapeAttr(value) {
-
-  return escapeHtml(value);
-
-}
-
-
-/* =====================================================
-   START
-===================================================== */
-
-checkSession();
+});
