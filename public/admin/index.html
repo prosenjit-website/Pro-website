@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="bn">
+
 <head>
   <meta charset="UTF-8">
 
@@ -8,1117 +9,455 @@
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>Admin Panel · Prosenjit Ray</title>
+  <title>Prosenjit Ray · Admin</title>
 
-  <link rel="stylesheet" href="/admin/admin.css">
+  <link
+    rel="stylesheet"
+    href="/admin/admin.css"
+  >
 </head>
 
 <body>
 
-  <!-- ============================= -->
-  <!-- HEADER -->
-  <!-- ============================= -->
+<header class="topbar">
 
-  <header class="admin-header">
-
+  <div>
     <div class="brand">
-      <div class="brand-name">
-        প্রোসেনজিত<span>.</span>
-      </div>
-
-      <div class="brand-sub">
-        Admin Control Center
-      </div>
+      প্রোসেনজিৎ<span>.</span>
     </div>
 
-    <div class="header-actions">
-
-      <a
-        href="/"
-        target="_blank"
-        class="top-btn website-btn"
-      >
-        🌐 Website
-      </a>
-
-      <button
-        id="logoutBtn"
-        class="top-btn logout-btn"
-        type="button"
-        style="display:none"
-      >
-        লগআউট
-      </button>
-
+    <div class="subtitle">
+      Admin Control Center
     </div>
+  </div>
 
-  </header>
+  <div class="top-actions">
+
+    <a
+      href="/"
+      class="top-btn"
+    >
+      🌐 Website
+    </a>
+
+    <button
+      id="logoutBtn"
+      class="top-btn danger hidden"
+    >
+      Logout
+    </button>
+
+  </div>
+
+</header>
 
 
-  <!-- ============================= -->
-  <!-- MAIN -->
-  <!-- ============================= -->
-
-  <main class="admin-container">
+<main class="container">
 
 
-    <!-- ============================= -->
-    <!-- LOGIN -->
-    <!-- ============================= -->
+<!-- ================================================= -->
+<!-- LOGIN -->
+<!-- ================================================= -->
 
-    <section
-      id="loginSection"
-      class="login-card"
+<section
+  id="loginBox"
+  class="login-card"
+>
+
+  <div class="login-icon">
+    🔐
+  </div>
+
+  <h1>
+    Admin Login
+  </h1>
+
+  <p>
+    আপনার ওয়েবসাইট পরিচালনা করতে লগইন করুন।
+  </p>
+
+  <form id="loginForm">
+
+    <input
+      id="username"
+      type="text"
+      value="admin"
+      placeholder="Username"
+      autocomplete="username"
+      required
     >
 
-      <div class="login-icon">
-        🔐
+    <input
+      id="password"
+      type="password"
+      placeholder="Password"
+      autocomplete="current-password"
+      required
+    >
+
+    <button
+      type="submit"
+      class="gold-btn"
+    >
+      Login →
+    </button>
+
+  </form>
+
+  <div
+    id="loginMessage"
+    class="message"
+  ></div>
+
+</section>
+
+
+<!-- ================================================= -->
+<!-- DASHBOARD -->
+<!-- ================================================= -->
+
+<section
+  id="dashboard"
+  class="hidden"
+>
+
+  <div class="hero">
+
+    <div>
+      <div class="eyebrow">
+        CONTROL CENTER
       </div>
 
       <h1>
-        Admin Login
+        ওয়েবসাইট কন্ট্রোল
       </h1>
 
       <p>
-        আপনার ওয়েবসাইট পরিচালনা করতে লগইন করুন।
+        আপনার পুরো ওয়েবসাইট নিজের মতো Edit, Add,
+        Delete, Show / Hide এবং Manage করুন।
       </p>
+    </div>
 
-      <form id="loginForm">
+    <div class="status">
+      <span></span>
+      Online
+    </div>
 
-        <div class="input-group">
-
-          <label>
-            Username
-          </label>
-
-          <input
-            id="username"
-            type="text"
-            placeholder="admin"
-            autocomplete="username"
-            required
-          >
-
-        </div>
+  </div>
 
 
-        <div class="input-group">
+  <!-- NAV -->
 
-          <label>
-            Password
-          </label>
+  <nav class="tabs">
 
-          <input
-            id="password"
-            type="password"
-            placeholder="পাসওয়ার্ড"
-            autocomplete="current-password"
-            required
-          >
-
-        </div>
-
-
-        <button
-          type="submit"
-          class="main-btn login-btn"
-        >
-          🔓 লগইন করুন
-        </button>
-
-      </form>
-
-      <div
-        id="loginMessage"
-        class="message"
-      ></div>
-
-    </section>
-
-
-    <!-- ============================= -->
-    <!-- ADMIN APP -->
-    <!-- ============================= -->
-
-    <section
-      id="adminApp"
-      style="display:none"
+    <button
+      class="tab active"
+      data-section="site"
     >
-
-
-      <!-- HERO -->
-
-      <section class="welcome-section">
-
-        <div>
-
-          <div class="eyebrow">
-            CONTROL CENTER
-          </div>
-
-          <h1>
-            ওয়েবসাইট কন্ট্রোল
-          </h1>
-
-          <p>
-            এখান থেকে আপনার পুরো ওয়েবসাইট
-            নিজের মতো করে পরিবর্তন করুন।
-          </p>
-
-        </div>
-
-        <div class="status-pill">
-          <span></span>
-          Online
-        </div>
-
-      </section>
-
-
-      <!-- ============================= -->
-      <!-- NAVIGATION -->
-      <!-- ============================= -->
-
-      <nav class="control-nav">
-
-        <button
-          class="nav-item active"
-          data-target="siteSection"
-          type="button"
-        >
-          ⚙️
-          <span>সাইট</span>
-        </button>
-
-        <button
-          class="nav-item"
-          data-target="buttonSection"
-          type="button"
-        >
-          🔘
-          <span>বাটন</span>
-        </button>
-
-        <button
-          class="nav-item"
-          data-target="diarySection"
-          type="button"
-        >
-          📖
-          <span>ডায়েরি</span>
-        </button>
-
-        <button
-          class="nav-item"
-          data-target="projectSection"
-          type="button"
-        >
-          🚀
-          <span>প্রজেক্ট</span>
-        </button>
-
-      </nav>
-
-
-      <!-- ============================= -->
-      <!-- SITE INFORMATION -->
-      <!-- ============================= -->
-
-      <section
-        id="siteSection"
-        class="panel-section active-section"
-      >
-
-        <div class="section-heading">
-
-          <div>
-            <div class="section-number">
-              01
-            </div>
-
-            <h2>
-              সাইটের তথ্য
-            </h2>
-
-            <p>
-              আপনার ওয়েবসাইটের মূল তথ্য পরিবর্তন করুন।
-            </p>
-          </div>
-
-        </div>
-
-
-        <form id="siteForm" class="editor-card">
-
-
-          <div class="form-grid">
-
-
-            <div class="field">
-
-              <label>
-                নাম
-              </label>
-
-              <input
-                id="siteName"
-                type="text"
-                placeholder="Prosenjit Ray"
-              >
-
-            </div>
-
-
-            <div class="field">
-
-              <label>
-                ট্যাগলাইন
-              </label>
-
-              <input
-                id="siteTagline"
-                type="text"
-                placeholder="Student • Dreamer • Builder"
-              >
-
-            </div>
-
-
-            <div class="field">
-
-              <label>
-                কলেজ
-              </label>
-
-              <input
-                id="siteCollege"
-                type="text"
-                placeholder="Dinajpur Government College"
-              >
-
-            </div>
-
-
-            <div class="field">
-
-              <label>
-                শিক্ষা
-              </label>
-
-              <input
-                id="siteEducation"
-                type="text"
-                placeholder="Honours 1st Year"
-              >
-
-            </div>
-
-
-            <div class="field full">
-
-              <label>
-                প্রোফাইল ছবির লিংক
-              </label>
-
-              <input
-                id="sitePhoto"
-                type="url"
-                placeholder="https://..."
-              >
-
-            </div>
-
-
-            <div class="field full">
-
-              <label>
-                আমার সম্পর্কে
-              </label>
-
-              <textarea
-                id="siteAbout"
-                rows="6"
-                placeholder="নিজের সম্পর্কে লিখুন..."
-              ></textarea>
-
-            </div>
-
-
-            <div class="field full">
-
-              <label>
-                Skills
-              </label>
-
-              <textarea
-                id="siteSkills"
-                rows="5"
-                placeholder="Technology&#10;Creativity&#10;Communication"
-              ></textarea>
-
-              <small>
-                প্রতিটি Skill নতুন লাইনে লিখুন।
-              </small>
-
-            </div>
-
-          </div>
-
-
-          <!-- SOCIAL -->
-
-          <div class="sub-card">
-
-            <div class="sub-title">
-              🔗 Social & Contact
-            </div>
-
-
-            <div class="form-grid">
-
-
-              <div class="field">
-
-                <label>
-                  Facebook
-                </label>
-
-                <input
-                  id="facebook"
-                  type="url"
-                  placeholder="Facebook link"
-                >
-
-              </div>
-
-
-              <div class="field">
-
-                <label>
-                  Instagram
-                </label>
-
-                <input
-                  id="instagram"
-                  type="url"
-                  placeholder="Instagram link"
-                >
-
-              </div>
-
-
-              <div class="field">
-
-                <label>
-                  WhatsApp
-                </label>
-
-                <input
-                  id="whatsapp"
-                  type="text"
-                  placeholder="WhatsApp link / number"
-                >
-
-              </div>
-
-
-              <div class="field">
-
-                <label>
-                  Gmail
-                </label>
-
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="yourmail@gmail.com"
-                >
-
-              </div>
-
-            </div>
-
-          </div>
-
-
-          <button
-            type="submit"
-            class="main-btn save-btn"
-          >
-            💾 তথ্য সংরক্ষণ করুন
-          </button>
-
-          <div
-            id="siteMessage"
-            class="message"
-          ></div>
-
-        </form>
-
-      </section>
-
-
-      <!-- ============================= -->
-      <!-- BUTTON MANAGER -->
-      <!-- ============================= -->
-
-      <section
-        id="buttonSection"
-        class="panel-section"
-      >
-
-        <div class="section-heading">
-
-          <div>
-
-            <div class="section-number">
-              02
-            </div>
-
-            <h2>
-              বাটন ম্যানেজার
-            </h2>
-
-            <p>
-              পুরোনো বাটন পরিবর্তন করুন অথবা নতুন বাটন যোগ করুন।
-            </p>
-
-          </div>
-
-          <button
-            id="addButtonBtn"
-            class="small-add-btn"
-            type="button"
-          >
-            ＋ নতুন বাটন
-          </button>
-
-        </div>
-
-
-        <div
-          id="buttonsContainer"
-          class="items-container"
-        ></div>
-
-
-        <div
-          id="buttonMessage"
-          class="message"
-        ></div>
-
-      </section>
-
-
-      <!-- ============================= -->
-      <!-- DIARY -->
-      <!-- ============================= -->
-
-      <section
-        id="diarySection"
-        class="panel-section"
-      >
-
-        <div class="section-heading">
-
-          <div>
-
-            <div class="section-number">
-              03
-            </div>
-
-            <h2>
-              ডায়েরি
-            </h2>
-
-            <p>
-              নতুন অধ্যায় যোগ করুন অথবা পুরোনো অধ্যায় সম্পাদনা করুন।
-            </p>
-
-          </div>
-
-          <button
-            id="addDiaryBtn"
-            class="small-add-btn"
-            type="button"
-          >
-            ＋ নতুন অধ্যায়
-          </button>
-
-        </div>
-
-
-        <div
-          id="diaryContainer"
-          class="items-container"
-        ></div>
-
-
-        <div
-          id="diaryMessage"
-          class="message"
-        ></div>
-
-      </section>
-
-
-      <!-- ============================= -->
-      <!-- PROJECT -->
-      <!-- ============================= -->
-
-      <section
-        id="projectSection"
-        class="panel-section"
-      >
-
-        <div class="section-heading">
-
-          <div>
-
-            <div class="section-number">
-              04
-            </div>
-
-            <h2>
-              প্রজেক্ট
-            </h2>
-
-            <p>
-              আপনার প্রজেক্ট যোগ, পরিবর্তন অথবা মুছে ফেলুন।
-            </p>
-
-          </div>
-
-          <button
-            id="addProjectBtn"
-            class="small-add-btn"
-            type="button"
-          >
-            ＋ নতুন প্রজেক্ট
-          </button>
-
-        </div>
-
-
-        <div
-          id="projectsContainer"
-          class="items-container"
-        ></div>
-
-
-        <div
-          id="projectMessage"
-          class="message"
-        ></div>
-
-      </section>
-
-
-      <!-- ============================= -->
-      <!-- HOW TO -->
-      <!-- ============================= -->
-
-      <section class="help-section">
-
-        <div class="section-number">
-          05
-        </div>
-
-        <h2>
-          কীভাবে ব্যবহার করবেন?
-        </h2>
-
-
-        <div class="help-grid">
-
-
-          <div class="help-card">
-
-            <div class="help-icon">
-              ✏️
-            </div>
-
-            <div>
-
-              <h3>
-                Edit
-              </h3>
-
-              <p>
-                আগে থেকে থাকা তথ্য পরিবর্তন করুন।
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div class="help-card">
-
-            <div class="help-icon">
-              ＋
-            </div>
-
-            <div>
-
-              <h3>
-                Add
-              </h3>
-
-              <p>
-                নতুন বাটন, ডায়েরি বা প্রজেক্ট যোগ করুন।
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div class="help-card">
-
-            <div class="help-icon">
-              👁️
-            </div>
-
-            <div>
-
-              <h3>
-                Show / Hide
-              </h3>
-
-              <p>
-                কোনো অংশ ওয়েবসাইটে দেখাবেন বা লুকাবেন।
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div class="help-card">
-
-            <div class="help-icon">
-              🗑️
-            </div>
-
-            <div>
-
-              <h3>
-                Delete
-              </h3>
-
-              <p>
-                প্রয়োজন না হলে তথ্য মুছে ফেলুন।
-              </p>
-
-            </div>
-
-          </div>
-
-
-        </div>
-
-      </section>
-
-
-    </section>
-
-  </main>
-
-
-  <!-- ============================= -->
-  <!-- BUTTON MODAL -->
-  <!-- ============================= -->
-
-  <div
-    id="buttonModal"
-    class="modal"
+      ⚙️ সাইট
+    </button>
+
+    <button
+      class="tab"
+      data-section="buttons"
+    >
+      🔘 বাটন
+    </button>
+
+    <button
+      class="tab"
+      data-section="diary"
+    >
+      📖 ডায়েরি
+    </button>
+
+    <button
+      class="tab"
+      data-section="projects"
+    >
+      🚀 প্রজেক্ট
+    </button>
+
+  </nav>
+
+
+  <!-- ================================================= -->
+  <!-- SITE -->
+  <!-- ================================================= -->
+
+  <section
+    id="section-site"
+    class="panel"
   >
 
-    <div class="modal-box">
+    <div class="panel-title">
+      <span>01</span>
+      <h2>সাইটের তথ্য</h2>
+    </div>
 
-      <div class="modal-header">
+    <p class="help">
+      এখান থেকে আপনার ওয়েবসাইটের মূল তথ্য পরিবর্তন করুন।
+    </p>
 
-        <h3>
-          🔘 বাটন তৈরি / এডিট
-        </h3>
+    <form id="siteForm">
 
-        <button
-          class="close-modal"
-          data-close="buttonModal"
-          type="button"
+      <label>
+        নাম
+        <input
+          id="siteName"
+          type="text"
         >
-          ×
-        </button>
+      </label>
 
+      <label>
+        ট্যাগলাইন
+        <input
+          id="siteTagline"
+          type="text"
+        >
+      </label>
+
+      <label>
+        কলেজ
+        <input
+          id="siteCollege"
+          type="text"
+        >
+      </label>
+
+      <label>
+        শিক্ষা
+        <input
+          id="siteEducation"
+          type="text"
+        >
+      </label>
+
+      <label>
+        প্রোফাইল ছবির লিংক
+        <input
+          id="sitePhoto"
+          type="url"
+          placeholder="https://..."
+        >
+      </label>
+
+      <label>
+        আমার সম্পর্কে
+        <textarea
+          id="siteAbout"
+          rows="5"
+        ></textarea>
+      </label>
+
+      <label>
+        Skills
+        <textarea
+          id="siteSkills"
+          rows="5"
+          placeholder="প্রতি লাইনে একটি Skill"
+        ></textarea>
+      </label>
+
+
+      <div class="sub-title">
+        Social Links
       </div>
 
-
-      <form id="buttonForm">
-
+      <label>
+        Facebook
         <input
-          id="buttonId"
-          type="hidden"
+          id="facebook"
+          type="url"
+          placeholder="Facebook link"
         >
+      </label>
 
-
-        <div class="field">
-
-          <label>
-            বাটনের নাম
-          </label>
-
-          <input
-            id="buttonLabel"
-            type="text"
-            placeholder="আমার গল্প দেখুন"
-            required
-          >
-
-        </div>
-
-
-        <div class="field">
-
-          <label>
-            Link / URL
-          </label>
-
-          <input
-            id="buttonUrl"
-            type="text"
-            placeholder="/about.html"
-            required
-          >
-
-        </div>
-
-
-        <div class="field">
-
-          <label>
-            Position
-          </label>
-
-          <input
-            id="buttonOrder"
-            type="number"
-            value="1"
-            min="1"
-          >
-
-        </div>
-
-
-        <label class="switch-row">
-
-          <input
-            id="buttonVisible"
-            type="checkbox"
-            checked
-          >
-
-          <span>
-            ওয়েবসাইটে দেখাবে
-          </span>
-
-        </label>
-
-
-        <button
-          type="submit"
-          class="main-btn"
+      <label>
+        Instagram
+        <input
+          id="instagram"
+          type="url"
+          placeholder="Instagram link"
         >
-          💾 বাটন সংরক্ষণ
-        </button>
+      </label>
 
-      </form>
+      <label>
+        WhatsApp
+        <input
+          id="whatsapp"
+          type="url"
+          placeholder="WhatsApp link"
+        >
+      </label>
 
+      <label>
+        GitHub
+        <input
+          id="github"
+          type="url"
+          placeholder="GitHub link"
+        >
+      </label>
+
+      <label>
+        Gmail
+        <input
+          id="email"
+          type="email"
+          placeholder="yourmail@gmail.com"
+        >
+      </label>
+
+      <button
+        type="submit"
+        class="gold-btn"
+      >
+        💾 তথ্য সংরক্ষণ করুন
+      </button>
+
+    </form>
+
+    <div
+      id="siteMessage"
+      class="message"
+    ></div>
+
+  </section>
+
+
+  <!-- ================================================= -->
+  <!-- BUTTONS -->
+  <!-- ================================================= -->
+
+  <section
+    id="section-buttons"
+    class="panel hidden"
+  >
+
+    <div class="panel-title">
+      <span>02</span>
+      <h2>বাটন ম্যানেজার</h2>
     </div>
+
+    <p class="help">
+      পুরোনো Button Edit করুন অথবা নতুন Button যোগ করুন।
+      Show / Hide এবং Delete-ও করতে পারবেন।
+    </p>
+
+    <div
+      id="buttonsList"
+      class="items"
+    ></div>
+
+    <button
+      id="addButtonBtn"
+      class="gold-btn"
+    >
+      + নতুন বাটন
+    </button>
+
+  </section>
+
+
+  <!-- ================================================= -->
+  <!-- DIARY -->
+  <!-- ================================================= -->
+
+  <section
+    id="section-diary"
+    class="panel hidden"
+  >
+
+    <div class="panel-title">
+      <span>03</span>
+      <h2>ডায়েরি</h2>
+    </div>
+
+    <p class="help">
+      নতুন অধ্যায় যোগ করুন অথবা পুরোনো অধ্যায় Edit,
+      Show / Hide এবং Delete করুন।
+    </p>
+
+    <div
+      id="diaryList"
+      class="items"
+    ></div>
+
+    <button
+      id="addDiaryBtn"
+      class="gold-btn"
+    >
+      + নতুন অধ্যায়
+    </button>
+
+  </section>
+
+
+  <!-- ================================================= -->
+  <!-- PROJECTS -->
+  <!-- ================================================= -->
+
+  <section
+    id="section-projects"
+    class="panel hidden"
+  >
+
+    <div class="panel-title">
+      <span>04</span>
+      <h2>প্রজেক্ট</h2>
+    </div>
+
+    <p class="help">
+      আপনার Project যোগ, পরিবর্তন, Hide অথবা Delete করুন।
+    </p>
+
+    <div
+      id="projectsList"
+      class="items"
+    ></div>
+
+    <button
+      id="addProjectBtn"
+      class="gold-btn"
+    >
+      + নতুন প্রজেক্ট
+    </button>
+
+  </section>
+
+</section>
+
+
+</main>
+
+
+<!-- ================================================= -->
+<!-- MODAL -->
+<!-- ================================================= -->
+
+<div
+  id="modal"
+  class="modal hidden"
+>
+
+  <div class="modal-box">
+
+    <button
+      id="closeModal"
+      class="close"
+    >
+      ×
+    </button>
+
+    <div id="modalContent"></div>
 
   </div>
 
+</div>
 
-  <!-- ============================= -->
-  <!-- DIARY MODAL -->
-  <!-- ============================= -->
 
-  <div
-    id="diaryModal"
-    class="modal"
-  >
-
-    <div class="modal-box">
-
-      <div class="modal-header">
-
-        <h3>
-          📖 ডায়েরি অধ্যায়
-        </h3>
-
-        <button
-          class="close-modal"
-          data-close="diaryModal"
-          type="button"
-        >
-          ×
-        </button>
-
-      </div>
-
-
-      <form id="diaryForm">
-
-        <input
-          id="diaryId"
-          type="hidden"
-        >
-
-
-        <div class="field">
-
-          <label>
-            অধ্যায়ের নাম
-          </label>
-
-          <input
-            id="diaryTitle"
-            type="text"
-            placeholder="আমার প্রথম অধ্যায়"
-            required
-          >
-
-        </div>
-
-
-        <div class="field">
-
-          <label>
-            তারিখ
-          </label>
-
-          <input
-            id="diaryDate"
-            type="text"
-            placeholder="২ সেপ্টেম্বর ২০২৬"
-          >
-
-        </div>
-
-
-        <div class="field">
-
-          <label>
-            বিস্তারিত লেখা
-          </label>
-
-          <textarea
-            id="diaryContent"
-            rows="8"
-            placeholder="এই অধ্যায়ে কী লিখতে চান..."
-            required
-          ></textarea>
-
-        </div>
-
-
-        <label class="switch-row">
-
-          <input
-            id="diaryVisible"
-            type="checkbox"
-            checked
-          >
-
-          <span>
-            ওয়েবসাইটে দেখাবে
-          </span>
-
-        </label>
-
-
-        <button
-          type="submit"
-          class="main-btn"
-        >
-          💾 অধ্যায় সংরক্ষণ
-        </button>
-
-      </form>
-
-    </div>
-
-  </div>
-
-
-  <!-- ============================= -->
-  <!-- PROJECT MODAL -->
-  <!-- ============================= -->
-
-  <div
-    id="projectModal"
-    class="modal"
-  >
-
-    <div class="modal-box">
-
-      <div class="modal-header">
-
-        <h3>
-          🚀 প্রজেক্ট
-        </h3>
-
-        <button
-          class="close-modal"
-          data-close="projectModal"
-          type="button"
-        >
-          ×
-        </button>
-
-      </div>
-
-
-      <form id="projectForm">
-
-        <input
-          id="projectId"
-          type="hidden"
-        >
-
-
-        <div class="field">
-
-          <label>
-            প্রজেক্টের নাম
-          </label>
-
-          <input
-            id="projectTitle"
-            type="text"
-            placeholder="My Portfolio"
-            required
-          >
-
-        </div>
-
-
-        <div class="field">
-
-          <label>
-            ধরন
-          </label>
-
-          <input
-            id="projectType"
-            type="text"
-            placeholder="Website / App / Design"
-          >
-
-        </div>
-
-
-        <div class="field">
-
-          <label>
-            প্রজেক্টের বিবরণ
-          </label>
-
-          <textarea
-            id="projectDescription"
-            rows="6"
-            placeholder="প্রজেক্ট সম্পর্কে লিখুন..."
-          ></textarea>
-
-        </div>
-
-
-        <div class="field">
-
-          <label>
-            প্রজেক্ট Link
-          </label>
-
-          <input
-            id="projectUrl"
-            type="text"
-            placeholder="https://..."
-          >
-
-        </div>
-
-
-        <div class="field">
-
-          <label>
-            Image Link
-          </label>
-
-          <input
-            id="projectImage"
-            type="text"
-            placeholder="https://..."
-          >
-
-        </div>
-
-
-        <div class="field">
-
-          <label>
-            Position
-          </label>
-
-          <input
-            id="projectOrder"
-            type="number"
-            value="0"
-            min="0"
-          >
-
-        </div>
-
-
-        <label class="switch-row">
-
-          <input
-            id="projectVisible"
-            type="checkbox"
-            checked
-          >
-
-          <span>
-            ওয়েবসাইটে দেখাবে
-          </span>
-
-        </label>
-
-
-        <button
-          type="submit"
-          class="main-btn"
-        >
-          💾 প্রজেক্ট সংরক্ষণ
-        </button>
-
-      </form>
-
-    </div>
-
-  </div>
-
-
-  <!-- ============================= -->
-  <!-- TOAST -->
-  <!-- ============================= -->
-
-  <div
-    id="toast"
-    class="toast"
-  ></div>
-
-
-  <script src="/admin/admin.js"></script>
+<script src="/admin/admin.js"></script>
 
 </body>
-          </html>
+</html>
