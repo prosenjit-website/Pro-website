@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Diary — Prosenjit Ray</title>
+
+  <meta
+    name="description"
+    content="Personal diary and life chapters of Prosenjit Ray."
+  >
+
+  <link rel="stylesheet" href="/style.css">
+
+</head>
+
+
+<body>
+
+<header class="navbar">
+
+  <div class="nav-inner">
+
+    <a href="/" class="logo">
+      Prosenjit<span>.</span>
+    </a>
+
+    <nav class="nav-links">
+      <a href="/">Home</a>
+      <a href="/about.html">About</a>
+      <a href="/education.html">Education</a>
+      <a href="/diary.html">Diary</a>
+      <a href="/projects.html">Projects</a>
+      <a href="/contact.html">Contact</a>
+    </nav>
+
+    <button
+      class="menu-btn"
+      type="button"
+      aria-label="Open menu"
+      aria-expanded="false"
+    >
+      ☰
+    </button>
+
+  </div>
+
+
+  <div class="mobile-menu">
+
+    <a href="/">Home</a>
+    <a href="/about.html">About</a>
+    <a href="/education.html">Education</a>
+    <a href="/diary.html">Diary</a>
+    <a href="/projects.html">Projects</a>
+    <a href="/contact.html">Contact</a>
+
+  </div>
+
+</header>
+
+
+<main>
+
+  <section class="page-hero">
+
+    <div class="container reveal">
+
+      <div class="eyebrow">
+        Personal Diary
+      </div>
+
+      <h1>
+        My life,<br>
+        <span>my chapters.</span>
+      </h1>
+
+      <p>
+        A collection of thoughts, experiences, memories and moments
+        from my journey.
+      </p>
+
+    </div>
+
+  </section>
+
+
+  <section>
+
+    <div class="container">
+
+      <!-- DIARY CONTENT WILL LOAD FROM DATABASE -->
+
+      <div
+        id="diaryContainer"
+        class="diary-grid"
+      >
+
+        <div class="glass diary-card reveal">
+
+          <div class="diary-date">
+            My Journey
+          </div>
+
+          <h3>
+            The Beginning
+          </h3>
+
+          <p>
+            Every journey starts with a first step. This space will
+            hold my personal stories and experiences.
+          </p>
+
+        </div>
+
+
+        <div class="glass diary-card reveal">
+
+          <div class="diary-date">
+            Coming Soon
+          </div>
+
+          <h3>
+            More Chapters
+          </h3>
+
+          <p>
+            New memories and chapters will appear here as my journey
+            continues.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div style="height:30px;"></div>
+
+
+      <div class="glass cta reveal">
+
+        <h2>
+          More chapters<br>
+          are coming.
+        </h2>
+
+        <p>
+          Life is a story that keeps writing itself.
+        </p>
+
+        <a
+          href="/contact.html"
+          class="btn btn-primary"
+        >
+          Connect With Me →
+        </a>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<footer>
+
+  <div class="container footer-inner">
+
+    <div class="footer-text">
+      © <span data-year></span> Prosenjit Ray.
+      Built with ambition.
+    </div>
+
+    <div class="socials">
+
+      <a
+        href="#"
+        data-social="facebook"
+      >f</a>
+
+      <a
+        href="#"
+        data-social="instagram"
+      >◎</a>
+
+      <a
+        href="#"
+        data-social="github"
+      >◇</a>
+
+    </div>
+
+  </div>
+
+</footer>
+
+
+<script src="/app.js"></script>
+
+
+<script>
+
+async function loadDiary() {
+
+  const container =
+    document.getElementById("diaryContainer");
+
+  if (!container) return;
+
+  try {
+
+    const response =
+      await fetch("/api/diary");
+
+    if (!response.ok) {
+      throw new Error("Diary API error");
+    }
+
+    const diary =
+      await response.json();
+
+    if (!Array.isArray(diary) || diary.length === 0) {
+      return;
+    }
+
+    container.innerHTML = "";
+
+    diary.forEach((item) => {
+
+      const card =
+        document.createElement("article");
+
+      card.className =
+        "glass diary-card reveal";
+
+      const date =
+        document.createElement("div");
+
+      date.className =
+        "diary-date";
+
+      date.textContent =
+        item.date || "Diary";
+
+      const title =
+        document.createElement("h3");
+
+      title.textContent =
+        item.title || "Untitled Chapter";
+
+      const text =
+        document.createElement("p");
+
+      text.textContent =
+        item.content || "";
+
+      card.appendChild(date);
+      card.appendChild(title);
+      card.appendChild(text);
+
+      container.appendChild(card);
+
+    });
+
+    document
+      .querySelectorAll(".reveal")
+      .forEach((element) => {
+        element.classList.add("show");
+      });
+
+  } catch (error) {
+
+    console.log(
+      "Diary could not be loaded."
+    );
+
+  }
+
+}
+
+loadDiary();
+
+</script>
+
+</body>
+</html>
