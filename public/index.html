@@ -1,16 +1,43 @@
 <!DOCTYPE html>
 <html lang="bn">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title id="pageTitle">প্রসেনজিৎ রায়</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#08090c"
+  >
+
+  <meta
+    name="description"
+    content="প্রসেনজিৎ রায় — Personal Portfolio"
+  >
+
+  <title>প্রসেনজিৎ রায় | Portfolio</title>
 
   <style>
     * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #07080b;
+      --bg2: #0d0f13;
+      --card: #111318;
+      --card2: #17191f;
+      --border: #292d35;
+      --text: #f5f5f5;
+      --muted: #969ba7;
+      --gold: #d7b56d;
+      --gold2: #a98748;
     }
 
     html {
@@ -18,10 +45,24 @@
     }
 
     body {
-      font-family: Arial, sans-serif;
-      background: #0b0b0b;
-      color: #fff;
+      background:
+        radial-gradient(
+          circle at 80% 10%,
+          rgba(215,181,109,.10),
+          transparent 28%
+        ),
+        var(--bg);
+
+      color: var(--text);
+
+      font-family:
+        Arial,
+        "Noto Sans Bengali",
+        "Noto Sans",
+        sans-serif;
+
       line-height: 1.7;
+      overflow-x: hidden;
     }
 
     a {
@@ -29,154 +70,814 @@
       text-decoration: none;
     }
 
-    nav {
-      position: sticky;
+    button {
+      font: inherit;
+    }
+
+    .container {
+      width: min(1150px, calc(100% - 36px));
+      margin: auto;
+    }
+
+    /* ================= HEADER ================= */
+
+    header {
+      position: fixed;
       top: 0;
-      z-index: 100;
-      padding: 18px 7%;
-      background: rgba(11,11,11,.95);
-      border-bottom: 1px solid #333;
+      left: 0;
+      right: 0;
+
+      z-index: 1000;
+
+      background: rgba(7,8,11,.80);
+
+      border-bottom: 1px solid rgba(255,255,255,.06);
+
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .nav {
+      height: 72px;
+
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
     }
 
     .logo {
-      font-size: 24px;
-      font-weight: bold;
-      color: #d7b56d;
+      color: var(--gold);
+
+      font-size: 21px;
+
+      font-weight: 800;
+
+      letter-spacing: .5px;
     }
 
     .nav-links {
       display: flex;
-      gap: 22px;
+      align-items: center;
+      gap: 25px;
+
       list-style: none;
     }
 
-    .nav-links a:hover {
-      color: #d7b56d;
+    .nav-links a {
+      color: #bfc2c9;
+
+      font-size: 14px;
+
+      transition: .2s;
     }
 
-    section {
-      padding: 90px 7%;
+    .nav-links a:hover {
+      color: var(--gold);
     }
+
+    .menu-btn {
+      display: none;
+
+      border: 1px solid var(--border);
+
+      background: var(--card);
+
+      color: var(--text);
+
+      border-radius: 8px;
+
+      padding: 8px 11px;
+
+      cursor: pointer;
+    }
+
+    /* ================= HERO ================= */
 
     .hero {
-      min-height: 90vh;
+      min-height: 100vh;
+
       display: flex;
-      flex-direction: column;
-      justify-content: center;
-      max-width: 1000px;
+      align-items: center;
+
+      padding-top: 72px;
+
+      position: relative;
+    }
+
+    .hero::before {
+      content: "";
+
+      position: absolute;
+
+      width: 450px;
+      height: 450px;
+
+      border-radius: 50%;
+
+      background: rgba(215,181,109,.055);
+
+      filter: blur(90px);
+
+      right: -150px;
+      top: 100px;
+
+      pointer-events: none;
+    }
+
+    .hero-content {
+      max-width: 850px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+
+      margin-bottom: 18px;
+
+      color: var(--gold);
+
+      font-size: 12px;
+
+      font-weight: 700;
+
+      letter-spacing: 3px;
+
+      text-transform: uppercase;
     }
 
     .hero h1 {
-      font-size: clamp(45px, 8vw, 90px);
-      line-height: 1.1;
-      color: #d7b56d;
+      font-size: clamp(45px, 8vw, 88px);
+
+      line-height: 1.05;
+
+      letter-spacing: -3px;
+
+      margin-bottom: 20px;
     }
 
-    .hero h2 {
-      margin: 20px 0;
-      font-size: 32px;
+    .hero h1 span {
+      color: var(--gold);
     }
 
-    .hero p {
+    .hero-title {
       max-width: 700px;
-      color: #bbb;
-      font-size: 18px;
+
+      color: #d2d4d9;
+
+      font-size: clamp(20px, 3vw, 32px);
+
+      line-height: 1.35;
+
+      margin-bottom: 17px;
     }
 
-    .buttons {
+    .hero-description {
+      max-width: 650px;
+
+      color: var(--muted);
+
+      font-size: 16px;
+
+      margin-bottom: 30px;
+    }
+
+    .hero-buttons {
       display: flex;
-      gap: 15px;
-      margin-top: 30px;
+
       flex-wrap: wrap;
+
+      gap: 12px;
     }
 
     .btn {
-      padding: 13px 22px;
-      border: 1px solid #d7b56d;
-      border-radius: 8px;
-      color: #d7b56d;
+      display: inline-flex;
+
+      align-items: center;
+      justify-content: center;
+
+      min-height: 48px;
+
+      padding: 0 20px;
+
+      border-radius: 9px;
+
+      border: 1px solid var(--border);
+
+      background: var(--card);
+
+      color: var(--text);
+
       transition: .2s;
     }
 
     .btn:hover {
-      background: #d7b56d;
+      transform: translateY(-2px);
+
+      border-color: var(--gold);
+
+      color: var(--gold);
+    }
+
+    .btn-primary {
+      border-color: var(--gold);
+
+      background: var(--gold);
+
       color: #111;
+
+      font-weight: 700;
     }
 
-    .section-title {
-      color: #d7b56d;
-      font-size: 40px;
-      margin-bottom: 30px;
+    .btn-primary:hover {
+      background: transparent;
+
+      color: var(--gold);
     }
 
-    .card-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px;
+    /* ================= SECTIONS ================= */
+
+    section {
+      padding: 100px 0;
     }
 
-    .card {
-      background: #151515;
-      border: 1px solid #292929;
-      border-radius: 15px;
-      padding: 25px;
+    .section-head {
+      margin-bottom: 42px;
     }
 
-    .card h3 {
-      color: #d7b56d;
+    .section-kicker {
+      display: block;
+
+      margin-bottom: 8px;
+
+      color: var(--gold);
+
+      font-size: 11px;
+
+      font-weight: 700;
+
+      letter-spacing: 3px;
+    }
+
+    .section-head h2 {
+      font-size: clamp(30px, 5vw, 48px);
+
+      line-height: 1.15;
+
       margin-bottom: 10px;
     }
 
-    .card p {
-      color: #bbb;
+    .section-head p {
+      max-width: 650px;
+
+      color: var(--muted);
     }
 
-    .skill {
-      margin-bottom: 20px;
+    /* ================= ABOUT ================= */
+
+    .about-card {
+      display: grid;
+
+      grid-template-columns: 1fr 1.6fr;
+
+      gap: 30px;
+
+      padding: 35px;
+
+      background: var(--card);
+
+      border: 1px solid var(--border);
+
+      border-radius: 18px;
+    }
+
+    .about-card h3 {
+      color: var(--gold);
+
+      font-size: 25px;
+    }
+
+    .about-card p {
+      color: #c3c6cd;
+
+      line-height: 2;
+      white-space: pre-line;
+    }
+
+    /* ================= EDUCATION ================= */
+
+    .timeline {
+      position: relative;
+
+      display: grid;
+
+      gap: 16px;
+    }
+
+    .timeline::before {
+      content: "";
+
+      position: absolute;
+
+      left: 14px;
+
+      top: 12px;
+      bottom: 12px;
+
+      width: 1px;
+
+      background: var(--border);
+    }
+
+    .timeline-card {
+      position: relative;
+
+      margin-left: 40px;
+
+      padding: 24px;
+
+      background: var(--card);
+
+      border: 1px solid var(--border);
+
+      border-radius: 15px;
+    }
+
+    .timeline-card::before {
+      content: "";
+
+      position: absolute;
+
+      left: -34px;
+
+      top: 27px;
+
+      width: 9px;
+      height: 9px;
+
+      border-radius: 50%;
+
+      background: var(--gold);
+
+      box-shadow:
+        0 0 0 5px var(--bg);
+    }
+
+    .timeline-card h3 {
+      margin-bottom: 5px;
+
+      color: var(--gold);
+    }
+
+    .timeline-meta {
+      color: #aaa;
+
+      font-size: 13px;
+
+      margin-bottom: 10px;
+    }
+
+    .timeline-card p {
+      color: var(--muted);
+    }
+
+    /* ================= SKILLS ================= */
+
+    .skills-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 18px;
+    }
+
+    .skill-card {
+      padding: 22px;
+
+      background: var(--card);
+
+      border: 1px solid var(--border);
+
+      border-radius: 14px;
     }
 
     .skill-top {
       display: flex;
+
       justify-content: space-between;
+
+      gap: 15px;
+
+      margin-bottom: 10px;
     }
 
-    .bar {
-      height: 8px;
-      background: #292929;
-      border-radius: 20px;
+    .skill-name {
+      font-weight: 700;
+    }
+
+    .skill-percent {
+      color: var(--gold);
+    }
+
+    .skill-bar {
+      height: 7px;
+
       overflow: hidden;
+
+      border-radius: 20px;
+
+      background: #24272d;
     }
 
-    .bar span {
-      display: block;
+    .skill-progress {
       height: 100%;
-      background: #d7b56d;
+
+      border-radius: inherit;
+
+      background:
+        linear-gradient(
+          90deg,
+          var(--gold2),
+          var(--gold)
+        );
     }
+
+    /* ================= DIARY ================= */
+
+    .diary-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 18px;
+    }
+
+    .diary-card {
+      padding: 25px;
+
+      background: var(--card);
+
+      border: 1px solid var(--border);
+
+      border-radius: 15px;
+    }
+
+    .diary-date {
+      color: var(--gold);
+
+      font-size: 13px;
+
+      margin-bottom: 8px;
+    }
+
+    .diary-card h3 {
+      margin-bottom: 10px;
+    }
+
+    .diary-card p {
+      color: var(--muted);
+
+      white-space: pre-line;
+    }
+
+    /* ================= HOBBIES ================= */
+
+    .hobbies-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+      gap: 18px;
+    }
+
+    .hobby-card {
+      padding: 30px 20px;
+
+      text-align: center;
+
+      background: var(--card);
+
+      border: 1px solid var(--border);
+
+      border-radius: 15px;
+
+      transition: .2s;
+    }
+
+    .hobby-card:hover {
+      transform: translateY(-4px);
+
+      border-color: var(--gold);
+    }
+
+    .hobby-icon {
+      display: block;
+
+      margin-bottom: 10px;
+
+      font-size: 38px;
+    }
+
+    .hobby-card h3 {
+      color: #eee;
+    }
+
+    /* ================= PROJECTS ================= */
+
+    .projects-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 20px;
+    }
+
+    .project-card {
+      padding: 28px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(215,181,109,.055),
+          transparent
+        ),
+        var(--card);
+
+      border: 1px solid var(--border);
+
+      border-radius: 16px;
+
+      transition: .2s;
+    }
+
+    .project-card:hover {
+      transform: translateY(-4px);
+
+      border-color: var(--gold);
+    }
+
+    .project-card h3 {
+      color: var(--gold);
+
+      margin-bottom: 10px;
+
+      font-size: 22px;
+    }
+
+    .project-card p {
+      color: var(--muted);
+
+      margin-bottom: 20px;
+
+      white-space: pre-line;
+    }
+
+    /* ================= VISION ================= */
+
+    .vision-card {
+      padding: 45px;
+
+      text-align: center;
+
+      background:
+        radial-gradient(
+          circle at center,
+          rgba(215,181,109,.09),
+          transparent 55%
+        ),
+        var(--card);
+
+      border: 1px solid var(--border);
+
+      border-radius: 20px;
+    }
+
+    .vision-card h2 {
+      color: var(--gold);
+
+      font-size: clamp(28px, 5vw, 44px);
+
+      margin-bottom: 15px;
+    }
+
+    .vision-card p {
+      max-width: 760px;
+
+      margin: auto;
+
+      color: #c1c4cb;
+
+      white-space: pre-line;
+    }
+
+    /* ================= CONTACT ================= */
+
+    .contact-card {
+      display: grid;
+
+      grid-template-columns: 1fr 1fr;
+
+      gap: 20px;
+    }
+
+    .contact-item {
+      padding: 22px;
+
+      background: var(--card);
+
+      border: 1px solid var(--border);
+
+      border-radius: 13px;
+    }
+
+    .contact-label {
+      display: block;
+
+      color: var(--muted);
+
+      font-size: 12px;
+
+      margin-bottom: 5px;
+    }
+
+    .contact-item a {
+      color: var(--gold);
+
+      word-break: break-word;
+    }
+
+    /* ================= FOOTER ================= */
 
     footer {
+      padding: 35px 0;
+
+      border-top: 1px solid var(--border);
+
       text-align: center;
-      padding: 30px;
-      border-top: 1px solid #292929;
-      color: #888;
+
+      color: var(--muted);
+
+      font-size: 13px;
     }
 
-    @media(max-width:700px) {
-      nav {
-        flex-direction: column;
-        gap: 15px;
+    footer strong {
+      color: var(--gold);
+    }
+
+    /* ================= LOADING ================= */
+
+    #loading {
+      position: fixed;
+
+      inset: 0;
+
+      z-index: 99999;
+
+      display: grid;
+
+      place-items: center;
+
+      background: var(--bg);
+
+      color: var(--gold);
+
+      font-size: 16px;
+    }
+
+    #loading.hide {
+      display: none;
+    }
+
+    /* ================= EMPTY ================= */
+
+    .empty {
+      padding: 25px;
+
+      color: var(--muted);
+
+      border: 1px dashed var(--border);
+
+      border-radius: 12px;
+
+      text-align: center;
+    }
+
+    /* ================= RESPONSIVE ================= */
+
+    @media (max-width: 800px) {
+
+      .nav {
+        height: 65px;
+      }
+
+      .menu-btn {
+        display: block;
       }
 
       .nav-links {
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 12px;
+        display: none;
+
+        position: absolute;
+
+        left: 18px;
+        right: 18px;
+        top: 70px;
+
+        padding: 15px;
+
+        flex-direction: column;
+
+        align-items: stretch;
+
+        gap: 0;
+
+        background: var(--card);
+
+        border: 1px solid var(--border);
+
+        border-radius: 12px;
+      }
+
+      .nav-links.open {
+        display: flex;
+      }
+
+      .nav-links a {
+        display: block;
+
+        padding: 10px;
+      }
+
+      .about-card,
+      .contact-card {
+        grid-template-columns: 1fr;
+      }
+
+      .skills-grid,
+      .diary-grid,
+      .projects-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hobbies-grid {
+        grid-template-columns:
+          repeat(2, minmax(0, 1fr));
       }
 
       section {
-        padding: 60px 5%;
+        padding: 75px 0;
+      }
+
+      .hero {
+        min-height: 90vh;
+      }
+    }
+
+    @media (max-width: 500px) {
+
+      .container {
+        width: min(
+          100% - 28px,
+          1150px
+        );
+      }
+
+      .hero h1 {
+        letter-spacing: -2px;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+      }
+
+      .hero-buttons .btn {
+        width: 100%;
+      }
+
+      .about-card {
+        padding: 22px;
+      }
+
+      .hobbies-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .vision-card {
+        padding: 28px 20px;
+      }
+
+      .timeline-card {
+        margin-left: 30px;
+      }
+
+      .timeline::before {
+        left: 9px;
+      }
+
+      .timeline-card::before {
+        left: -25px;
       }
     }
   </style>
@@ -184,333 +885,1495 @@
 
 <body>
 
-<nav>
-  <div class="logo" id="logo">প্রসেনজিৎ রায়</div>
+  <!-- LOADING -->
 
-  <ul class="nav-links">
-    <li><a href="#about">সম্পর্কে</a></li>
-    <li><a href="#education">শিক্ষা</a></li>
-    <li><a href="#skills">দক্ষতা</a></li>
-    <li><a href="#diary">দিনলিপি</a></li>
-    <li><a href="#projects">প্রজেক্ট</a></li>
-    <li><a href="#contact">যোগাযোগ</a></li>
-  </ul>
-</nav>
+  <div id="loading">
+    Portfolio লোড হচ্ছে...
+  </div>
 
-<main>
 
-  <section class="hero">
-    <h1 id="heroName">প্রসেনজিৎ রায়</h1>
-    <h2 id="heroTitle">স্বপ্ন দেখি, শিখি এবং তৈরি করি</h2>
-    <p id="heroDescription"></p>
+  <!-- ================= HEADER ================= -->
 
-    <div class="buttons" id="heroButtons"></div>
-  </section>
+  <header>
 
-  <section id="about">
-    <h2 class="section-title" id="aboutTitle">আমার সম্পর্কে</h2>
-    <div class="card">
-      <p id="aboutText"></p>
-    </div>
-  </section>
+    <div class="container nav">
 
-  <section id="education">
-    <h2 class="section-title">শিক্ষাজীবন</h2>
-    <div class="card-grid" id="educationList"></div>
-  </section>
-
-  <section id="skills">
-    <h2 class="section-title">দক্ষতা</h2>
-    <div id="skillsList"></div>
-  </section>
-
-  <section id="diary">
-    <h2 class="section-title">আমার দিনলিপি</h2>
-    <div class="card-grid" id="diaryList"></div>
-  </section>
-
-  <section id="hobbies">
-    <h2 class="section-title">শখ</h2>
-    <div class="card-grid" id="hobbiesList"></div>
-  </section>
-
-  <section id="projects">
-    <h2 class="section-title">প্রজেক্ট</h2>
-    <div class="card-grid" id="projectsList"></div>
-  </section>
-
-  <section id="vision">
-    <h2 class="section-title" id="visionTitle">আমার ভবিষ্যৎ ভাবনা</h2>
-    <div class="card">
-      <p id="visionText"></p>
-    </div>
-  </section>
-
-  <section id="contact">
-    <h2 class="section-title">যোগাযোগ</h2>
-
-    <div class="buttons" id="contactButtons"></div>
-  </section>
-
-</main>
-
-<footer>
-  © <span id="year"></span> প্রসেনজিৎ রায় — সর্বস্বত্ব সংরক্ষিত।
-</footer>
-
-<script>
-async function loadPortfolio() {
-  try {
-    const response = await fetch("/api/portfolio");
-    const data = await response.json();
-
-    renderSite(data);
-  } catch (error) {
-    console.error("Portfolio load error:", error);
-  }
-}
-
-function renderSite(data) {
-
-  const site = data.site || {};
-
-  if (site.show !== false) {
-    document.getElementById("logo").textContent = site.name || "";
-    document.getElementById("heroName").textContent = site.name || "";
-    document.getElementById("heroTitle").textContent = site.title || "";
-    document.getElementById("heroDescription").textContent =
-      site.description || "";
-  }
-
-  const sections = data.sections || {};
-
-  toggleSection("about", sections.about);
-  toggleSection("education", sections.education);
-  toggleSection("skills", sections.skills);
-  toggleSection("diary", sections.diary);
-  toggleSection("hobbies", sections.hobbies);
-  toggleSection("projects", sections.projects);
-  toggleSection("vision", sections.vision);
-  toggleSection("contact", sections.contact);
-
-  renderButtons(data.buttons);
-  renderAbout(data.about);
-  renderEducation(data.education);
-  renderSkills(data.skills);
-  renderDiary(data.diary);
-  renderHobbies(data.hobbies);
-  renderProjects(data.projects);
-  renderVision(data.vision);
-  renderContact(data.contact);
-
-  document.getElementById("year").textContent =
-    new Date().getFullYear();
-}
-
-function toggleSection(id, show) {
-  const el = document.getElementById(id);
-
-  if (el) {
-    el.style.display = show === false ? "none" : "";
-  }
-}
-
-function renderButtons(buttons = {}) {
-
-  const box = document.getElementById("heroButtons");
-  box.innerHTML = "";
-
-  Object.values(buttons).forEach(button => {
-
-    if (!button || button.show === false) return;
-
-    const a = document.createElement("a");
-
-    a.className = "btn";
-    a.textContent = button.text || "বিস্তারিত";
-    a.href = button.url || "#";
-
-    box.appendChild(a);
-  });
-}
-
-function renderAbout(about = {}) {
-
-  if (about.show === false) return;
-
-  document.getElementById("aboutTitle").textContent =
-    about.title || "আমার সম্পর্কে";
-
-  document.getElementById("aboutText").textContent =
-    about.text || "";
-}
-
-function renderEducation(items = []) {
-
-  const box = document.getElementById("educationList");
-
-  box.innerHTML = "";
-
-  items.forEach(item => {
-
-    if (item.show === false) return;
-
-    box.innerHTML += `
-      <article class="card">
-        <h3>${escapeHTML(item.title)}</h3>
-        <p>${escapeHTML(item.place)}</p>
-        <p>${escapeHTML(item.year)}</p>
-        <p>${escapeHTML(item.description)}</p>
-      </article>
-    `;
-  });
-}
-
-function renderSkills(items = []) {
-
-  const box = document.getElementById("skillsList");
-
-  box.innerHTML = "";
-
-  items.forEach(item => {
-
-    if (item.show === false) return;
-
-    box.innerHTML += `
-      <div class="skill">
-        <div class="skill-top">
-          <strong>${escapeHTML(item.name)}</strong>
-          <span>${Number(item.level) || 0}%</span>
-        </div>
-
-        <div class="bar">
-          <span style="width:${Number(item.level) || 0}%"></span>
-        </div>
-      </div>
-    `;
-  });
-}
-
-function renderDiary(items = []) {
-
-  const box = document.getElementById("diaryList");
-
-  box.innerHTML = "";
-
-  items.forEach(item => {
-
-    if (item.show === false) return;
-
-    box.innerHTML += `
-      <article class="card">
-        <h3>${escapeHTML(item.title)}</h3>
-        <small>${escapeHTML(item.date)}</small>
-        <p>${escapeHTML(item.text)}</p>
-      </article>
-    `;
-  });
-}
-
-function renderHobbies(items = []) {
-
-  const box = document.getElementById("hobbiesList");
-
-  box.innerHTML = "";
-
-  items.forEach(item => {
-
-    if (item.show === false) return;
-
-    box.innerHTML += `
-      <article class="card">
-        <h3>${item.icon || "★"} ${escapeHTML(item.name)}</h3>
-      </article>
-    `;
-  });
-}
-
-function renderProjects(items = []) {
-
-  const box = document.getElementById("projectsList");
-
-  box.innerHTML = "";
-
-  items.forEach(item => {
-
-    if (item.show === false) return;
-
-    box.innerHTML += `
-      <article class="card">
-        <h3>${escapeHTML(item.title)}</h3>
-        <p>${escapeHTML(item.description)}</p>
-        ${
-          item.url
-          ? `<div class="buttons">
-               <a class="btn" href="${escapeAttribute(item.url)}">
-                 প্রজেক্ট দেখুন
-               </a>
-             </div>`
-          : ""
-        }
-      </article>
-    `;
-  });
-}
-
-function renderVision(vision = {}) {
-
-  if (vision.show === false) return;
-
-  document.getElementById("visionTitle").textContent =
-    vision.title || "আমার ভবিষ্যৎ ভাবনা";
-
-  document.getElementById("visionText").textContent =
-    vision.text || "";
-}
-
-function renderContact(contact = {}) {
-
-  const box = document.getElementById("contactButtons");
-
-  box.innerHTML = "";
-
-  const links = [
-    ["ই-মেইল", contact.email ? `mailto:${contact.email}` : ""],
-    ["Facebook", contact.facebook],
-    ["Instagram", contact.instagram],
-    ["GitHub", contact.github]
-  ];
-
-  links.forEach(([text, url]) => {
-
-    if (!url || url === "#") return;
-
-    box.innerHTML += `
-      <a class="btn"
-         href="${escapeAttribute(url)}"
-         target="_blank">
-        ${text}
+      <a
+        href="#home"
+        class="logo"
+        id="navLogo"
+      >
+        প্রসেনজিৎ রায়
       </a>
-    `;
-  });
-}
 
-function escapeHTML(value) {
+      <button
+        class="menu-btn"
+        id="menuBtn"
+        type="button"
+      >
+        ☰
+      </button>
 
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+      <ul
+        class="nav-links"
+        id="navLinks"
+      >
 
-function escapeAttribute(value) {
-  return escapeHTML(value);
-}
+        <li>
+          <a href="#home">হোম</a>
+        </li>
 
-loadPortfolio();
-</script>
+        <li id="navAbout">
+          <a href="#about">আমার সম্পর্কে</a>
+        </li>
+
+        <li id="navEducation">
+          <a href="#education">শিক্ষা</a>
+        </li>
+
+        <li id="navSkills">
+          <a href="#skills">দক্ষতা</a>
+        </li>
+
+        <li id="navProjects">
+          <a href="#projects">প্রজেক্ট</a>
+        </li>
+
+        <li id="navContact">
+          <a href="#contact">যোগাযোগ</a>
+        </li>
+
+      </ul>
+
+    </div>
+
+  </header>
+
+
+  <!-- ================= HERO ================= -->
+
+  <main>
+
+    <section
+      id="home"
+      class="hero"
+    >
+
+      <div class="container">
+
+        <div class="hero-content">
+
+          <span class="eyebrow">
+            PERSONAL PORTFOLIO
+          </span>
+
+          <h1>
+            <span id="heroName">
+              প্রসেনজিৎ রায়
+            </span>
+          </h1>
+
+          <div
+            class="hero-title"
+            id="heroTitle"
+          >
+            স্বপ্ন দেখি, শিখি এবং তৈরি করি
+          </div>
+
+          <p
+            class="hero-description"
+            id="heroDescription"
+          >
+            আমি একজন সৃজনশীল মানুষ, নতুন কিছু শেখা ও তৈরি করতে ভালোবাসি।
+          </p>
+
+          <div
+            class="hero-buttons"
+            id="heroButtons"
+          ></div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= ABOUT ================= -->
+
+    <section
+      id="about"
+      data-section="about"
+    >
+
+      <div class="container">
+
+        <div class="section-head">
+
+          <span class="section-kicker">
+            ABOUT ME
+          </span>
+
+          <h2 id="aboutHeading">
+            আমার সম্পর্কে
+          </h2>
+
+        </div>
+
+        <div class="about-card">
+
+          <div>
+            <h3 id="aboutCardTitle">
+              আমার সম্পর্কে
+            </h3>
+          </div>
+
+          <div>
+            <p id="aboutText">
+              ...
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= EDUCATION ================= -->
+
+    <section
+      id="education"
+      data-section="education"
+    >
+
+      <div class="container">
+
+        <div class="section-head">
+
+          <span class="section-kicker">
+            EDUCATION
+          </span>
+
+          <h2>
+            শিক্ষাজীবন
+          </h2>
+
+        </div>
+
+        <div
+          class="timeline"
+          id="educationList"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= SKILLS ================= -->
+
+    <section
+      id="skills"
+      data-section="skills"
+    >
+
+      <div class="container">
+
+        <div class="section-head">
+
+          <span class="section-kicker">
+            SKILLS
+          </span>
+
+          <h2>
+            আমার দক্ষতা
+          </h2>
+
+        </div>
+
+        <div
+          class="skills-grid"
+          id="skillsList"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= DIARY ================= -->
+
+    <section
+      id="diary"
+      data-section="diary"
+    >
+
+      <div class="container">
+
+        <div class="section-head">
+
+          <span class="section-kicker">
+            DIARY
+          </span>
+
+          <h2>
+            আমার দিনলিপি
+          </h2>
+
+        </div>
+
+        <div
+          class="diary-grid"
+          id="diaryList"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= HOBBIES ================= -->
+
+    <section
+      id="hobbies"
+      data-section="hobbies"
+    >
+
+      <div class="container">
+
+        <div class="section-head">
+
+          <span class="section-kicker">
+            HOBBIES
+          </span>
+
+          <h2>
+            আমার শখ
+          </h2>
+
+        </div>
+
+        <div
+          class="hobbies-grid"
+          id="hobbiesList"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= PROJECTS ================= -->
+
+    <section
+      id="projects"
+      data-section="projects"
+    >
+
+      <div class="container">
+
+        <div class="section-head">
+
+          <span class="section-kicker">
+            PROJECTS
+          </span>
+
+          <h2>
+            আমার প্রজেক্ট
+          </h2>
+
+        </div>
+
+        <div
+          class="projects-grid"
+          id="projectsList"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= VISION ================= -->
+
+    <section
+      id="vision"
+      data-section="vision"
+    >
+
+      <div class="container">
+
+        <div class="vision-card">
+
+          <span class="section-kicker">
+            MY VISION
+          </span>
+
+          <h2 id="visionTitle">
+            আমার ভবিষ্যৎ ভাবনা
+          </h2>
+
+          <p id="visionText">
+            ...
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= CONTACT ================= -->
+
+    <section
+      id="contact"
+      data-section="contact"
+    >
+
+      <div class="container">
+
+        <div class="section-head">
+
+          <span class="section-kicker">
+            CONTACT
+          </span>
+
+          <h2>
+            যোগাযোগ
+          </h2>
+
+        </div>
+
+        <div
+          class="contact-card"
+          id="contactList"
+        ></div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ================= FOOTER ================= -->
+
+  <footer>
+
+    <div class="container">
+
+      <p>
+        © <span id="footerYear"></span>
+        <strong id="footerName">
+          প্রসেনজিৎ রায়
+        </strong>.
+        সর্বস্বত্ব সংরক্ষিত।
+      </p>
+
+    </div>
+
+  </footer>
+
+
+  <!-- ================= JAVASCRIPT ================= -->
+
+  <script>
+
+    "use strict";
+
+
+    /* =====================================================
+       HELPERS
+    ===================================================== */
+
+    const $ = selector =>
+      document.querySelector(selector);
+
+
+    const escapeHTML = value =>
+      String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+
+    const isVisible = item =>
+      !item || item.show !== false;
+
+
+    /* =====================================================
+       LOAD PORTFOLIO
+    ===================================================== */
+
+    async function loadPortfolio() {
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/portfolio",
+            {
+              cache: "no-store"
+            }
+          );
+
+
+        if (!response.ok) {
+          throw new Error(
+            "Portfolio data load failed"
+          );
+        }
+
+
+        const data =
+          await response.json();
+
+
+        renderPortfolio(data);
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        document.body.innerHTML = `
+          <div style="
+            min-height:100vh;
+            display:grid;
+            place-items:center;
+            padding:25px;
+            background:#07080b;
+            color:white;
+            text-align:center;
+            font-family:Arial,sans-serif;
+          ">
+            <div>
+              <h2 style="color:#d7b56d;">
+                Portfolio লোড করা যায়নি
+              </h2>
+
+              <p style="
+                color:#969ba7;
+                margin-top:10px;
+              ">
+                Server চালু আছে কিনা এবং
+                /api/portfolio কাজ করছে কিনা দেখুন।
+              </p>
+            </div>
+          </div>
+        `;
+
+      }
+
+    }
+
+
+    /* =====================================================
+       RENDER
+    ===================================================== */
+
+    function renderPortfolio(data) {
+
+      const portfolio =
+        data || {};
+
+
+      const site =
+        portfolio.site || {};
+
+
+      const sections =
+        portfolio.sections || {};
+
+
+      const buttons =
+        portfolio.buttons || {};
+
+
+      /* SITE */
+
+      if (site.show === false) {
+
+        document.title =
+          "Portfolio";
+
+      } else {
+
+        document.title =
+          `${site.name || "Portfolio"} | Portfolio`;
+
+      }
+
+
+      setText(
+        "navLogo",
+        site.name || "প্রসেনজিৎ রায়"
+      );
+
+
+      setText(
+        "heroName",
+        site.name || "প্রসেনজিৎ রায়"
+      );
+
+
+      setText(
+        "heroTitle",
+        site.title || ""
+      );
+
+
+      setText(
+        "heroDescription",
+        site.description || ""
+      );
+
+
+      setText(
+        "footerName",
+        site.name || "প্রসেনজিৎ রায়"
+      );
+
+
+      /* BUTTONS */
+
+      renderHeroButtons(buttons);
+
+
+      /* SECTIONS */
+
+      renderAbout(
+        portfolio.about,
+        sections.about
+      );
+
+
+      renderEducation(
+        portfolio.education,
+        sections.education
+      );
+
+
+      renderSkills(
+        portfolio.skills,
+        sections.skills
+      );
+
+
+      renderDiary(
+        portfolio.diary,
+        sections.diary
+      );
+
+
+      renderHobbies(
+        portfolio.hobbies,
+        sections.hobbies
+      );
+
+
+      renderProjects(
+        portfolio.projects,
+        sections.projects
+      );
+
+
+      renderVision(
+        portfolio.vision,
+        sections.vision
+      );
+
+
+      renderContact(
+        portfolio.contact,
+        sections.contact
+      );
+
+
+      updateNavigation(
+        sections
+      );
+
+
+      $("#footerYear").textContent =
+        new Date().getFullYear();
+
+
+      $("#loading").classList.add(
+        "hide"
+      );
+
+    }
+
+
+    /* =====================================================
+       HERO BUTTONS
+    ===================================================== */
+
+    function renderHeroButtons(buttons) {
+
+      const box =
+        $("#heroButtons");
+
+
+      if (!box) return;
+
+
+      box.innerHTML = "";
+
+
+      const entries =
+        Object.entries(buttons);
+
+
+      entries
+        .filter(
+          ([, button]) =>
+            button &&
+            button.show !== false
+        )
+        .forEach(
+          ([, button], index) => {
+
+            const link =
+              document.createElement("a");
+
+
+            link.className =
+              `btn ${
+                index === 0
+                  ? "btn-primary"
+                  : ""
+              }`;
+
+
+            link.href =
+              button.url || "#";
+
+
+            link.textContent =
+              button.text ||
+              "Button";
+
+
+            box.appendChild(link);
+
+          }
+        );
+
+    }
+
+
+    /* =====================================================
+       ABOUT
+    ===================================================== */
+
+    function renderAbout(
+      about,
+      enabled
+    ) {
+
+      const section =
+        $("#about");
+
+
+      if (
+        enabled === false ||
+        !isVisible(about)
+      ) {
+
+        section.style.display =
+          "none";
+
+        hideNav("navAbout");
+
+        return;
+
+      }
+
+
+      section.style.display =
+        "";
+
+
+      showNav("navAbout");
+
+
+      setText(
+        "aboutHeading",
+        about?.title ||
+        "আমার সম্পর্কে"
+      );
+
+
+      setText(
+        "aboutCardTitle",
+        about?.title ||
+        "আমার সম্পর্কে"
+      );
+
+
+      setText(
+        "aboutText",
+        about?.text || ""
+      );
+
+    }
+
+
+    /* =====================================================
+       EDUCATION
+    ===================================================== */
+
+    function renderEducation(
+      list,
+      enabled
+    ) {
+
+      const section =
+        $("#education");
+
+      const box =
+        $("#educationList");
+
+
+      if (enabled === false) {
+
+        section.style.display =
+          "none";
+
+        hideNav("navEducation");
+
+        return;
+
+      }
+
+
+      section.style.display =
+        "";
+
+
+      showNav("navEducation");
+
+
+      const items =
+        Array.isArray(list)
+          ? list.filter(isVisible)
+          : [];
+
+
+      box.innerHTML = "";
+
+
+      if (!items.length) {
+
+        box.innerHTML =
+          `<div class="empty">
+            এখনো কোনো শিক্ষা তথ্য যোগ করা হয়নি।
+          </div>`;
+
+        return;
+
+      }
+
+
+      items.forEach(item => {
+
+        const card =
+          document.createElement("article");
+
+
+        card.className =
+          "timeline-card";
+
+
+        card.innerHTML = `
+          <h3>
+            ${escapeHTML(item.title || "")}
+          </h3>
+
+          <div class="timeline-meta">
+            ${escapeHTML(item.place || "")}
+            ${item.year ? " • " + escapeHTML(item.year) : ""}
+          </div>
+
+          <p>
+            ${escapeHTML(item.description || "")}
+          </p>
+        `;
+
+
+        box.appendChild(card);
+
+      });
+
+    }
+
+
+    /* =====================================================
+       SKILLS
+    ===================================================== */
+
+    function renderSkills(
+      list,
+      enabled
+    ) {
+
+      const section =
+        $("#skills");
+
+      const box =
+        $("#skillsList");
+
+
+      if (enabled === false) {
+
+        section.style.display =
+          "none";
+
+        hideNav("navSkills");
+
+        return;
+
+      }
+
+
+      section.style.display =
+        "";
+
+
+      showNav("navSkills");
+
+
+      const items =
+        Array.isArray(list)
+          ? list.filter(isVisible)
+          : [];
+
+
+      box.innerHTML = "";
+
+
+      if (!items.length) {
+
+        box.innerHTML =
+          `<div class="empty">
+            এখনো কোনো দক্ষতা যোগ করা হয়নি।
+          </div>`;
+
+        return;
+
+      }
+
+
+      items.forEach(item => {
+
+        const level =
+          Math.max(
+            0,
+            Math.min(
+              100,
+              Number(item.level) || 0
+            )
+          );
+
+
+        const card =
+          document.createElement("article");
+
+
+        card.className =
+          "skill-card";
+
+
+        card.innerHTML = `
+          <div class="skill-top">
+
+            <span class="skill-name">
+              ${escapeHTML(item.name || "")}
+            </span>
+
+            <span class="skill-percent">
+              ${level}%
+            </span>
+
+          </div>
+
+          <div class="skill-bar">
+
+            <div
+              class="skill-progress"
+              style="width:${level}%"
+            ></div>
+
+          </div>
+        `;
+
+
+        box.appendChild(card);
+
+      });
+
+    }
+
+
+    /* =====================================================
+       DIARY
+    ===================================================== */
+
+    function renderDiary(
+      list,
+      enabled
+    ) {
+
+      const section =
+        $("#diary");
+
+      const box =
+        $("#diaryList");
+
+
+      if (enabled === false) {
+
+        section.style.display =
+          "none";
+
+        return;
+
+      }
+
+
+      section.style.display =
+        "";
+
+
+      const items =
+        Array.isArray(list)
+          ? list.filter(isVisible)
+          : [];
+
+
+      box.innerHTML = "";
+
+
+      if (!items.length) {
+
+        box.innerHTML =
+          `<div class="empty">
+            এখনো কোনো দিনলিপি যোগ করা হয়নি।
+          </div>`;
+
+        return;
+
+      }
+
+
+      items.forEach(item => {
+
+        const card =
+          document.createElement("article");
+
+
+        card.className =
+          "diary-card";
+
+
+        card.innerHTML = `
+          <div class="diary-date">
+            ${escapeHTML(item.date || "")}
+          </div>
+
+          <h3>
+            ${escapeHTML(item.title || "")}
+          </h3>
+
+          <p>
+            ${escapeHTML(item.text || "")}
+          </p>
+        `;
+
+
+        box.appendChild(card);
+
+      });
+
+    }
+
+
+    /* =====================================================
+       HOBBIES
+    ===================================================== */
+
+    function renderHobbies(
+      list,
+      enabled
+    ) {
+
+      const section =
+        $("#hobbies");
+
+      const box =
+        $("#hobbiesList");
+
+
+      if (enabled === false) {
+
+        section.style.display =
+          "none";
+
+        return;
+
+      }
+
+
+      section.style.display =
+        "";
+
+
+      const items =
+        Array.isArray(list)
+          ? list.filter(isVisible)
+          : [];
+
+
+      box.innerHTML = "";
+
+
+      if (!items.length) {
+
+        box.innerHTML =
+          `<div class="empty">
+            এখনো কোনো শখ যোগ করা হয়নি।
+          </div>`;
+
+        return;
+
+      }
+
+
+      items.forEach(item => {
+
+        const card =
+          document.createElement("article");
+
+
+        card.className =
+          "hobby-card";
+
+
+        card.innerHTML = `
+          <span class="hobby-icon">
+            ${escapeHTML(item.icon || "⭐")}
+          </span>
+
+          <h3>
+            ${escapeHTML(item.name || "")}
+          </h3>
+        `;
+
+
+        box.appendChild(card);
+
+      });
+
+    }
+
+
+    /* =====================================================
+       PROJECTS
+    ===================================================== */
+
+    function renderProjects(
+      list,
+      enabled
+    ) {
+
+      const section =
+        $("#projects");
+
+      const box =
+        $("#projectsList");
+
+
+      if (enabled === false) {
+
+        section.style.display =
+          "none";
+
+        hideNav("navProjects");
+
+        return;
+
+      }
+
+
+      section.style.display =
+        "";
+
+
+      showNav("navProjects");
+
+
+      const items =
+        Array.isArray(list)
+          ? list.filter(isVisible)
+          : [];
+
+
+      box.innerHTML = "";
+
+
+      if (!items.length) {
+
+        box.innerHTML =
+          `<div class="empty">
+            এখনো কোনো প্রজেক্ট যোগ করা হয়নি।
+          </div>`;
+
+        return;
+
+      }
+
+
+      items.forEach(item => {
+
+        const card =
+          document.createElement("article");
+
+
+        card.className =
+          "project-card";
+
+
+        const url =
+          item.url &&
+          item.url !== "#"
+            ? item.url
+            : null;
+
+
+        card.innerHTML = `
+          <h3>
+            ${escapeHTML(item.title || "")}
+          </h3>
+
+          <p>
+            ${escapeHTML(item.description || "")}
+          </p>
+
+          ${
+            url
+              ? `
+                <a
+                  class="btn"
+                  href="${escapeHTML(url)}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  প্রজেক্ট দেখুন →
+                </a>
+              `
+              : ""
+          }
+        `;
+
+
+        box.appendChild(card);
+
+      });
+
+    }
+
+
+    /* =====================================================
+       VISION
+    ===================================================== */
+
+    function renderVision(
+      vision,
+      enabled
+    ) {
+
+      const section =
+        $("#vision");
+
+
+      if (
+        enabled === false ||
+        !isVisible(vision)
+      ) {
+
+        section.style.display =
+          "none";
+
+        return;
+
+      }
+
+
+      section.style.display =
+        "";
+
+
+      setText(
+        "visionTitle",
+        vision?.title ||
+        "আমার ভবিষ্যৎ ভাবনা"
+      );
+
+
+      setText(
+        "visionText",
+        vision?.text || ""
+      );
+
+    }
+
+
+    /* =====================================================
+       CONTACT
+    ===================================================== */
+
+    function renderContact(
+      contact,
+      enabled
+    ) {
+
+      const section =
+        $("#contact");
+
+      const box =
+        $("#contactList");
+
+
+      if (
+        enabled === false ||
+        !isVisible(contact)
+      ) {
+
+        section.style.display =
+          "none";
+
+        hideNav("navContact");
+
+        return;
+
+      }
+
+
+      section.style.display =
+        "";
+
+
+      showNav("navContact");
+
+
+      box.innerHTML = "";
+
+
+      const items = [
+
+        {
+          label: "Email",
+          value: contact?.email,
+          href:
+            contact?.email
+              ? `mailto:${contact.email}`
+              : ""
+        },
+
+        {
+          label: "Facebook",
+          value: contact?.facebook,
+          href: contact?.facebook
+        },
+
+        {
+          label: "Instagram",
+          value: contact?.instagram,
+          href: contact?.instagram
+        },
+
+        {
+          label: "GitHub",
+          value: contact?.github,
+          href: contact?.github
+        }
+
+      ];
+
+
+      items
+        .filter(item => item.value)
+        .forEach(item => {
+
+          const div =
+            document.createElement("div");
+
+
+          div.className =
+            "contact-item";
+
+
+          div.innerHTML = `
+            <span class="contact-label">
+              ${escapeHTML(item.label)}
+            </span>
+
+            <a
+              href="${escapeHTML(item.href || "#")}"
+              ${
+                item.label !== "Email"
+                  ? `target="_blank" rel="noopener"`
+                  : ""
+              }
+            >
+              ${escapeHTML(item.value)}
+            </a>
+          `;
+
+
+          box.appendChild(div);
+
+        });
+
+
+      if (!box.children.length) {
+
+        box.innerHTML =
+          `<div class="empty">
+            এখনো কোনো যোগাযোগের তথ্য যোগ করা হয়নি।
+          </div>`;
+
+      }
+
+    }
+
+
+    /* =====================================================
+       NAVIGATION
+    ===================================================== */
+
+    function updateNavigation(
+      sections
+    ) {
+
+      toggleNav(
+        "navAbout",
+        sections.about !== false
+      );
+
+      toggleNav(
+        "navEducation",
+        sections.education !== false
+      );
+
+      toggleNav(
+        "navSkills",
+        sections.skills !== false
+      );
+
+      toggleNav(
+        "navProjects",
+        sections.projects !== false
+      );
+
+      toggleNav(
+        "navContact",
+        sections.contact !== false
+      );
+
+    }
+
+
+    function toggleNav(
+      id,
+      show
+    ) {
+
+      const item =
+        $(`#${id}`);
+
+
+      if (!item) return;
+
+
+      item.style.display =
+        show ? "" : "none";
+
+    }
+
+
+    function hideNav(id) {
+      toggleNav(id, false);
+    }
+
+
+    function showNav(id) {
+      toggleNav(id, true);
+    }
+
+
+    /* =====================================================
+       MOBILE MENU
+    ===================================================== */
+
+    const menuBtn =
+      $("#menuBtn");
+
+    const navLinks =
+      $("#navLinks");
+
+
+    if (menuBtn) {
+
+      menuBtn.addEventListener(
+        "click",
+        () => {
+
+          navLinks.classList.toggle(
+            "open"
+          );
+
+        }
+      );
+
+    }
+
+
+    document
+      .querySelectorAll(
+        ".nav-links a"
+      )
+      .forEach(link => {
+
+        link.addEventListener(
+          "click",
+          () => {
+
+            navLinks.classList.remove(
+              "open"
+            );
+
+          }
+        );
+
+      });
+
+
+    /* =====================================================
+       START
+    ===================================================== */
+
+    loadPortfolio();
+
+  </script>
 
 </body>
-        </html>
+
+  </html>
