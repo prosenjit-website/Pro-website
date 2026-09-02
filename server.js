@@ -6,8 +6,9 @@ const { Pool } = require("pg");
 const app = express();
 
 const PORT = process.env.PORT || 10000;
-const DATABASE_URL = process.env.DATABASE_URL;
+const PUBLIC_DIR = path.join(__dirname, "public");
 
+const DATABASE_URL = process.env.DATABASE_URL;
 
 // =====================================================
 // DATABASE
@@ -15,16 +16,39 @@ const DATABASE_URL = process.env.DATABASE_URL;
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: DATABASE_URL ? { rejectUnauthorized: false } : false
+
+  ssl: DATABASE_URL
+    ? { rejectUnauthorized: false }
+    : false,
+
+  max: 10,
+
+  idleTimeoutMillis: 30000,
+
+  connectionTimeoutMillis: 10000
 });
 
 
 // =====================================================
-// MIDDLEWARE
+// BASIC SETTINGS
 // =====================================================
 
-app.use(express.json({ limit: "5mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.set("trust proxy", 1);
+
+app.disable("x-powered-by");
+
+app.use(
+  express.json({
+    limit: "5mb"
+  })
+);
+
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: "5mb"
+  })
+);
 
 
 // =====================================================
@@ -33,13 +57,17 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   session({
+    name: "prosenjit.sid",
+
     secret:
       process.env.SESSION_SECRET ||
-      "CHANGE_THIS_SESSION_SECRET",
+      "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET",
 
     resave: false,
 
     saveUninitialized: false,
+
+    rolling: true,
 
     cookie: {
       httpOnly: true,
@@ -57,13 +85,8 @@ app.use(
 
 
 // =====================================================
-// PUBLIC DIRECTORY
+// STATIC WEBSITE
 // =====================================================
-
-const PUBLIC_DIR = path.join(
-  __dirname,
-  "public"
-);
 
 app.use(
   express.static(PUBLIC_DIR)
@@ -76,7 +99,8 @@ app.use(
 
 const DEFAULT_SITE = {
 
-  name: "Prosenjit Ray",
+  name:
+    "Prosenjit Ray",
 
   tagline:
     "Student • Dreamer • Builder",
@@ -90,7 +114,8 @@ const DEFAULT_SITE = {
   about:
     "I am Prosenjit Ray, an Honours 1st Year student at Dinajpur Government College. This is my personal digital space where I share my story, ideas, diary, projects and future journey.",
 
-  photo: "",
+  photo:
+    "",
 
   skills: [
     "Creative Thinking",
@@ -101,54 +126,58 @@ const DEFAULT_SITE = {
 
   social: {
 
-    facebook: "",
+    facebook:
+      "",
 
-    instagram: "",
+    instagram:
+      "",
 
-    github: "",
+    whatsapp:
+      "",
 
-    email: ""
+    github:
+      "",
 
+    email:
+      ""
   },
 
   buttons: [
 
     {
-      id: "primary",
-      label: "Explore My Story",
-      url: "/about.html",
-      visible: true,
-      order: 1
+      id:
+        "primary",
+
+      label:
+        "Explore My Story",
+
+      url:
+        "/about.html",
+
+      visible:
+        true,
+
+      order:
+        1
     },
 
     {
-      id: "secondary",
-      label: "Get In Touch",
-      url: "/contact.html",
-      visible: true,
-      order: 2
+      id:
+        "secondary",
+
+      label:
+        "Get In Touch",
+
+      url:
+        "/contact.html",
+
+      visible:
+        true,
+
+      order:
+        2
     }
-
-  ],
-
-  sections: {
-
-    hero: true,
-
-    about: true,
-
-    education: true,
-
-    skills: true,
-
-    diary: true,
-
-    projects: true,
-
-    contact: true
-
-  }
-
+  ]
 };
 
 
@@ -160,12 +189,11 @@ async function initializeDatabase() {
 
   if (!DATABASE_URL) {
 
-    console.log(
-      "⚠ DATABASE_URL is not configured."
+    console.warn(
+      "WARNING: DATABASE_URL is not configured."
     );
 
     return;
-
   }
 
   try {
@@ -181,11 +209,15 @@ async function initializeDatabase() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS diary (
         id SERIAL PRIMARY KEY,
+
         title TEXT NOT NULL,
+
         content TEXT NOT NULL,
+
         date TEXT DEFAULT '',
+
         visible BOOLEAN DEFAULT TRUE,
-        sort_order INTEGER DEFAULT 0,
+
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -194,31 +226,37 @@ async function initializeDatabase() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS projects (
         id SERIAL PRIMARY KEY,
+
         title TEXT NOT NULL,
+
         description TEXT DEFAULT '',
+
         url TEXT DEFAULT '',
+
         image TEXT DEFAULT '',
+
         visible BOOLEAN DEFAULT TRUE,
+
         sort_order INTEGER DEFAULT 0,
+
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
 
-    // Existing database হলে sort_order column add করবে
-    await pool.query(`
-      ALTER TABLE diary
-      ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0
-    `);
-
-
-    const existing =
+    const site =
       await pool.query(
-        "SELECT id FROM site_content WHERE id = 1"
+        `
+        SELECT id
+        FROM site_content
+        WHERE id = 1
+        `
       );
 
 
-    if (existing.rows.length === 0) {
+    if (
+      site.rows.length === 0
+    ) {
 
       await pool.query(
         `
@@ -228,7 +266,9 @@ async function initializeDatabase() {
         (1, $1)
         `,
         [
-          JSON.stringify(DEFAULT_SITE)
+          JSON.stringify(
+            DEFAULT_SITE
+          )
         ]
       );
 
@@ -236,7 +276,7 @@ async function initializeDatabase() {
 
 
     console.log(
-      "✓ Database initialized successfully."
+      "Database initialized successfully."
     );
 
   } catch (error) {
@@ -247,12 +287,11 @@ async function initializeDatabase() {
     );
 
   }
-
 }
 
 
 // =====================================================
-// AUTH
+// ADMIN AUTH
 // =====================================================
 
 function requireAdmin(
@@ -270,72 +309,199 @@ function requireAdmin(
 
   }
 
+
   return res.status(401).json({
 
-    success: false,
+    success:
+      false,
 
-    error: "Unauthorized"
+    error:
+      "Unauthorized",
+
+    loggedIn:
+      false
 
   });
-
 }
 
 
 // =====================================================
-// GET CURRENT SITE DATA HELPER
+// HELPER
 // =====================================================
 
-async function getSiteData() {
+function cleanString(
+  value
+) {
 
-  if (!DATABASE_URL) {
+  return String(
+    value ?? ""
+  ).trim();
 
-    return DEFAULT_SITE;
+}
 
-  }
 
-  const result =
-    await pool.query(
-      "SELECT data FROM site_content WHERE id = 1"
+function normalizeSiteData(
+  oldData,
+  incomingData
+) {
+
+  const oldSite =
+    oldData || {};
+
+  const incoming =
+    incomingData || {};
+
+
+  let skills =
+    Array.isArray(
+      incoming.skills
+    )
+      ? incoming.skills
+      : Array.isArray(oldSite.skills)
+      ? oldSite.skills
+      : DEFAULT_SITE.skills;
+
+
+  skills =
+    skills
+      .map(item =>
+        cleanString(item)
+      )
+      .filter(Boolean);
+
+
+  let buttons =
+    Array.isArray(
+      incoming.buttons
+    )
+      ? incoming.buttons
+      : Array.isArray(oldSite.buttons)
+      ? oldSite.buttons
+      : DEFAULT_SITE.buttons;
+
+
+  buttons =
+    buttons.map(
+      (button, index) => {
+
+        return {
+
+          id:
+            cleanString(
+              button.id
+            ) ||
+            `button-${Date.now()}-${index}`,
+
+          label:
+            cleanString(
+              button.label
+            ) ||
+            "Button",
+
+          url:
+            cleanString(
+              button.url
+            ) ||
+            "#",
+
+          visible:
+            button.visible !== false,
+
+          order:
+            Number(
+              button.order ?? index + 1
+            )
+        };
+
+      }
     );
 
 
-  return (
-    result.rows[0]?.data ||
-    DEFAULT_SITE
+  buttons.sort(
+    (a, b) =>
+      Number(a.order) -
+      Number(b.order)
   );
 
+
+  return {
+
+    ...DEFAULT_SITE,
+
+    ...oldSite,
+
+    ...incoming,
+
+
+    name:
+      cleanString(
+        incoming.name ??
+        oldSite.name ??
+        DEFAULT_SITE.name
+      ),
+
+
+    tagline:
+      cleanString(
+        incoming.tagline ??
+        oldSite.tagline ??
+        DEFAULT_SITE.tagline
+      ),
+
+
+    college:
+      cleanString(
+        incoming.college ??
+        oldSite.college ??
+        DEFAULT_SITE.college
+      ),
+
+
+    education:
+      cleanString(
+        incoming.education ??
+        oldSite.education ??
+        DEFAULT_SITE.education
+      ),
+
+
+    about:
+      cleanString(
+        incoming.about ??
+        oldSite.about ??
+        DEFAULT_SITE.about
+      ),
+
+
+    photo:
+      cleanString(
+        incoming.photo ??
+        oldSite.photo ??
+        DEFAULT_SITE.photo
+      ),
+
+
+    skills,
+
+
+    social: {
+
+      ...DEFAULT_SITE.social,
+
+      ...(oldSite.social || {}),
+
+      ...(incoming.social || {})
+
+    },
+
+
+    buttons
+  };
 }
 
 
 // =====================================================
-// SAVE SITE DATA HELPER
-// =====================================================
-
-async function saveSiteData(data) {
-
-  await pool.query(
-    `
-    INSERT INTO site_content
-    (id, data)
-
-    VALUES
-    (1, $1)
-
-    ON CONFLICT (id)
-
-    DO UPDATE SET
-      data = EXCLUDED.data
-    `,
-    [
-      JSON.stringify(data)
-    ]
-  );
-
-}
-
-
-// =====================================================
-// PUBLIC SITE API
+// PUBLIC SITE DATA
 // =====================================================
 
 app.get(
@@ -344,26 +510,53 @@ app.get(
 
     try {
 
-      const data =
-        await getSiteData();
+      if (!DATABASE_URL) {
 
-      res.json(data);
+        return res.json(
+          DEFAULT_SITE
+        );
+
+      }
+
+
+      const result =
+        await pool.query(
+          `
+          SELECT data
+          FROM site_content
+          WHERE id = 1
+          `
+        );
+
+
+      if (
+        result.rows.length === 0
+      ) {
+
+        return res.json(
+          DEFAULT_SITE
+        );
+
+      }
+
+
+      res.json(
+        result.rows[0].data
+      );
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "GET /api/site:",
+        error.message
+      );
 
-      res.status(500).json({
 
-        success: false,
-
-        error:
-          "Unable to load site data"
-
-      });
+      res.json(
+        DEFAULT_SITE
+      );
 
     }
-
   }
 );
 
@@ -379,21 +572,19 @@ app.get(
     try {
 
       const result =
-        await pool.query(`
+        await pool.query(
+          `
           SELECT
             id,
             title,
             content,
-            date,
-            sort_order
+            date
           FROM diary
-
           WHERE visible = TRUE
-
           ORDER BY
-            sort_order ASC,
             created_at DESC
-        `);
+          `
+        );
 
 
       res.json(
@@ -402,11 +593,16 @@ app.get(
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "GET /api/diary:",
+        error.message
+      );
+
 
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to load diary"
@@ -414,7 +610,6 @@ app.get(
       });
 
     }
-
   }
 );
 
@@ -430,22 +625,21 @@ app.get(
     try {
 
       const result =
-        await pool.query(`
+        await pool.query(
+          `
           SELECT
             id,
             title,
             description,
             url,
-            image,
-            sort_order
+            image
           FROM projects
-
           WHERE visible = TRUE
-
           ORDER BY
             sort_order ASC,
             created_at DESC
-        `);
+          `
+        );
 
 
       res.json(
@@ -454,11 +648,16 @@ app.get(
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "GET /api/projects:",
+        error.message
+      );
+
 
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to load projects"
@@ -466,75 +665,132 @@ app.get(
       });
 
     }
-
   }
 );
 
 
 // =====================================================
-// ADMIN LOGIN
+// LOGIN
 // =====================================================
 
 app.post(
   "/api/admin/login",
-  (req, res) => {
+  async (req, res) => {
 
-    const adminUsername =
-      process.env.ADMIN_USERNAME ||
-      "admin";
+    try {
 
-    const adminPassword =
-      process.env.ADMIN_PASSWORD ||
-      "admin123";
+      const username =
+        process.env.ADMIN_USERNAME ||
+        "admin";
 
-
-    const username =
-      String(
-        req.body.username || ""
-      ).trim();
+      const password =
+        process.env.ADMIN_PASSWORD ||
+        "admin123";
 
 
-    const password =
-      String(
-        req.body.password || ""
+      const submittedUsername =
+        cleanString(
+          req.body.username
+        );
+
+
+      const submittedPassword =
+        String(
+          req.body.password ?? ""
+        );
+
+
+      if (
+        submittedUsername !== username ||
+        submittedPassword !== password
+      ) {
+
+        return res.status(401).json({
+
+          success:
+            false,
+
+          error:
+            "Invalid username or password"
+
+        });
+
+      }
+
+
+      req.session.admin =
+        true;
+
+
+      req.session.username =
+        username;
+
+
+      // IMPORTANT:
+      // Force session to save before responding.
+
+      req.session.save(
+        (error) => {
+
+          if (error) {
+
+            console.error(
+              "Session save error:",
+              error
+            );
+
+
+            return res.status(500).json({
+
+              success:
+                false,
+
+              error:
+                "Login session could not be saved"
+
+            });
+
+          }
+
+
+          return res.json({
+
+            success:
+              true,
+
+            loggedIn:
+              true
+
+          });
+
+        }
+      );
+
+    } catch (error) {
+
+      console.error(
+        "LOGIN ERROR:",
+        error
       );
 
 
-    if (
-      username !== adminUsername ||
-      password !== adminPassword
-    ) {
+      res.status(500).json({
 
-      return res.status(401).json({
-
-        success: false,
+        success:
+          false,
 
         error:
-          "Invalid username or password"
+          "Login failed"
 
       });
 
     }
-
-
-    req.session.admin = true;
-
-
-    res.json({
-
-      success: true,
-
-      message:
-        "Login successful"
-
-    });
-
   }
 );
 
 
 // =====================================================
-// ADMIN SESSION
+// SESSION CHECK
 // =====================================================
 
 app.get(
@@ -543,8 +799,14 @@ app.get(
 
     res.json({
 
+      success:
+        true,
+
       loggedIn:
-        req.session?.admin === true
+        !!(
+          req.session &&
+          req.session.admin === true
+        )
 
     });
 
@@ -553,20 +815,69 @@ app.get(
 
 
 // =====================================================
-// ADMIN LOGOUT
+// LOGOUT
 // =====================================================
 
 app.post(
   "/api/admin/logout",
-  requireAdmin,
   (req, res) => {
 
+    if (!req.session) {
+
+      return res.json({
+
+        success:
+          true
+
+      });
+
+    }
+
+
     req.session.destroy(
-      () => {
+      (error) => {
+
+        if (error) {
+
+          console.error(
+            "Logout error:",
+            error
+          );
+
+
+          return res.status(500).json({
+
+            success:
+              false,
+
+            error:
+              "Logout failed"
+
+          });
+
+        }
+
+
+        res.clearCookie(
+          "prosenjit.sid",
+          {
+            httpOnly:
+              true,
+
+            secure:
+              process.env.NODE_ENV ===
+              "production",
+
+            sameSite:
+              "lax"
+          }
+        );
+
 
         res.json({
 
-          success: true
+          success:
+            true
 
         });
 
@@ -578,7 +889,7 @@ app.post(
 
 
 // =====================================================
-// ADMIN GET ALL SITE CONTENT
+// ADMIN GET SITE CONTENT
 // =====================================================
 
 app.get(
@@ -588,18 +899,40 @@ app.get(
 
     try {
 
-      const data =
-        await getSiteData();
+      const result =
+        await pool.query(
+          `
+          SELECT data
+          FROM site_content
+          WHERE id = 1
+          `
+        );
 
-      res.json(data);
+
+      const data =
+        result.rows[0]?.data ||
+        DEFAULT_SITE;
+
+
+      res.json(
+        normalizeSiteData(
+          DEFAULT_SITE,
+          data
+        )
+      );
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "ADMIN CONTENT GET:",
+        error.message
+      );
+
 
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to load content"
@@ -607,13 +940,12 @@ app.get(
       });
 
     }
-
   }
 );
 
 
 // =====================================================
-// ADMIN UPDATE ALL SITE CONTENT
+// ADMIN UPDATE SITE CONTENT
 // =====================================================
 
 app.put(
@@ -623,98 +955,85 @@ app.put(
 
     try {
 
+      const result =
+        await pool.query(
+          `
+          SELECT data
+          FROM site_content
+          WHERE id = 1
+          `
+        );
+
+
       const oldData =
-        await getSiteData();
+        result.rows[0]?.data ||
+        DEFAULT_SITE;
 
 
-      const incoming =
-        req.body || {};
+      const finalData =
+        normalizeSiteData(
+          oldData,
+          req.body
+        );
 
 
-      const finalData = {
+      await pool.query(
+        `
+        INSERT INTO site_content
+        (id, data)
+        VALUES
+        (1, $1)
 
-        ...DEFAULT_SITE,
-
-        ...oldData,
-
-        ...incoming,
-
-
-        social: {
-
-          ...DEFAULT_SITE.social,
-
-          ...(oldData.social || {}),
-
-          ...(incoming.social || {})
-
-        },
-
-
-        sections: {
-
-          ...DEFAULT_SITE.sections,
-
-          ...(oldData.sections || {}),
-
-          ...(incoming.sections || {})
-
-        },
-
-
-        skills:
-          Array.isArray(incoming.skills)
-            ? incoming.skills
-            : oldData.skills,
-
-
-        buttons:
-          Array.isArray(incoming.buttons)
-            ? incoming.buttons
-            : oldData.buttons
-
-      };
-
-
-      await saveSiteData(
-        finalData
+        ON CONFLICT (id)
+        DO UPDATE SET
+          data = EXCLUDED.data
+        `,
+        [
+          JSON.stringify(
+            finalData
+          )
+        ]
       );
 
 
       res.json({
 
-        success: true,
+        success:
+          true,
 
-        data: finalData
+        data:
+          finalData
 
       });
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "ADMIN CONTENT UPDATE:",
+        error.message
+      );
+
 
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
-          "Unable to save content"
+          "Unable to save website information"
 
       });
 
     }
-
   }
 );
 
 
 // =====================================================
-// BUTTONS
-// ADD / EDIT / DELETE / SHOW-HIDE / REORDER
+// BUTTON MANAGER
 // =====================================================
 
-
-// GET BUTTONS
+// GET ALL BUTTONS
 
 app.get(
   "/api/admin/buttons",
@@ -723,27 +1042,47 @@ app.get(
 
     try {
 
+      const result =
+        await pool.query(
+          `
+          SELECT data
+          FROM site_content
+          WHERE id = 1
+          `
+        );
+
+
       const data =
-        await getSiteData();
+        result.rows[0]?.data ||
+        DEFAULT_SITE;
 
 
-      const buttons =
-        Array.isArray(data.buttons)
-          ? data.buttons
-          : [];
+      res.json({
 
+        success:
+          true,
 
-      res.json(
-        buttons.sort(
-          (a, b) =>
-            Number(a.order || 0) -
-            Number(b.order || 0)
-        )
-      );
+        buttons:
+          Array.isArray(
+            data.buttons
+          )
+            ? data.buttons
+            : []
+
+      });
 
     } catch (error) {
 
+      console.error(
+        "BUTTON GET:",
+        error.message
+      );
+
+
       res.status(500).json({
+
+        success:
+          false,
 
         error:
           "Unable to load buttons"
@@ -751,12 +1090,11 @@ app.get(
       });
 
     }
-
   }
 );
 
 
-// ADD BUTTON
+// ADD NEW BUTTON
 
 app.post(
   "/api/admin/buttons",
@@ -765,51 +1103,45 @@ app.post(
 
     try {
 
-      const data =
-        await getSiteData();
+      const result =
+        await pool.query(
+          `
+          SELECT data
+          FROM site_content
+          WHERE id = 1
+          `
+        );
+
+
+      const oldData =
+        result.rows[0]?.data ||
+        DEFAULT_SITE;
 
 
       const buttons =
-        Array.isArray(data.buttons)
-          ? data.buttons
+        Array.isArray(
+          oldData.buttons
+        )
+          ? oldData.buttons
           : [];
-
-
-      const label =
-        String(
-          req.body.label || ""
-        ).trim();
-
-
-      const url =
-        String(
-          req.body.url || ""
-        ).trim();
-
-
-      if (!label) {
-
-        return res.status(400).json({
-
-          success: false,
-
-          error:
-            "Button label is required"
-
-        });
-
-      }
 
 
       const newButton = {
 
         id:
-          "button-" +
-          Date.now(),
+          `button-${Date.now()}`,
 
-        label,
+        label:
+          cleanString(
+            req.body.label
+          ) ||
+          "New Button",
 
-        url,
+        url:
+          cleanString(
+            req.body.url
+          ) ||
+          "#",
 
         visible:
           req.body.visible !== false,
@@ -825,33 +1157,51 @@ app.post(
       );
 
 
-      data.buttons =
-        buttons;
+      const finalData =
+        normalizeSiteData(
+          oldData,
+          {
+            buttons
+          }
+        );
 
 
-      await saveSiteData(
-        data
+      await pool.query(
+        `
+        UPDATE site_content
+        SET data = $1
+        WHERE id = 1
+        `,
+        [
+          JSON.stringify(
+            finalData
+          )
+        ]
       );
 
 
       res.json({
 
-        success: true,
+        success:
+          true,
 
         button:
-          newButton,
-
-        data
+          newButton
 
       });
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "BUTTON ADD:",
+        error.message
+      );
+
 
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to add button"
@@ -859,7 +1209,6 @@ app.post(
       });
 
     }
-
   }
 );
 
@@ -873,27 +1222,43 @@ app.put(
 
     try {
 
-      const data =
-        await getSiteData();
+      const result =
+        await pool.query(
+          `
+          SELECT data
+          FROM site_content
+          WHERE id = 1
+          `
+        );
+
+
+      const oldData =
+        result.rows[0]?.data ||
+        DEFAULT_SITE;
 
 
       const buttons =
-        data.buttons || [];
+        Array.isArray(
+          oldData.buttons
+        )
+          ? oldData.buttons
+          : [];
 
 
-      const index =
-        buttons.findIndex(
-          button =>
-            String(button.id) ===
+      const button =
+        buttons.find(
+          item =>
+            String(item.id) ===
             String(req.params.id)
         );
 
 
-      if (index === -1) {
+      if (!button) {
 
         return res.status(404).json({
 
-          success: false,
+          success:
+            false,
 
           error:
             "Button not found"
@@ -903,45 +1268,96 @@ app.put(
       }
 
 
-      buttons[index] = {
+      if (
+        req.body.label !== undefined
+      ) {
 
-        ...buttons[index],
+        button.label =
+          cleanString(
+            req.body.label
+          );
 
-        ...req.body,
-
-        id:
-          buttons[index].id
-
-      };
-
-
-      data.buttons =
-        buttons;
+      }
 
 
-      await saveSiteData(
-        data
+      if (
+        req.body.url !== undefined
+      ) {
+
+        button.url =
+          cleanString(
+            req.body.url
+          );
+
+      }
+
+
+      if (
+        req.body.visible !== undefined
+      ) {
+
+        button.visible =
+          req.body.visible !== false;
+
+      }
+
+
+      if (
+        req.body.order !== undefined
+      ) {
+
+        button.order =
+          Number(
+            req.body.order
+          ) || 0;
+
+      }
+
+
+      const finalData =
+        normalizeSiteData(
+          oldData,
+          {
+            buttons
+          }
+        );
+
+
+      await pool.query(
+        `
+        UPDATE site_content
+        SET data = $1
+        WHERE id = 1
+        `,
+        [
+          JSON.stringify(
+            finalData
+          )
+        ]
       );
 
 
       res.json({
 
-        success: true,
+        success:
+          true,
 
-        button:
-          buttons[index],
-
-        data
+        button
 
       });
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "BUTTON UPDATE:",
+        error.message
+      );
+
 
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to update button"
@@ -949,7 +1365,6 @@ app.put(
       });
 
     }
-
   }
 );
 
@@ -963,50 +1378,89 @@ app.delete(
 
     try {
 
-      const data =
-        await getSiteData();
+      const result =
+        await pool.query(
+          `
+          SELECT data
+          FROM site_content
+          WHERE id = 1
+          `
+        );
 
 
-      data.buttons =
-        (data.buttons || [])
-          .filter(
-            button =>
-              String(button.id) !==
-              String(req.params.id)
-          );
+      const oldData =
+        result.rows[0]?.data ||
+        DEFAULT_SITE;
 
 
-      data.buttons =
-        data.buttons.map(
-          (button, index) => ({
+      let buttons =
+        Array.isArray(
+          oldData.buttons
+        )
+          ? oldData.buttons
+          : [];
 
-            ...button,
 
+      buttons =
+        buttons.filter(
+          item =>
+            String(item.id) !==
+            String(req.params.id)
+        );
+
+
+      buttons =
+        buttons.map(
+          (item, index) => ({
+            ...item,
             order:
               index + 1
-
           })
         );
 
 
-      await saveSiteData(
-        data
+      const finalData =
+        normalizeSiteData(
+          oldData,
+          {
+            buttons
+          }
+        );
+
+
+      await pool.query(
+        `
+        UPDATE site_content
+        SET data = $1
+        WHERE id = 1
+        `,
+        [
+          JSON.stringify(
+            finalData
+          )
+        ]
       );
 
 
       res.json({
 
-        success: true,
-
-        data
+        success:
+          true
 
       });
 
     } catch (error) {
 
+      console.error(
+        "BUTTON DELETE:",
+        error.message
+      );
+
+
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to delete button"
@@ -1014,411 +1468,6 @@ app.delete(
       });
 
     }
-
-  }
-);
-
-
-// REORDER BUTTONS
-
-app.put(
-  "/api/admin/buttons-order",
-  requireAdmin,
-  async (req, res) => {
-
-    try {
-
-      const data =
-        await getSiteData();
-
-
-      const ids =
-        Array.isArray(req.body.ids)
-          ? req.body.ids
-          : [];
-
-
-      data.buttons =
-        (data.buttons || [])
-          .sort(
-            (a, b) =>
-              ids.indexOf(a.id) -
-              ids.indexOf(b.id)
-          )
-          .map(
-            (button, index) => ({
-
-              ...button,
-
-              order:
-                index + 1
-
-            })
-          );
-
-
-      await saveSiteData(
-        data
-      );
-
-
-      res.json({
-
-        success: true,
-
-        data
-
-      });
-
-    } catch (error) {
-
-      res.status(500).json({
-
-        success: false,
-
-        error:
-          "Unable to reorder buttons"
-
-      });
-
-    }
-
-  }
-);
-
-
-// =====================================================
-// SKILLS
-// =====================================================
-
-
-// ADD SKILL
-
-app.post(
-  "/api/admin/skills",
-  requireAdmin,
-  async (req, res) => {
-
-    try {
-
-      const data =
-        await getSiteData();
-
-
-      const skill =
-        String(
-          req.body.skill || ""
-        ).trim();
-
-
-      if (!skill) {
-
-        return res.status(400).json({
-
-          success: false,
-
-          error:
-            "Skill is required"
-
-        });
-
-      }
-
-
-      if (
-        !Array.isArray(data.skills)
-      ) {
-
-        data.skills = [];
-
-      }
-
-
-      data.skills.push(
-        skill
-      );
-
-
-      await saveSiteData(
-        data
-      );
-
-
-      res.json({
-
-        success: true,
-
-        data
-
-      });
-
-    } catch (error) {
-
-      res.status(500).json({
-
-        success: false,
-
-        error:
-          "Unable to add skill"
-
-      });
-
-    }
-
-  }
-);
-
-
-// EDIT SKILL
-
-app.put(
-  "/api/admin/skills/:index",
-  requireAdmin,
-  async (req, res) => {
-
-    try {
-
-      const data =
-        await getSiteData();
-
-
-      const index =
-        Number(
-          req.params.index
-        );
-
-
-      const skill =
-        String(
-          req.body.skill || ""
-        ).trim();
-
-
-      if (
-        !Array.isArray(data.skills) ||
-        !data.skills[index]
-      ) {
-
-        return res.status(404).json({
-
-          success: false,
-
-          error:
-            "Skill not found"
-
-        });
-
-      }
-
-
-      if (!skill) {
-
-        return res.status(400).json({
-
-          success: false,
-
-          error:
-            "Skill is required"
-
-        });
-
-      }
-
-
-      data.skills[index] =
-        skill;
-
-
-      await saveSiteData(
-        data
-      );
-
-
-      res.json({
-
-        success: true,
-
-        data
-
-      });
-
-    } catch (error) {
-
-      res.status(500).json({
-
-        success: false,
-
-        error:
-          "Unable to update skill"
-
-      });
-
-    }
-
-  }
-);
-
-
-// DELETE SKILL
-
-app.delete(
-  "/api/admin/skills/:index",
-  requireAdmin,
-  async (req, res) => {
-
-    try {
-
-      const data =
-        await getSiteData();
-
-
-      const index =
-        Number(
-          req.params.index
-        );
-
-
-      if (
-        !Array.isArray(data.skills)
-      ) {
-
-        return res.status(404).json({
-
-          success: false,
-
-          error:
-            "Skills not found"
-
-        });
-
-      }
-
-
-      data.skills.splice(
-        index,
-        1
-      );
-
-
-      await saveSiteData(
-        data
-      );
-
-
-      res.json({
-
-        success: true,
-
-        data
-
-      });
-
-    } catch (error) {
-
-      res.status(500).json({
-
-        success: false,
-
-        error:
-          "Unable to delete skill"
-
-      });
-
-    }
-
-  }
-);
-
-
-// =====================================================
-// SECTION SHOW / HIDE
-// =====================================================
-
-app.put(
-  "/api/admin/sections/:section",
-  requireAdmin,
-  async (req, res) => {
-
-    try {
-
-      const data =
-        await getSiteData();
-
-
-      const section =
-        String(
-          req.params.section
-        );
-
-
-      const allowed = [
-
-        "hero",
-        "about",
-        "education",
-        "skills",
-        "diary",
-        "projects",
-        "contact"
-
-      ];
-
-
-      if (
-        !allowed.includes(section)
-      ) {
-
-        return res.status(400).json({
-
-          success: false,
-
-          error:
-            "Invalid section"
-
-        });
-
-      }
-
-
-      if (!data.sections) {
-
-        data.sections = {};
-
-      }
-
-
-      data.sections[section] =
-        req.body.visible !== false;
-
-
-      await saveSiteData(
-        data
-      );
-
-
-      res.json({
-
-        success: true,
-
-        data
-
-      });
-
-    } catch (error) {
-
-      console.error(error);
-
-      res.status(500).json({
-
-        success: false,
-
-        error:
-          "Unable to update section"
-
-      });
-
-    }
-
   }
 );
 
@@ -1427,8 +1476,7 @@ app.put(
 // DIARY ADMIN
 // =====================================================
 
-
-// LIST
+// GET DIARY
 
 app.get(
   "/api/admin/diary",
@@ -1438,14 +1486,14 @@ app.get(
     try {
 
       const result =
-        await pool.query(`
+        await pool.query(
+          `
           SELECT *
           FROM diary
-
           ORDER BY
-            sort_order ASC,
             created_at DESC
-        `);
+          `
+        );
 
 
       res.json(
@@ -1454,9 +1502,16 @@ app.get(
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "DIARY GET:",
+        error.message
+      );
+
 
       res.status(500).json({
+
+        success:
+          false,
 
         error:
           "Unable to load diary"
@@ -1464,12 +1519,11 @@ app.get(
       });
 
     }
-
   }
 );
 
 
-// ADD
+// ADD DIARY
 
 app.post(
   "/api/admin/diary",
@@ -1479,26 +1533,20 @@ app.post(
     try {
 
       const title =
-        String(
-          req.body.title || ""
-        ).trim();
+        cleanString(
+          req.body.title
+        );
 
 
       const content =
-        String(
-          req.body.content || ""
-        ).trim();
+        cleanString(
+          req.body.content
+        );
 
 
       const date =
-        String(
-          req.body.date || ""
-        ).trim();
-
-
-      const sortOrder =
-        Number(
-          req.body.sort_order || 0
+        cleanString(
+          req.body.date
         );
 
 
@@ -1509,7 +1557,8 @@ app.post(
 
         return res.status(400).json({
 
-          success: false,
+          success:
+            false,
 
           error:
             "Title and content are required"
@@ -1517,6 +1566,10 @@ app.post(
         });
 
       }
+
+
+      const visible =
+        req.body.visible !== false;
 
 
       const result =
@@ -1527,12 +1580,11 @@ app.post(
             title,
             content,
             date,
-            visible,
-            sort_order
+            visible
           )
 
           VALUES
-          ($1,$2,$3,$4,$5)
+          ($1,$2,$3,$4)
 
           RETURNING *
           `,
@@ -1540,15 +1592,15 @@ app.post(
             title,
             content,
             date,
-            req.body.visible !== false,
-            sortOrder
+            visible
           ]
         );
 
 
       res.json({
 
-        success: true,
+        success:
+          true,
 
         diary:
           result.rows[0]
@@ -1557,11 +1609,16 @@ app.post(
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "DIARY ADD:",
+        error.message
+      );
+
 
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to add diary"
@@ -1569,12 +1626,11 @@ app.post(
       });
 
     }
-
   }
 );
 
 
-// EDIT
+// EDIT DIARY
 
 app.put(
   "/api/admin/diary/:id",
@@ -1590,70 +1646,109 @@ app.put(
 
 
       const title =
-        String(
-          req.body.title || ""
-        ).trim();
+        cleanString(
+          req.body.title
+        );
 
 
       const content =
-        String(
-          req.body.content || ""
-        ).trim();
+        cleanString(
+          req.body.content
+        );
 
 
       const date =
-        String(
-          req.body.date || ""
-        ).trim();
+        cleanString(
+          req.body.date
+        );
 
 
       const visible =
         req.body.visible !== false;
 
 
-      const sortOrder =
-        Number(
-          req.body.sort_order || 0
+      if (
+        !title ||
+        !content
+      ) {
+
+        return res.status(400).json({
+
+          success:
+            false,
+
+          error:
+            "Title and content are required"
+
+        });
+
+      }
+
+
+      const result =
+        await pool.query(
+          `
+          UPDATE diary
+
+          SET
+            title = $1,
+            content = $2,
+            date = $3,
+            visible = $4
+
+          WHERE id = $5
+
+          RETURNING *
+          `,
+          [
+            title,
+            content,
+            date,
+            visible,
+            id
+          ]
         );
 
 
-      await pool.query(
-        `
-        UPDATE diary
+      if (
+        result.rows.length === 0
+      ) {
 
-        SET
-          title = $1,
-          content = $2,
-          date = $3,
-          visible = $4,
-          sort_order = $5
+        return res.status(404).json({
 
-        WHERE id = $6
-        `,
-        [
-          title,
-          content,
-          date,
-          visible,
-          sortOrder,
-          id
-        ]
-      );
+          success:
+            false,
+
+          error:
+            "Diary not found"
+
+        });
+
+      }
 
 
       res.json({
 
-        success: true
+        success:
+          true,
+
+        diary:
+          result.rows[0]
 
       });
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "DIARY UPDATE:",
+        error.message
+      );
+
 
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to update diary"
@@ -1661,12 +1756,99 @@ app.put(
       });
 
     }
-
   }
 );
 
 
-// DELETE
+// SHOW / HIDE DIARY
+
+app.patch(
+  "/api/admin/diary/:id/visibility",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const id =
+        Number(
+          req.params.id
+        );
+
+
+      const visible =
+        req.body.visible === true;
+
+
+      const result =
+        await pool.query(
+          `
+          UPDATE diary
+
+          SET
+            visible = $1
+
+          WHERE id = $2
+
+          RETURNING *
+          `,
+          [
+            visible,
+            id
+          ]
+        );
+
+
+      if (
+        result.rows.length === 0
+      ) {
+
+        return res.status(404).json({
+
+          success:
+            false,
+
+          error:
+            "Diary not found"
+
+        });
+
+      }
+
+
+      res.json({
+
+        success:
+          true,
+
+        diary:
+          result.rows[0]
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "DIARY VISIBILITY:",
+        error.message
+      );
+
+
+      res.status(500).json({
+
+        success:
+          false,
+
+        error:
+          "Unable to change visibility"
+
+      });
+
+    }
+  }
+);
+
+
+// DELETE DIARY
 
 app.delete(
   "/api/admin/diary/:id",
@@ -1675,27 +1857,61 @@ app.delete(
 
     try {
 
-      await pool.query(
-        "DELETE FROM diary WHERE id = $1",
-        [
-          Number(
-            req.params.id
-          )
-        ]
-      );
+      const id =
+        Number(
+          req.params.id
+        );
+
+
+      const result =
+        await pool.query(
+          `
+          DELETE FROM diary
+          WHERE id = $1
+          RETURNING id
+          `,
+          [
+            id
+          ]
+        );
+
+
+      if (
+        result.rows.length === 0
+      ) {
+
+        return res.status(404).json({
+
+          success:
+            false,
+
+          error:
+            "Diary not found"
+
+        });
+
+      }
 
 
       res.json({
 
-        success: true
+        success:
+          true
 
       });
 
     } catch (error) {
 
+      console.error(
+        "DIARY DELETE:",
+        error.message
+      );
+
+
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to delete diary"
@@ -1703,80 +1919,15 @@ app.delete(
       });
 
     }
-
   }
 );
 
 
 // =====================================================
-// DIARY REORDER
+// PROJECT ADMIN
 // =====================================================
 
-app.put(
-  "/api/admin/diary-order",
-  requireAdmin,
-  async (req, res) => {
-
-    try {
-
-      const ids =
-        Array.isArray(req.body.ids)
-          ? req.body.ids
-          : [];
-
-
-      for (
-        let i = 0;
-        i < ids.length;
-        i++
-      ) {
-
-        await pool.query(
-          `
-          UPDATE diary
-          SET sort_order = $1
-          WHERE id = $2
-          `,
-          [
-            i + 1,
-            Number(ids[i])
-          ]
-        );
-
-      }
-
-
-      res.json({
-
-        success: true
-
-      });
-
-    } catch (error) {
-
-      console.error(error);
-
-      res.status(500).json({
-
-        success: false,
-
-        error:
-          "Unable to reorder diary"
-
-      });
-
-    }
-
-  }
-);
-
-
-// =====================================================
-// PROJECTS ADMIN
-// =====================================================
-
-
-// LIST
+// GET PROJECTS
 
 app.get(
   "/api/admin/projects",
@@ -1786,14 +1937,16 @@ app.get(
     try {
 
       const result =
-        await pool.query(`
+        await pool.query(
+          `
           SELECT *
           FROM projects
 
           ORDER BY
             sort_order ASC,
             created_at DESC
-        `);
+          `
+        );
 
 
       res.json(
@@ -1802,9 +1955,16 @@ app.get(
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "PROJECT GET:",
+        error.message
+      );
+
 
       res.status(500).json({
+
+        success:
+          false,
 
         error:
           "Unable to load projects"
@@ -1812,12 +1972,11 @@ app.get(
       });
 
     }
-
   }
 );
 
 
-// ADD
+// ADD PROJECT
 
 app.post(
   "/api/admin/projects",
@@ -1827,40 +1986,45 @@ app.post(
     try {
 
       const title =
-        String(
-          req.body.title || ""
-        ).trim();
+        cleanString(
+          req.body.title
+        );
 
 
       const description =
-        String(
-          req.body.description || ""
-        ).trim();
+        cleanString(
+          req.body.description
+        );
 
 
       const url =
-        String(
-          req.body.url || ""
-        ).trim();
+        cleanString(
+          req.body.url
+        );
 
 
       const image =
-        String(
-          req.body.image || ""
-        ).trim();
+        cleanString(
+          req.body.image
+        );
+
+
+      const visible =
+        req.body.visible !== false;
 
 
       const sortOrder =
         Number(
-          req.body.sort_order || 0
-        );
+          req.body.sort_order
+        ) || 0;
 
 
       if (!title) {
 
         return res.status(400).json({
 
-          success: false,
+          success:
+            false,
 
           error:
             "Project title is required"
@@ -1893,7 +2057,7 @@ app.post(
             description,
             url,
             image,
-            req.body.visible !== false,
+            visible,
             sortOrder
           ]
         );
@@ -1901,7 +2065,8 @@ app.post(
 
       res.json({
 
-        success: true,
+        success:
+          true,
 
         project:
           result.rows[0]
@@ -1910,11 +2075,16 @@ app.post(
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "PROJECT ADD:",
+        error.message
+      );
+
 
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to add project"
@@ -1922,12 +2092,11 @@ app.post(
       });
 
     }
-
   }
 );
 
 
-// EDIT
+// EDIT PROJECT
 
 app.put(
   "/api/admin/projects/:id",
@@ -1942,63 +2111,123 @@ app.put(
         );
 
 
-      await pool.query(
-        `
-        UPDATE projects
+      const title =
+        cleanString(
+          req.body.title
+        );
 
-        SET
-          title = $1,
-          description = $2,
-          url = $3,
-          image = $4,
-          visible = $5,
-          sort_order = $6
 
-        WHERE id = $7
-        `,
-        [
+      const description =
+        cleanString(
+          req.body.description
+        );
 
-          String(
-            req.body.title || ""
-          ).trim(),
 
-          String(
-            req.body.description || ""
-          ).trim(),
+      const url =
+        cleanString(
+          req.body.url
+        );
 
-          String(
-            req.body.url || ""
-          ).trim(),
 
-          String(
-            req.body.image || ""
-          ).trim(),
+      const image =
+        cleanString(
+          req.body.image
+        );
 
-          req.body.visible !== false,
 
-          Number(
-            req.body.sort_order || 0
-          ),
+      const visible =
+        req.body.visible !== false;
 
-          id
 
-        ]
-      );
+      const sortOrder =
+        Number(
+          req.body.sort_order
+        ) || 0;
+
+
+      if (!title) {
+
+        return res.status(400).json({
+
+          success:
+            false,
+
+          error:
+            "Project title is required"
+
+        });
+
+      }
+
+
+      const result =
+        await pool.query(
+          `
+          UPDATE projects
+
+          SET
+            title = $1,
+            description = $2,
+            url = $3,
+            image = $4,
+            visible = $5,
+            sort_order = $6
+
+          WHERE id = $7
+
+          RETURNING *
+          `,
+          [
+            title,
+            description,
+            url,
+            image,
+            visible,
+            sortOrder,
+            id
+          ]
+        );
+
+
+      if (
+        result.rows.length === 0
+      ) {
+
+        return res.status(404).json({
+
+          success:
+            false,
+
+          error:
+            "Project not found"
+
+        });
+
+      }
 
 
       res.json({
 
-        success: true
+        success:
+          true,
+
+        project:
+          result.rows[0]
 
       });
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "PROJECT UPDATE:",
+        error.message
+      );
+
 
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to update project"
@@ -2006,12 +2235,99 @@ app.put(
       });
 
     }
-
   }
 );
 
 
-// DELETE
+// SHOW / HIDE PROJECT
+
+app.patch(
+  "/api/admin/projects/:id/visibility",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const id =
+        Number(
+          req.params.id
+        );
+
+
+      const visible =
+        req.body.visible === true;
+
+
+      const result =
+        await pool.query(
+          `
+          UPDATE projects
+
+          SET
+            visible = $1
+
+          WHERE id = $2
+
+          RETURNING *
+          `,
+          [
+            visible,
+            id
+          ]
+        );
+
+
+      if (
+        result.rows.length === 0
+      ) {
+
+        return res.status(404).json({
+
+          success:
+            false,
+
+          error:
+            "Project not found"
+
+        });
+
+      }
+
+
+      res.json({
+
+        success:
+          true,
+
+        project:
+          result.rows[0]
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "PROJECT VISIBILITY:",
+        error.message
+      );
+
+
+      res.status(500).json({
+
+        success:
+          false,
+
+        error:
+          "Unable to change visibility"
+
+      });
+
+    }
+  }
+);
+
+
+// DELETE PROJECT
 
 app.delete(
   "/api/admin/projects/:id",
@@ -2020,27 +2336,63 @@ app.delete(
 
     try {
 
-      await pool.query(
-        "DELETE FROM projects WHERE id = $1",
-        [
-          Number(
-            req.params.id
-          )
-        ]
-      );
+      const id =
+        Number(
+          req.params.id
+        );
+
+
+      const result =
+        await pool.query(
+          `
+          DELETE FROM projects
+
+          WHERE id = $1
+
+          RETURNING id
+          `,
+          [
+            id
+          ]
+        );
+
+
+      if (
+        result.rows.length === 0
+      ) {
+
+        return res.status(404).json({
+
+          success:
+            false,
+
+          error:
+            "Project not found"
+
+        });
+
+      }
 
 
       res.json({
 
-        success: true
+        success:
+          true
 
       });
 
     } catch (error) {
 
+      console.error(
+        "PROJECT DELETE:",
+        error.message
+      );
+
+
       res.status(500).json({
 
-        success: false,
+        success:
+          false,
 
         error:
           "Unable to delete project"
@@ -2048,69 +2400,35 @@ app.delete(
       });
 
     }
-
   }
 );
 
 
 // =====================================================
-// PROJECT REORDER
+// HEALTH CHECK
 // =====================================================
 
-app.put(
-  "/api/admin/projects-order",
-  requireAdmin,
-  async (req, res) => {
+app.get(
+  "/health",
+  (req, res) => {
 
-    try {
+    res.json({
 
-      const ids =
-        Array.isArray(req.body.ids)
-          ? req.body.ids
-          : [];
+      status:
+        "ok",
 
+      project:
+        "Prosenjit Ultra Pro Max",
 
-      for (
-        let i = 0;
-        i < ids.length;
-        i++
-      ) {
+      database:
+        DATABASE_URL
+          ? "configured"
+          : "not configured",
 
-        await pool.query(
-          `
-          UPDATE projects
-          SET sort_order = $1
-          WHERE id = $2
-          `,
-          [
-            i + 1,
-            Number(ids[i])
-          ]
-        );
+      time:
+        new Date().toISOString()
 
-      }
-
-
-      res.json({
-
-        success: true
-
-      });
-
-    } catch (error) {
-
-      console.error(error);
-
-      res.status(500).json({
-
-        success: false,
-
-        error:
-          "Unable to reorder projects"
-
-      });
-
-    }
+    });
 
   }
 );
@@ -2216,30 +2534,6 @@ app.get(
 
 
 // =====================================================
-// HEALTH CHECK
-// =====================================================
-
-app.get(
-  "/health",
-  (req, res) => {
-
-    res.json({
-
-      status: "ok",
-
-      project:
-        "Prosenjit Ultra Pro Max",
-
-      time:
-        new Date().toISOString()
-
-    });
-
-  }
-);
-
-
-// =====================================================
 // 404
 // =====================================================
 
@@ -2248,28 +2542,38 @@ app.use(
 
     res.status(404).send(`
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
 
+<meta charset="UTF-8">
+
 <meta
-  name="viewport"
-  content="width=device-width,initial-scale=1"
+name="viewport"
+content="width=device-width,initial-scale=1"
 >
 
 <title>404 · Prosenjit Ray</title>
 
 <style>
 
+*{
+  box-sizing:border-box;
+}
+
 body{
   margin:0;
   min-height:100vh;
+
   display:flex;
   align-items:center;
   justify-content:center;
+
   background:#05070b;
   color:#fff;
+
   font-family:Arial,sans-serif;
+
   text-align:center;
 }
 
@@ -2278,13 +2582,24 @@ body{
 }
 
 h1{
-  font-size:80px;
-  margin:0 0 10px;
+  font-size:90px;
+  margin:0;
+}
+
+p{
+  color:#999;
 }
 
 a{
-  color:#d6b46a;
+  display:inline-block;
+  margin-top:20px;
+  padding:14px 24px;
+
+  background:#d5b06a;
+  color:#111;
+
   text-decoration:none;
+  border-radius:12px;
 }
 
 </style>
@@ -2327,7 +2642,7 @@ async function startServer() {
     () => {
 
       console.log(
-        `✓ Prosenjit Ultra Pro Max running on port ${PORT}`
+        `Prosenjit Ultra Pro Max running on port ${PORT}`
       );
 
     }
