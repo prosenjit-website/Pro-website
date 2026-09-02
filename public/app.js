@@ -1,237 +1,241 @@
-// ===============================
-// PROSENJIT RAY — PREMIUM APP JS
-// ===============================
+/* =========================================
+   PROSENJIT RAY — MAIN APP
+========================================= */
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadSite();
-  setupMobileMenu();
-  setupRevealAnimation();
+
+/* NAVBAR */
+
+const navbar = document.getElementById("navbar");
+
+window.addEventListener("scroll", () => {
+
+  if (window.scrollY > 40) {
+    navbar.classList.add("scrolled");
+  } else {
+    navbar.classList.remove("scrolled");
+  }
+
 });
 
-// ===============================
-// LOAD SITE CONTENT
-// ===============================
 
-async function loadSite() {
-  try {
-    const response = await fetch("/api/site");
+/* MOBILE MENU */
 
-    if (!response.ok) {
-      throw new Error("Site API unavailable");
-    }
+const menuButton =
+  document.getElementById("menuButton");
 
-    const data = await response.json();
+const mobileMenu =
+  document.getElementById("mobileMenu");
 
-    // Text fields
-    setText("[data-site='name']", data.name);
-    setText("[data-site='tagline']", data.tagline);
-    setText("[data-site='college']", data.college);
-    setText("[data-site='education']", data.education);
-    setText("[data-site='about']", data.about);
 
-    // Profile photo
-    document.querySelectorAll("[data-site-photo]").forEach((img) => {
-      if (data.photo) {
-        img.src = data.photo;
-      }
+if (menuButton && mobileMenu) {
+
+  menuButton.addEventListener("click", () => {
+
+    mobileMenu.classList.toggle("open");
+
+  });
+
+}
+
+
+document
+  .querySelectorAll(".mobile-menu a")
+  .forEach(link => {
+
+    link.addEventListener("click", () => {
+
+      mobileMenu.classList.remove("open");
+
     });
 
-    // Skills
-    const skillsBox = document.querySelector("[data-skills]");
+  });
 
-    if (skillsBox && Array.isArray(data.skills)) {
-      skillsBox.innerHTML = "";
 
-      data.skills.forEach((skill) => {
-        const item = document.createElement("span");
-        item.className = "skill";
-        item.textContent = skill;
-        skillsBox.appendChild(item);
+/* REVEAL ANIMATION */
+
+const revealElements =
+  document.querySelectorAll(".reveal");
+
+
+const revealObserver =
+  new IntersectionObserver(
+
+    entries => {
+
+      entries.forEach(entry => {
+
+        if (entry.isIntersecting) {
+
+          entry.target.classList.add("show");
+
+          revealObserver.unobserve(
+            entry.target
+          );
+
+        }
+
       });
+
+    },
+
+    {
+      threshold: 0.10
     }
 
-    // Social links
-    if (data.social) {
-      document.querySelectorAll("[data-social]").forEach((link) => {
-        const key = link.dataset.social;
+  );
 
-        if (data.social[key]) {
-          link.href = data.social[key];
-        } else {
-          link.style.display = "none";
-        }
-      });
+
+revealElements.forEach(element => {
+
+  revealObserver.observe(element);
+
+});
+
+
+/* DIARY READER */
+
+const reader =
+  document.getElementById("reader");
+
+const readerTitle =
+  document.getElementById("readerTitle");
+
+const readerText =
+  document.getElementById("readerText");
+
+const readerChapter =
+  document.getElementById("readerChapter");
+
+const closeReader =
+  document.getElementById("closeReader");
+
+
+document
+  .querySelectorAll(".diary-open")
+  .forEach(button => {
+
+    button.addEventListener("click", () => {
+
+      readerTitle.textContent =
+        button.dataset.title;
+
+      readerText.textContent =
+        button.dataset.text;
+
+      const card =
+        button.closest(".diary-card");
+
+      readerChapter.textContent =
+        card.querySelector(".diary-date").textContent;
+
+      reader.classList.add("open");
+
+      document.body.style.overflow =
+        "hidden";
+
+    });
+
+  });
+
+
+function closeDiary() {
+
+  reader.classList.remove("open");
+
+  document.body.style.overflow = "";
+
+}
+
+
+if (closeReader) {
+
+  closeReader.addEventListener(
+    "click",
+    closeDiary
+  );
+
+}
+
+
+if (reader) {
+
+  reader.addEventListener("click", event => {
+
+    if (event.target === reader) {
+
+      closeDiary();
+
     }
 
-    // Homepage buttons
-    if (Array.isArray(data.buttons)) {
-      data.buttons.forEach((button, index) => {
-        const element = document.querySelector(
-          `[data-button="${index}"]`
-        );
+  });
 
-        if (!element) return;
+}
 
-        if (button.show === false) {
-          element.style.display = "none";
-          return;
-        }
 
-        if (button.text) {
-          element.textContent = button.text;
-        }
+/* ESCAPE */
 
-        if (button.link) {
-          element.href = button.link;
-        }
-      });
-    }
+document.addEventListener("keydown", event => {
 
-    document.dispatchEvent(
-      new CustomEvent("siteLoaded", {
-        detail: data
-      })
+  if (event.key === "Escape") {
+
+    closeDiary();
+
+  }
+
+});
+
+
+/* CURRENT YEAR */
+
+const year =
+  document.getElementById("year");
+
+
+if (year) {
+
+  year.textContent =
+    new Date().getFullYear();
+
+}
+
+
+/* =========================================
+   OPTIONAL BACKEND CONNECTION
+========================================= */
+
+async function loadSiteData() {
+
+  try {
+
+    const response =
+      await fetch("/api/site");
+
+    if (!response.ok) return;
+
+    const data =
+      await response.json();
+
+    /*
+      Admin panel-এর data থাকলে
+      ভবিষ্যতে এখান থেকে homepage
+      automatically update করা যাবে।
+    */
+
+    console.log(
+      "Site data loaded:",
+      data
     );
 
   } catch (error) {
-    console.log("Using default website content.");
-  }
-}
 
-// ===============================
-// TEXT HELPER
-// ===============================
+    console.log(
+      "Site API unavailable:",
+      error
+    );
 
-function setText(selector, value) {
-  if (!value) return;
-
-  document.querySelectorAll(selector).forEach((element) => {
-    element.textContent = value;
-  });
-}
-
-// ===============================
-// MOBILE MENU
-// ===============================
-
-function setupMobileMenu() {
-  const menuButton = document.querySelector(".menu-btn");
-  const mobileMenu = document.querySelector(".mobile-menu");
-
-  if (!menuButton || !mobileMenu) return;
-
-  menuButton.addEventListener("click", () => {
-    mobileMenu.classList.toggle("active");
-
-    const isOpen = mobileMenu.classList.contains("active");
-
-    menuButton.setAttribute("aria-expanded", isOpen);
-
-    menuButton.textContent = isOpen ? "×" : "☰";
-  });
-
-  mobileMenu.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", () => {
-      mobileMenu.classList.remove("active");
-      menuButton.textContent = "☰";
-      menuButton.setAttribute("aria-expanded", "false");
-    });
-  });
-}
-
-// ===============================
-// SCROLL REVEAL
-// ===============================
-
-function setupRevealAnimation() {
-  const elements = document.querySelectorAll(".reveal");
-
-  if (!elements.length) return;
-
-  if (!("IntersectionObserver" in window)) {
-    elements.forEach((element) => {
-      element.classList.add("show");
-    });
-
-    return;
   }
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("show");
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    {
-      threshold: 0.12
-    }
-  );
-
-  elements.forEach((element) => {
-    observer.observe(element);
-  });
 }
 
-// ===============================
-// ACTIVE NAVIGATION
-// ===============================
 
-function setActiveNav() {
-  const currentPage =
-    window.location.pathname.split("/").pop() || "index.html";
-
-  document.querySelectorAll(".nav-links a").forEach((link) => {
-    const linkPage = link.getAttribute("href");
-
-    if (
-      linkPage === currentPage ||
-      (currentPage === "" && linkPage === "index.html")
-    ) {
-      link.classList.add("active");
-    }
-  });
-}
-
-setActiveNav();
-
-// ===============================
-// SMOOTH ANCHOR
-// ===============================
-
-document.querySelectorAll("a[href^='#']").forEach((link) => {
-  link.addEventListener("click", (event) => {
-    const targetId = link.getAttribute("href");
-
-    if (!targetId || targetId === "#") return;
-
-    const target = document.querySelector(targetId);
-
-    if (target) {
-      event.preventDefault();
-
-      target.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }
-  });
-});
-
-// ===============================
-// YEAR
-// ===============================
-
-document.querySelectorAll("[data-year]").forEach((element) => {
-  element.textContent = new Date().getFullYear();
-});
-
-// ===============================
-// PAGE LOADER
-// ===============================
-
-window.addEventListener("load", () => {
-  document.body.classList.add("loaded");
-});
+loadSiteData();
