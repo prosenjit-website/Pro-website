@@ -1,275 +1,280 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
 
-  <meta charset="UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+<title>যোগাযোগ — প্রসেনজিৎ রায়</title>
 
-  <title>Contact — Prosenjit Ray</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <meta
-    name="description"
-    content="Contact Prosenjit Ray."
-  >
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="style.css">
+
+<style>
+
+.contact-page{
+padding:150px 0 100px;
+}
+
+.label{
+color:#c9a86a;
+font-size:12px;
+letter-spacing:3px;
+}
+
+h1{
+font-family:"Noto Serif Bengali",serif;
+font-size:clamp(45px,8vw,90px);
+line-height:1.1;
+margin:20px 0;
+}
+
+.intro{
+max-width:650px;
+color:#8f98a7;
+line-height:2;
+}
+
+.contact-layout{
+display:grid;
+grid-template-columns:.8fr 1.2fr;
+gap:60px;
+margin-top:70px;
+}
+
+.contact-list{
+display:grid;
+gap:12px;
+}
+
+.contact-card{
+padding:20px;
+border:1px solid rgba(255,255,255,.09);
+border-radius:18px;
+background:rgba(255,255,255,.035);
+transition:.3s;
+}
+
+.contact-card:hover{
+transform:translateX(7px);
+border-color:rgba(201,168,106,.4);
+}
+
+.contact-card small{
+display:block;
+color:#8f98a7;
+font-size:10px;
+}
+
+.contact-card strong{
+display:block;
+margin-top:5px;
+}
+
+.form{
+display:grid;
+gap:13px;
+}
+
+.input{
+width:100%;
+padding:17px;
+background:rgba(255,255,255,.035);
+border:1px solid rgba(255,255,255,.09);
+border-radius:14px;
+color:white;
+outline:none;
+font:inherit;
+}
+
+textarea.input{
+min-height:170px;
+resize:vertical;
+}
+
+.btn{
+padding:15px 23px;
+border-radius:999px;
+border:1px solid #c9a86a;
+background:#c9a86a;
+color:#090b0e;
+font-weight:700;
+cursor:pointer;
+}
+
+@media(max-width:750px){
+.contact-layout{
+grid-template-columns:1fr;
+}
+}
+
+</style>
 
 </head>
 
-
 <body>
 
-<header class="navbar">
+<header class="navbar" id="navbar">
 
-  <div class="nav-inner">
+<a href="index.html" class="brand">
+প্রসেনজিৎ<span>.</span>
+</a>
 
-    <a href="/" class="logo">
-      Prosenjit<span>.</span>
-    </a>
+<nav class="nav-links">
+<a href="index.html">হোম</a>
+<a href="about.html">আমার সম্পর্কে</a>
+<a href="education.html">শিক্ষাজীবন</a>
+<a href="diary.html">ডায়েরি</a>
+<a href="projects.html">প্রকল্প</a>
+<a href="contact.html" class="nav-contact active">যোগাযোগ</a>
+</nav>
 
-
-    <nav class="nav-links">
-
-      <a href="/">Home</a>
-      <a href="/about.html">About</a>
-      <a href="/education.html">Education</a>
-      <a href="/diary.html">Diary</a>
-      <a href="/projects.html">Projects</a>
-      <a href="/contact.html">Contact</a>
-
-    </nav>
-
-
-    <button
-      class="menu-btn"
-      type="button"
-      aria-label="Open menu"
-      aria-expanded="false"
-    >
-      ☰
-    </button>
-
-  </div>
-
-
-  <div class="mobile-menu">
-
-    <a href="/">Home</a>
-    <a href="/about.html">About</a>
-    <a href="/education.html">Education</a>
-    <a href="/diary.html">Diary</a>
-    <a href="/projects.html">Projects</a>
-    <a href="/contact.html">Contact</a>
-
-  </div>
+<button class="menu-button" id="menuButton">⋮</button>
 
 </header>
 
+<div class="mobile-menu" id="mobileMenu">
+<a href="index.html">হোম</a>
+<a href="about.html">আমার সম্পর্কে</a>
+<a href="education.html">শিক্ষাজীবন</a>
+<a href="diary.html">ডায়েরি</a>
+<a href="projects.html">প্রকল্প</a>
+<a href="contact.html">যোগাযোগ</a>
+</div>
 
 <main>
 
-  <section class="page-hero">
+<section class="contact-page">
 
-    <div class="container reveal">
+<div class="container">
 
-      <div class="eyebrow">
-        Get In Touch
-      </div>
+<div class="label">০৭ — যোগাযোগ</div>
 
-      <h1>
-        Let's start a<br>
-        <span>conversation.</span>
-      </h1>
+<h1>
+চলো<br>
+<span style="color:#c9a86a">কথা বলি।</span>
+</h1>
 
-      <p>
-        Whether you want to connect, collaborate or simply say hello,
-        you can find me through the links below.
-      </p>
+<p class="intro">
+কোনো কথা বলতে চাইলে, সহযোগিতা করতে চাইলে
+অথবা শুধু পরিচিত হতে চাইলে যোগাযোগ করতে পারো।
+</p>
 
-    </div>
+<div class="contact-layout">
 
-  </section>
+<div class="contact-list">
 
+<a class="contact-card"
+href="https://facebook.com/YOUR_USERNAME"
+target="_blank">
 
-  <section>
+<small>ফেসবুক</small>
+<strong>ফেসবুকে যোগাযোগ করুন →</strong>
 
-    <div class="container">
+</a>
 
-      <div class="about-grid">
+<a class="contact-card"
+href="https://x.com/YOUR_USERNAME"
+target="_blank">
 
+<small>এক্স</small>
+<strong>এক্স-এ অনুসরণ করুন →</strong>
 
-        <!-- CONTACT CARD -->
+</a>
 
-        <div class="glass content-card reveal">
+<a class="contact-card"
+href="https://wa.me/8801XXXXXXXXX"
+target="_blank">
 
-          <div class="eyebrow">
-            Connect
-          </div>
+<small>হোয়াটসঅ্যাপ</small>
+<strong>হোয়াটসঅ্যাপে কথা বলুন →</strong>
 
-          <h2>
-            Find me online.
-          </h2>
+</a>
 
-          <p>
-            My social profiles can be connected from the admin panel.
-            Update the links whenever you want.
-          </p>
+<a class="contact-card"
+href="mailto:yourmail@gmail.com">
 
-          <br>
+<small>ই-মেইল</small>
+<strong>yourmail@gmail.com</strong>
 
+</a>
 
-          <div class="hero-buttons">
+</div>
 
-            <a
-              href="#"
-              data-social="facebook"
-              class="btn btn-primary"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Facebook →
-            </a>
+<form class="form" id="contactForm">
 
-            <a
-              href="#"
-              data-social="instagram"
-              class="btn btn-outline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Instagram →
-            </a>
+<input
+class="input"
+type="text"
+placeholder="তোমার নাম"
+required
+>
 
-          </div>
+<input
+class="input"
+type="email"
+placeholder="তোমার ই-মেইল"
+required
+>
 
-          <br>
+<textarea
+class="input"
+placeholder="তোমার বার্তা লিখো..."
+required
+></textarea>
 
-          <a
-            href="#"
-            data-social="github"
-            class="btn btn-outline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            GitHub →
-          </a>
+<button class="btn" type="submit">
+বার্তা পাঠাও →
+</button>
 
-        </div>
+</form>
 
+</div>
 
-        <!-- MESSAGE -->
+</div>
 
-        <div class="glass content-card reveal">
-
-          <div class="eyebrow">
-            A Note
-          </div>
-
-          <h2>
-            Keep in touch.
-          </h2>
-
-          <p>
-            This website is a small representation of my journey.
-            As I learn and grow, I will keep improving it with new
-            ideas, projects and experiences.
-          </p>
-
-          <br>
-
-          <p>
-            Thanks for visiting my personal space.
-          </p>
-
-        </div>
-
-      </div>
-
-
-      <div style="height:25px;"></div>
-
-
-      <!-- FINAL CTA -->
-
-      <div class="glass cta reveal">
-
-        <h2>
-          Thanks for<br>
-          visiting.
-        </h2>
-
-        <p>
-          Explore the rest of my website and follow my journey.
-        </p>
-
-        <div class="hero-buttons">
-
-          <a
-            href="/"
-            class="btn btn-primary"
-          >
-            Back Home →
-          </a>
-
-          <a
-            href="/diary.html"
-            class="btn btn-outline"
-          >
-            Read Diary
-          </a>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  </section>
+</section>
 
 </main>
 
-
 <footer>
 
-  <div class="container footer-inner">
+<div class="container footer-inner">
 
-    <div class="footer-text">
-      © <span data-year></span> Prosenjit Ray.
-      Built with ambition.
-    </div>
+<p>
+© <span id="year"></span> প্রসেনজিৎ রায়
+</p>
 
-    <div class="socials">
+<p>
+যোগাযোগ করতে সবসময় স্বাগতম।
+</p>
 
-      <a
-        href="#"
-        data-social="facebook"
-        aria-label="Facebook"
-      >f</a>
-
-      <a
-        href="#"
-        data-social="instagram"
-        aria-label="Instagram"
-      >◎</a>
-
-      <a
-        href="#"
-        data-social="github"
-        aria-label="GitHub"
-      >◇</a>
-
-    </div>
-
-  </div>
+</div>
 
 </footer>
 
+<script src="app.js"></script>
 
-<script src="/app.js"></script>
+<script>
+
+document.getElementById("contactForm")
+.addEventListener("submit",function(e){
+
+e.preventDefault();
+
+alert(
+"ধন্যবাদ! তোমার বার্তাটি গ্রহণ করা হয়েছে।"
+);
+
+this.reset();
+
+});
+
+</script>
 
 </body>
 </html>
